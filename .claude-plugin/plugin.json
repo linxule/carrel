@@ -1,0 +1,18 @@
+{
+  "name": "carrel",
+  "displayName": "Carrel",
+  "version": "0.1.0",
+  "description": "AI-augmented research environment. Interview-first onboarding, Obsidian vault setup, document conversion, and ongoing research tools for academics.",
+  "author": {
+    "name": "Xule Lin (Imperial College London)"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/linxule/carrel",
+  "repository": "https://github.com/linxule/carrel",
+  "keywords": ["research", "obsidian", "academic", "onboarding", "document-conversion"],
+  "commands": "commands/",
+  "agents": "agents/",
+  "skills": "skills/",
+  "hooks": "hooks/hooks.json",
+  "mcpServers": ".mcp.json"
+}
