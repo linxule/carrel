@@ -1,38 +1,27 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import time
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-from carrel.cli import emit_carrel_error, normalize_path, resolve_cloud_consent, resolve_vault
+from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
-from carrel.convert.adapters.liteparse import convert_with_liteparse
-from carrel.convert.adapters.markdownify import convert_with_markdownify
-from carrel.convert.adapters.mineru import convert_with_mineru
 from carrel.convert.filer import file_paper
-from carrel.convert.router import select_convert_tool
-from carrel.env.audit import audit
+from carrel.convert.pipeline import (
+    run_convert_pipeline as run_convert_pipeline_for_file,
+)
+from carrel.convert.pipeline import (
+    select_convert_tool_only as select_convert_tool_only_for_file,
+)
 from carrel.env.profile import read_profile
-from carrel.errors import CarrelError, ToolNotConfigured
+from carrel.errors import CarrelError
 from carrel.models import ConvertResult, ConvertTool, Sensitivity
 
 app = typer.Typer(help="Paper conversion and listing")
 console = Console()
-
-
-async def _convert(file: Path, tool: ConvertTool) -> tuple[str, dict]:
-    if tool == ConvertTool.LITEPARSE:
-        return await convert_with_liteparse(file)
-    if tool == ConvertTool.MINERU:
-        api_key = os.environ.get("MINERU_API_KEY")
-        if not api_key:
-            raise ToolNotConfigured("mineru", "MINERU_API_KEY")
-        return await convert_with_mineru(file=file, api_key=api_key)
-    return await convert_with_markdownify(file)
 
 
 async def _select_convert_tool_only(
@@ -42,15 +31,7 @@ async def _select_convert_tool_only(
     sensitivity: Sensitivity | None,
     tool: ConvertTool | None,
 ) -> ConvertTool:
-    audit_result = await audit(vault_path)
-    return select_convert_tool(
-        file=file_path,
-        sensitivity=sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM),
-        hardware=audit_result.hardware_capability,
-        tools=audit_result.tools,
-        cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
-        explicit_tool=tool,
-    )
+    return await select_convert_tool_only_for_file(file_path, vault_path, profile, sensitivity, tool)
 
 
 async def _run_convert_pipeline(
@@ -60,9 +41,7 @@ async def _run_convert_pipeline(
     sensitivity: Sensitivity | None,
     tool: ConvertTool | None,
 ) -> tuple[ConvertTool, str, dict]:
-    selected_tool = await _select_convert_tool_only(file_path, vault_path, profile, sensitivity, tool)
-    content, metadata = await _convert(file_path, selected_tool)
-    return selected_tool, content, metadata
+    return await run_convert_pipeline_for_file(file_path, vault_path, profile, sensitivity, tool)
 
 
 @app.command("convert")

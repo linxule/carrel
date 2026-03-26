@@ -10,6 +10,7 @@ def test_scaffold_vault_creates_structure_and_profile(tmp_path) -> None:
     assert result.profile_path == result.vault / ".carrel" / "environment.json"
     assert result.profile_path.exists()
     assert (result.vault / "_templates" / "paper.md").exists()
+    assert (result.vault / "_templates" / "paper-notes.md").exists()
     assert (result.vault / ".obsidian" / "app.json").exists()
     assert (result.vault / "_meta" / "cheat_sheet.md").exists()
 

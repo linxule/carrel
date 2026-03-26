@@ -1,6 +1,6 @@
 import pytest
 
-from carrel.errors import ToolNotConfigured, ToolNotInstalled
+from carrel.errors import ToolNotInstalled
 from carrel.models import (
     ApiKeyStatus,
     BinaryInfo,
@@ -45,15 +45,14 @@ def test_transcribe_router_uses_gemini_for_youtube_with_cloud_consent() -> None:
     assert tool == TranscribeTool.GEMINI
 
 
-def test_transcribe_router_errors_for_youtube_without_gemini() -> None:
-    with pytest.raises(ToolNotConfigured) as exc:
-        select_transcribe_tool(
-            source="https://youtu.be/abc123",
-            sensitivity=Sensitivity.MEDIUM,
-            hardware=HardwareCapability.MEDIUM,
-            tools=make_tools(),
-        )
-    assert exc.value.hint is not None
+def test_transcribe_router_falls_back_to_local_youtube_captions() -> None:
+    tool = select_transcribe_tool(
+        source="https://youtu.be/abc123",
+        sensitivity=Sensitivity.MEDIUM,
+        hardware=HardwareCapability.MEDIUM,
+        tools=make_tools(),
+    )
+    assert tool == TranscribeTool.YOUTUBE_CAPTIONS
 
 
 def test_transcribe_router_prefers_coli_for_audio_files() -> None:

@@ -10,11 +10,12 @@ The bootstrap script (`bootstrap.sh`) handles machine-level prerequisites before
 |------|---------|---------|
 | Xcode CLI tools | git, compilers | `xcode-select --install` |
 | Homebrew | package manager | Official installer |
-| Node.js | MCP servers (npx) | `brew install node` |
+| Node.js | runtime for some tools | `brew install node` |
+| bun | fast JS runtime (required for coli, defuddle) | `brew install bun` |
 | uv | Python tools | `brew install uv` |
-| gh | GitHub CLI | `brew install gh` |
+| gh | GitHub | `brew install gh` |
 
-See `references/toolchain-guide.md` for the full toolchain policy (what to install, what to avoid).
+See `references/toolchain-guide.md` for the full toolchain policy.
 
 ## Core (Always Install)
 
@@ -22,11 +23,12 @@ These are set up for every researcher regardless of answers:
 
 | Component | Method | Notes |
 |-----------|--------|-------|
-| Vault folder structure | `create-vault.js` | Customized based on field |
-| `.obsidian/` config | `create-vault.js` | Core plugins, templates |
+| Vault folder structure | `carrel vault init` | Customized based on field |
+| `.obsidian/` config | `carrel vault init` | Core plugins, templates |
 | `CLAUDE.md` | Generated | Researcher profile + guidelines |
 | Cheat sheet | `generate-cheatsheet.js` | Reference card in `_meta/` |
-| markdownify-mcp | Plugin `.mcp.json` | Already bundled — PDF, Word, web, audio |
+| liteparse | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` | Local PDF conversion — always install |
+| markitdown | Auto-installed with carrel | Office docs (Word, PowerPoint, Excel), EPUB, Jupyter |
 
 ## Sensitivity Assessment
 
@@ -34,19 +36,20 @@ These are set up for every researcher regardless of answers:
 Interview: "Do you work with sensitive data?"
 
 → HIGH (IRB data, interview transcripts, unpublished manuscripts):
-  - Set cloud_comfort to "local_only" in environment.json
-  - CLAUDE.md: "ALWAYS warn before using any cloud API"
-  - Default to local conversion tools
-  - Flag mineru-mcp as cloud-based if using API mode
-  - Note: markdownify-mcp runs locally — safe for sensitive data
+  - Set cloud_consent to "local_only" in environment.json
+  - CLAUDE.md: "ALWAYS warn before using any cloud service"
+  - Default to local conversion tools only
+  - liteparse (PDF), coli (audio), markitdown (Office docs) are all local — safe
+  - mineru (cloud PDF service) not available in this profile
+  - groq (cloud transcription) not available in this profile
 
 → MEDIUM (unpublished drafts, but no IRB/participant data):
-  - Set cloud_comfort to "prefer_local"
+  - Set cloud_consent to "prefer_local"
   - CLAUDE.md: "Prefer local tools. Ask before cloud processing."
-  - Cloud tools available but not default
+  - Cloud tools available but not default; researcher must confirm
 
 → LOW (published papers, public materials, course content):
-  - Set cloud_comfort to "comfortable_with_cloud"
+  - Set cloud_consent to "comfortable_with_cloud"
   - CLAUDE.md: "Cloud and local tools both available"
   - Can use all tools freely
 ```
@@ -58,9 +61,9 @@ Interview: "Do you use a reference manager?"
 
 → ZOTERO:
   - Check if Zotero app is installed (hardware audit)
-  - Add zotero-mcp to project .mcp.json
+  - Add zotero to project configuration
   - Need: ZOTERO_API_KEY, ZOTERO_LIBRARY_ID
-  - Guide through API key setup (docs/api-keys-guide.md)
+  - Guide through key setup (see API Key Storage section below)
   - If they're not ready now: note as "available later" in environment.json
 
 → MENDELEY / ENDNOTE:
@@ -81,60 +84,96 @@ Interview: "Do you record meetings or interviews?"
 
   → SENSITIVE DATA (IRB interviews, participant recordings):
     - MUST use local transcription only
-    - Capable hardware (Apple Silicon, 16GB+):
-      Add mlx-whisper-mcp to project .mcp.json
-    - Weak hardware:
-      Note limitation — local transcription may be slow
-      markdownify audio-to-markdown as fallback (basic quality)
+    - Install coli (works on all Macs, local, free):
+        bun add -g @marswave/coli
     - Install ffmpeg if not present: brew install ffmpeg
+    - Note: coli runs entirely on your machine — nothing leaves it
 
-  → NOT SENSITIVE + CAPABLE HARDWARE:
-    - Add mlx-whisper-mcp (local, fast, free)
-    - Note Groq Whisper as cloud option for large batches
-    - Install ffmpeg if not present
-
-  → NOT SENSITIVE + WEAK HARDWARE:
-    - Configure Groq Whisper (cloud, $0.04/hr, fastest)
-    - Needs GROQ_API_KEY — guide through setup
-    - markdownify as fallback
-
-  → YOUTUBE / VIDEO LECTURES:
-    - If vox-mcp configured with Gemini: YouTube URLs go straight to Gemini
-      (one-step, no download, multimodal — uses audio + visual cues)
-    - If no vox: markdownify youtube-to-markdown (captions only)
+  → NOT SENSITIVE:
+    - Install coli for local transcription (default):
+        bun add -g @marswave/coli
+        brew install ffmpeg
+    - Offer groq as a cloud option for large batches or faster turnaround:
+        "There's also a fast cloud service (Groq) — useful if you have a lot of
+        recordings. It adds timestamps. Needs a free account."
+        GROQ_API_KEY from console.groq.com (free tier available)
+        Complexity: LOW friction
 
 → NO:
   - Skip transcription setup
   - Note: available later if needed
 ```
 
+## YouTube Transcription
+
+```
+Interview: "Do you use YouTube lectures, talks, or video courses?"
+
+→ YES:
+  Two options — present both, let researcher choose:
+
+  → LOCAL (default — captions with timestamps):
+    - Uses youtube-transcript-api (auto-installed with carrel)
+    - Works immediately, no account needed, free
+    - Pulls available captions with timestamps
+    - Best for: English-captioned lectures, conference talks
+    - Limitation: quality depends on the video's captions
+
+  → CLOUD (Gemini — AI-processed transcription):
+    - Gemini reads the video directly — better for non-captioned videos,
+      foreign language content, or when you need higher accuracy
+    - Needs a free Gemini key from ai.google.dev
+    - Complexity: LOW friction
+    - Researcher uses: carrel transcript create <youtube-url> --tool gemini
+    - "Using --tool gemini is how you tell it to use the cloud service.
+      No separate setting needed."
+
+→ NO:
+  - Skip. youtube-transcript-api is already installed — available anytime.
+```
+
+## Web Capture
+
+```
+Interview: "Do you save articles or web pages to read later?"
+
+→ YES:
+  - Install defuddle (smart content extraction, strips navigation and ads):
+      bun add -g defuddle
+  - Complexity: ZERO friction — one command, works immediately
+  - Researcher workflow: drop a URL into the chat, carrel saves it as clean text
+  - "It pulls the article text and discards everything else — no ads, no menus."
+
+→ NO:
+  - Skip. defuddle is lightweight — install anyway if they're unsure.
+```
+
 ## Post-Interview Tool Installation
 
-After the interview, install additional tools based on what the researcher needs. Follow `references/toolchain-guide.md` strictly — never install conda, pyenv, npm alternatives, etc.
+After the interview, install additional tools based on what the researcher needs. Follow `references/toolchain-guide.md` strictly — never install conda, pyenv, npm, or pip directly.
 
 ```
 Interview results → Install silently:
 
 → Works with PDFs (almost every researcher):
   - brew tap run-llama/liteparse && brew install llamaindex-liteparse
-  - Local, free, no API key. Always install this.
+  - Local, free, no account. Always install this.
 
 → Records audio (interviews, meetings):
   - brew install ffmpeg (if not present)
-  - npm i -g @marswave/coli (local ASR — works on all Macs including older ones)
+  - bun add -g @marswave/coli (local transcription — works on all Macs)
 
-→ Needs vox-mcp (multi-model access):
-  - uv is already installed via bootstrap
-  - No additional Python setup needed
+→ Saves web pages or articles:
+  - bun add -g defuddle
 
-→ Works with LaTeX or EPUB:
-  - brew install pandoc
+→ Works with Word, PowerPoint, Excel, EPUB, Jupyter notebooks:
+  - markitdown is auto-installed with carrel — nothing extra needed
 
-→ Everything else:
-  - Node.js + markdownify-mcp covers it (already installed)
+→ Needs multi-model access (Gemini, GPT, etc.):
+  - uv is already installed via bootstrap — no additional setup
 ```
 
-Summarize installations in plain language: "I set up a tool to handle your audio files" — not "I installed ffmpeg via Homebrew."
+Summarize installations in plain language: "I set up a tool to handle your audio files" — not "I installed coli via bun."
 
 ## PDF Handling
 
@@ -142,22 +181,58 @@ Summarize installations in plain language: "I set up a tool to handle your audio
 Interview: "What kinds of files do you work with most?"
 + Hardware audit + Sensitivity check
 
-→ ALWAYS install LiteParse (local, free, no API key):
+→ ALWAYS install liteparse (local, free, no account):
   brew tap run-llama/liteparse && brew install llamaindex-liteparse
   Handles most academic papers well. Fast (~500 pages/2 sec). Sensitive-data safe.
 
 → COMPLEX PDFs (scanned, tables, multi-column, figures, formulas):
   + NOT SENSITIVE:
-    - Also add mineru-mcp for best quality on complex cases
-    - Need: MINERU_API_KEY from mineru.net
-    - "For complex papers with tables and figures, I'll use a cloud service
-      that handles them much better."
+    - Offer mineru as a higher-quality cloud option for complex cases
+    - "For papers with dense tables and figures, there's a cloud service that
+      handles them much better. It requires a free account."
+    - MINERU_API_KEY from mineru.net (free signup)
+    - Complexity: MEDIUM friction (signup required)
+    - Researcher uses: carrel paper convert paper.pdf --tool mineru
+    - "Using --tool mineru is how you tell it to use the cloud service."
   + SENSITIVE (IRB data, confidential docs):
-    - LiteParse only — no cloud
+    - liteparse only — no cloud
     - "Everything stays on your machine."
 
-→ Do NOT recommend markdownify for PDF conversion. Its PDF quality is poor.
-  markdownify is for web pages, Word docs, slides, and audio only.
+→ markitdown handles Word, PowerPoint, Excel, EPUB, Jupyter — not PDF.
+  Routing is automatic; researchers don't need to know which tool handles what.
+```
+
+## Google Workspace Documents
+
+```
+Interview: "Do you work in Google Docs or Google Sheets?"
+
+→ YES:
+  ⚠ HIGH FRICTION WARNING — present honestly, don't push:
+
+  "There's a way to pull Google Docs and Sheets directly into your vault — it
+  exports them as clean text automatically. The catch: it requires setting up
+  a Google Cloud project and an authorization flow, which takes 15–30 minutes
+  and involves a few technical steps. It's worth it if you live in Google Docs,
+  but I'd suggest waiting until after we have everything else working."
+
+  If researcher wants it now:
+  - Install gws: brew install googleworkspace-cli
+  - Guide through: Google Cloud Console → create project → enable Drive API →
+    OAuth consent screen → download credentials → gws auth login
+  - Point to: references/gws-setup-guide.md for step-by-step
+
+  Once configured:
+  - gws exports Google Docs/Sheets as files → carrel converts normally
+  - Google Docs → markitdown → Markdown
+  - Google Sheets → markitdown → Markdown table
+
+  If researcher wants it later:
+  - Note as "available later" in environment.json
+  - "You can add this anytime — just let me know."
+
+→ NO:
+  - Skip entirely.
 ```
 
 ## Cloud Storage
@@ -167,12 +242,13 @@ Interview: "Where do you store files?"
 
 → GOOGLE DRIVE:
   - Note in environment.json
-  - Researcher can share files with Claude by providing paths or dropping files
-  - Future: Google Drive MCP connector (not yet stable enough to recommend)
+  - Files accessible via local sync folder (Google Drive for Desktop)
+  - Researcher can drag files into vault or share paths with Claude
+  - For Google Docs/Sheets specifically: see Google Workspace section above
 
 → DROPBOX / ONEDRIVE:
-  - Same approach — note for future integration
-  - Files accessible via local sync folders
+  - Same approach — files accessible via local sync folders
+  - No special setup needed
 
 → LOCAL ONLY:
   - Simplest case — everything in the vault
@@ -187,7 +263,7 @@ Interview: "What does a typical work week look like?"
   - Keep transcripts/ folder
   - Add notes/fieldwork/ subfolder
   - Templates: add interview-note template
-  - Mention Interpretive Orchestration plugin as optional (see Optional Plugins below)
+  - Mention Interpretive Orchestration plugin as optional (see Optional Plugins)
 
 → QUANTITATIVE RESEARCHER (data analysis, statistics):
   - Rename transcripts/ → data/
@@ -218,65 +294,51 @@ Interview: "Would you find it useful to get perspectives from different AI model
   - Explain: "I can connect you to other AI models — Gemini, GPT, Grok, and more.
     You'd ask me to 'check this with Gemini' or 'get GPT's take on this'. Useful for
     getting a different perspective or using models with special strengths."
-  - Ask: "Do you already have API keys with any providers, or would you like
+  - Ask: "Do you already have accounts with any providers, or would you like
     the simplest option?"
 
   → HAS SPECIFIC KEYS (e.g., Gemini, OpenAI):
-    - Add vox-mcp to project .mcp.json with their specific provider keys
-    - Help save API keys securely (see API key storage below)
+    - Configure with their specific provider keys
+    - Help save keys securely (see Key Storage below)
 
   → WANTS SIMPLEST OPTION:
     - Recommend OpenRouter: one key, access to many models, pay-per-use
-    - Guide: create account at openrouter.ai, get API key
-    - Add vox-mcp to project .mcp.json with OPENROUTER_API_KEY
+    - Guide: create account at openrouter.ai, get key
+    - Add OPENROUTER_API_KEY to configuration
 
   → WANTS FREE OPTION:
     - Recommend Google Gemini: free tier is generous (1M token context)
-    - Guide: create key at aistudio.google.com
-    - Add vox-mcp to project .mcp.json with GEMINI_API_KEY
+    - Guide: create key at ai.google.dev
+    - Add GEMINI_API_KEY to configuration
 
 → NO — NOT INTERESTED:
   - Skip. Note as "available later" in environment.json.
-  - Claude (the host model) handles everything by default.
 
 → MAYBE LATER:
   - Note in environment.json. Don't configure now.
   - Researcher can say "I'd like to add other AI models" at any time.
 ```
 
-### API Key Storage
+### Key Storage
 
-When configuring vox or other MCPs that need API keys, Claude should help the researcher store them securely. Choose the approach based on the user's context:
+When configuring tools that need keys, Claude should help the researcher store them securely. Choose the approach based on the user's context:
 
-**For Claude Desktop users (GUI-only, recommended for researchers):**
-1. Store the key directly in the project `.mcp.json` under the `env` field
-2. This is the simplest approach — no terminal required, the key is private and local
-3. Example:
-   ```json
-   "vox": {
-     "command": "uv",
-     "args": ["run", "--directory", "/path/to/vox-mcp", "python", "server.py"],
-     "env": { "GEMINI_API_KEY": "the-actual-key-here" }
-   }
-   ```
-4. Tell the researcher: "I'll save your API key in your project configuration. It stays on your computer and persists across sessions."
+**For Claude Desktop users (recommended for researchers):**
+1. Store the key directly in the project configuration under the `env` field
+2. Simplest approach — no terminal required, the key is private and stays on their machine
+3. Tell the researcher: "I'll save your key in your project configuration. It stays on your computer and persists across sessions."
 
-**For CLI / terminal-comfortable users:**
+**For terminal-comfortable users:**
 1. Store in shell profile for system-wide availability:
    - macOS: append `export GEMINI_API_KEY="..."` to `~/.zshrc`
-   - Linux: append to `~/.bashrc`
-2. Then reference in `.mcp.json`: `"env": { "GEMINI_API_KEY": "${GEMINI_API_KEY}" }`
-3. This is more secure on shared machines since the key isn't in a project file
+2. Reference in project configuration: `"GEMINI_API_KEY": "${GEMINI_API_KEY}"`
+3. More secure on shared machines since the key isn't in a project file
 
-**On Windows:**
-1. Desktop users: store directly in `.mcp.json` env values (simplest)
-2. Advanced: use system environment variables via Settings → System → Environment Variables
-
-**Security note:** API keys stored in `.mcp.json` are plaintext on the researcher's machine. This is acceptable for personal research environments — the file is local, private, and not shared. For shared machines, use shell profile env vars instead.
+**Security note:** Keys stored in project configuration are plaintext on the researcher's machine. Acceptable for personal research environments — the file is local and not shared. For shared machines, use shell profile variables instead.
 
 ## Optional Plugins
 
-These are Claude Code plugins the researcher might benefit from. Mention when relevant — don't push. Same approach as optional MCPs: note as "available later" if they're not ready.
+These are plugins the researcher might benefit from. Mention when relevant — don't push.
 
 ```
 → QUALITATIVE METHODOLOGY (Gioia, grounded theory, interpretive work):
@@ -322,9 +384,27 @@ After running through the tree, summarize to the researcher:
 - [list of automated components]
 
 **You'll need to do:**
-- [list of human steps — install Obsidian, Web Clipper, etc.]
+- [list of human steps — install Obsidian, create accounts, etc.]
 
 **Available later (when you're ready):**
-- [list of optional components noted for future]
+- [list of optional components noted for future — e.g., Google Workspace, Zotero, multi-model access]
 
 Does this sound right?"
+
+---
+
+## Tool Complexity Reference
+
+Quick reference for when to push vs. when to offer:
+
+| Tool | Friction | When to recommend |
+|------|----------|------------------|
+| liteparse | Zero | Always install |
+| markitdown | Zero | Auto-installed with carrel |
+| coli | Zero | Whenever audio is involved |
+| defuddle | Zero | Whenever web is involved |
+| youtube-transcript-api | Zero | Auto-installed with carrel |
+| Gemini key | Low | YouTube cloud, complex PDFs (non-sensitive) |
+| Groq key | Low | Audio cloud, large batches |
+| mineru key | Medium | Complex PDFs only, non-sensitive |
+| Google Workspace (gws) | HIGH | Only if they live in Google Docs; warn about setup time |

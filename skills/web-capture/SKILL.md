@@ -15,35 +15,31 @@ Fetch web content, convert to clean markdown, add metadata, and save to the vaul
 
 ## Capture Flow
 
-### Step 1: Fetch and convert
-
-Use `markitdown` to fetch and convert the URL:
+### Step 1: Capture
 
 ```bash
-markitdown "https://example.com/article"
+carrel capture url <url>
 ```
 
-This strips navigation, ads, and boilerplate. Returns clean markdown to stdout.
+The CLI uses defuddle (smart content extraction — strips navigation, ads, sidebars) with markitdown as fallback. It extracts metadata (title, author, published date) and adds YAML frontmatter automatically.
 
-### Step 2: Add frontmatter
+### Step 2: Review and organize
 
-```yaml
----
-title: [extracted from page]
-source: [URL]
-captured: [today's date]
-tags: []
----
-```
-
-### Step 3: Save to vault
-Default save location: `inbox/`
-If the researcher specifies a folder: save there instead.
-
-Filename: slugified title, e.g., `how-organizations-change-identity.md`
-
-### Step 4: Suggest organization
+The article lands in `inbox/` by default. After capture, suggest:
 "I've saved the article to inbox/. Want me to move it to papers/ or notes/?"
+
+Use `--dry-run` if the researcher wants to preview where it will go first.
+
+### Step 3: Suggest connections
+
+If the article relates to existing vault content, suggest links:
+"This discusses identity construction — you have notes on that in `[[notes/identity-theory-overview]]`."
+
+## Judgment Calls
+
+- **Academic paper on a website** (not PDF): Use `carrel capture url` — defuddle extracts article content cleanly
+- **PDF hosted online**: Download it first, then `carrel paper convert` — the paper pipeline handles PDFs better
+- **YouTube video page**: Use `carrel transcript create <youtube-url>` instead — the transcript pipeline is purpose-built for this
 
 ## Alternative: Web Clipper
 
@@ -52,5 +48,6 @@ Remind researchers they can clip directly from their browser:
 
 ## Related
 
+- **CLI**: `carrel capture url`, with `--force`, `--dry-run`, `--format` flags
 - **Skills**: `vault-ops` for file placement
 - **Commands**: `/carrel-capture` triggers this skill

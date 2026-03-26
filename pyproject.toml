@@ -11,6 +11,7 @@ dependencies = [
     "pyyaml>=6.0",
     "httpx>=0.24",
     "markitdown>=0.0.1a3",
+    "youtube-transcript-api>=1.0",
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
 ]
@@ -24,17 +25,21 @@ dev = [
 carrel = "carrel.cli.main:app"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/carrel"]
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 
 [tool.uv]
 package = true
+config-settings = { editable_mode = "compat" }
 
 [tool.ruff]
 line-length = 100

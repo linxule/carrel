@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from carrel.errors import ToolNotConfigured, ToolNotInstalled
+from carrel.errors import ToolNotInstalled
 from carrel.env.install import install_command_for
 from carrel.models import HardwareCapability, Sensitivity, ToolAvailability, TranscribeTool
 
@@ -29,7 +29,7 @@ def select_transcribe_tool(
     if _is_youtube_url(source):
         if cloud_consent and tools.api_keys.get("gemini") and tools.api_keys["gemini"].configured:
             return TranscribeTool.GEMINI
-        raise ToolNotConfigured("gemini", "GEMINI_API_KEY (required for YouTube transcription)")
+        return TranscribeTool.YOUTUBE_CAPTIONS
     if tools.binaries.get("coli") and tools.binaries["coli"].installed:
         return TranscribeTool.COLI
     if cloud_consent and tools.api_keys.get("groq") and tools.api_keys["groq"].configured:

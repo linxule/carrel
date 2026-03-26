@@ -24,19 +24,23 @@ Open with genuine curiosity about their research:
 ### About Their Data (~3 min)
 
 - What kinds of files do you work with most? (PDFs of papers, Word docs, spreadsheets, slides, audio recordings)
+- Do you write in Google Docs, or work with Google Sheets or Slides? Or do you mainly stay in Word and local files?
+- Do you watch or assign video lectures — YouTube or recorded talks?
 - Do you work with sensitive data? (interview transcripts, IRB-protected data, unpublished manuscripts, student records)
-- How do you currently take notes? (Word, Google Docs, paper notebooks, an existing app)
+- How do you currently take notes?
 
-**Listen for:** File types (determines conversion tools), sensitivity (determines local-vs-cloud defaults), current workflow (determines what to augment vs replace).
+**Listen for:** File types (determines conversion tools). Google Docs/Sheets/Slides usage (export integration exists but requires some setup — worth flagging). YouTube or video lectures (transcription options available). Sensitivity (determines local-vs-cloud defaults). Current workflow (determines what to augment vs replace).
 
 ### About Their Tools (~2 min)
 
 - Do you use a reference manager? (Zotero, Mendeley, EndNote, none)
 - Where do you store files? (Google Drive, Dropbox, OneDrive, local folders)
+- Do you save articles or blog posts from the web while you're researching?
 - Do you record meetings or interviews? If so, how? (Zoom, Teams, phone, handheld recorder)
-- What browser do you use? (for Web Clipper)
+  - *If yes:* Do you need precise timestamps in your transcripts — say, to match a quote to a moment in the recording — or is clean readable text enough?
+- What browser do you use?
 
-**Listen for:** Zotero = we can connect it. Audio recording = we need transcription. Browser = which Web Clipper to install.
+**Listen for:** Zotero = we can connect it. Web article saving = smart extraction tool is available. Audio recording = we need transcription; timestamp precision determines which tool fits best. Browser = which Web Clipper to install.
 
 ### About Their Comfort (~2 min)
 
@@ -79,12 +83,16 @@ After the interview, structure the answers into:
     "primary_file_types": ["pdf", "docx", "audio", ...],
     "sensitivity": "low|medium|high",
     "sensitivity_notes": "",
-    "note_taking": "word|google_docs|paper|obsidian|other"
+    "note_taking": "word|google_docs|paper|obsidian|other",
+    "google_workspace": "docs|sheets|slides|drive|none",
+    "youtube_usage": "watches_lectures|assigns_to_students|research_videos|none",
+    "web_articles": true
   },
   "tools": {
     "reference_manager": "zotero|mendeley|endnote|none",
     "cloud_storage": "gdrive|dropbox|onedrive|local|other",
     "audio_recording": "zoom|teams|phone|recorder|none",
+    "note_platform": "google_docs|word|obsidian|notion|paper|other",
     "browser": "chrome|firefox|safari|edge|other"
   },
   "preferences": {
@@ -93,7 +101,8 @@ After the interview, structure the answers into:
     "explanation_level": "brief|moderate|detailed",
     "multi_model": "not_interested|interested|has_keys",
     "multi_model_providers": [],
-    "existing_api_keys": []
+    "existing_api_keys": [],
+    "timestamp_precision": "text_only|timestamps_needed"
   }
 }
 ```

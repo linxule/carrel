@@ -24,6 +24,8 @@ TOOL_CHECKS: dict[str, list[str]] = {
     "brew": ["brew", "--version"],
     "lit": ["lit", "--version"],
     "coli": ["coli", "--version"],
+    "defuddle": ["defuddle", "--version"],
+    "gws": ["gws", "--version"],
     "markitdown": ["markitdown", "--help"],
     "ffmpeg": ["ffmpeg", "-version"],
     "pandoc": ["pandoc", "--version"],

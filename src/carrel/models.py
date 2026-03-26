@@ -17,12 +17,14 @@ class ConvertTool(str, Enum):
     LITEPARSE = "liteparse"
     MINERU = "mineru"
     MARKDOWNIFY = "markdownify"
+    DEFUDDLE = "defuddle"
 
 
 class TranscribeTool(str, Enum):
     COLI = "coli"
     GROQ = "groq"
     GEMINI = "gemini"
+    YOUTUBE_CAPTIONS = "youtube_captions"
 
 
 class HardwareCapability(str, Enum):

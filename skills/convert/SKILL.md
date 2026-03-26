@@ -86,4 +86,4 @@ After a successful conversion, offer:
 ## Related
 
 - `carrel paper list` — see what's already converted
-- **Skills**: `vault-ops` for file conventions, `reading-notes` for note creation
+- **Skills**: `vault-ops` for file conventions and note creation

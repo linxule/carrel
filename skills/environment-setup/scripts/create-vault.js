@@ -140,7 +140,7 @@ function main() {
     }
 
     // --- Note templates (read from vault-ops/templates/ to avoid duplication) ---
-    const templateNames = ['paper.md', 'meeting.md', 'reflection.md', 'daily.md'];
+    const templateNames = ['paper.md', 'paper-notes.md', 'meeting.md', 'reflection.md', 'daily.md'];
     const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..', '..', '..');
     const templateSourceDir = path.join(pluginRoot, 'skills', 'vault-ops', 'templates');
 
@@ -165,7 +165,11 @@ function main() {
       interview: null,
       system: null,
       tools_configured: {
-        markdownify: true,
+        liteparse: false,
+        markitdown: true,
+        coli: false,
+        defuddle: false,
+        gws: false,
         mineru: false,
         zotero: false,
         vox: false,

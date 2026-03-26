@@ -45,7 +45,7 @@ function main() {
   const tools = env.tools_configured || {};
   const vaultName = path.basename(projectPath);
 
-  const hasTranscripts = tools.markdownify; // markdownify includes audio-to-markdown
+  const hasTranscripts = tools.coli || tools.groq;
 
   let cheatsheet = `# Carrel — Your AI Research Environment
 
@@ -66,14 +66,18 @@ Claude remembers your setup and preferences automatically.
 
 ## Your Setup at a Glance
 
-| Component | Status | Notes |
-|-----------|--------|-------|
+| Capability | Status | Notes |
+|------------|--------|-------|
 | Claude Desktop | ✅ | App + Claude Code |
 | Obsidian | ${status(tools.obsidian)} | Vault at: \`${projectPath}\` |
 | Web Clipper | ${status(tools.web_clipper)} | ${researcher.browser || 'Browser'} extension |
-| Document conversion | ✅ | markdownify (local) |
+| PDF conversion | ✅ | liteparse (local) |
+| Other documents | ✅ | markitdown (Word, slides, spreadsheets) |
+| Web capture | ${status(tools.defuddle)} | ${tools.defuddle ? 'defuddle (local)' : 'Not configured'} |
+| YouTube | ${status(tools.youtube_captions || tools.gemini)} | ${tools.gemini ? 'gemini (cloud) + local captions fallback' : 'youtube-transcript-api (local captions)'} |
+| Google Docs | ${status(tools.gws)} | ${tools.gws ? 'gws export (local CLI)' : 'Not configured'} |
 | Complex PDFs | ${status(tools.mineru)} | ${tools.mineru ? 'MineRU (API)' : 'Not configured — add later if needed'} |
-| Audio transcription | ${status(tools.markdownify)} | ${tools.markdownify ? 'markdownify (local)' : 'Not available'} |
+| Audio transcription | ${status(tools.coli || tools.groq)} | ${tools.coli ? 'coli (local)' : tools.groq ? 'groq (cloud)' : 'Not available'} |
 | Zotero | ${status(tools.zotero)} | ${tools.zotero ? 'Connected to library' : 'Not configured'} |
 
 ---

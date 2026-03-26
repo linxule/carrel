@@ -17,6 +17,7 @@ from carrel.models import Sensitivity, TranscribeResult, TranscribeTool
 from carrel.transcribe.adapters.coli import transcribe_with_coli
 from carrel.transcribe.adapters.gemini import transcribe_with_gemini
 from carrel.transcribe.adapters.groq import transcribe_with_groq
+from carrel.transcribe.adapters.youtube_captions import transcribe_with_youtube_captions
 from carrel.transcribe.filer import file_transcript
 from carrel.transcribe.router import select_transcribe_tool
 from carrel.vault.organize import transcript_filename
@@ -46,6 +47,8 @@ async def _transcribe(source: str, tool: TranscribeTool, timeout: int | None) ->
             raise ToolNotConfigured("gemini", "GEMINI_API_KEY")
         text = await transcribe_with_gemini(source, api_key=api_key, timeout=effective_timeout)
         return text, {}
+    if tool == TranscribeTool.YOUTUBE_CAPTIONS:
+        return await transcribe_with_youtube_captions(source)
     raise ToolNotConfigured("gemini", "GEMINI_API_KEY (required for YouTube transcription)")
 
 

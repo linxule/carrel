@@ -16,14 +16,14 @@ async def transcribe_with_gemini(
             {
                 "parts": [
                     {"text": prompt},
-                    {"file_data": {"mime_type": "text/uri-list", "file_uri": youtube_url}},
+                    {"file_data": {"file_uri": youtube_url}},
                 ]
             }
         ]
     }
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
             params={"key": api_key},
             json=body,
         )

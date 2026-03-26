@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import frontmatter
+from typer.testing import CliRunner
+
+from carrel.cli.main import app
+from carrel.errors import ToolNotInstalled
+from carrel.google.export import export_target_for, parse_google_workspace_url
+from carrel.models import ConvertTool
+
+runner = CliRunner()
+
+
+def _init_vault(path: Path) -> None:
+    (path / ".carrel").mkdir(parents=True)
+    (path / "papers").mkdir(parents=True)
+
+
+def test_parse_google_workspace_url_variants() -> None:
+    assert parse_google_workspace_url("https://docs.google.com/document/d/doc123/edit") == (
+        "document",
+        "doc123",
+    )
+    assert parse_google_workspace_url("https://docs.google.com/spreadsheets/d/sheet456/edit") == (
+        "spreadsheets",
+        "sheet456",
+    )
+    assert parse_google_workspace_url("https://docs.google.com/presentation/d/slide789/edit") == (
+        "presentation",
+        "slide789",
+    )
+
+
+def test_export_target_for_creates_vault_local_export_path(tmp_path) -> None:
+    file_id, mime_type, output_path = export_target_for(
+        "https://docs.google.com/document/d/doc123/edit",
+        "docx",
+        tmp_path / "vault",
+    )
+
+    assert file_id == "doc123"
+    assert mime_type.endswith("document")
+    assert output_path == (tmp_path / "vault" / ".carrel" / "exports" / "doc123.docx").resolve()
+
+
+def test_google_export_converts_exported_file(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:
+        assert url == "https://docs.google.com/document/d/doc123/edit"
+        assert workspace == vault.resolve()
+        assert export_format == "docx"
+        exported = workspace / ".carrel" / "exports" / "doc123.docx"
+        exported.parent.mkdir(parents=True, exist_ok=True)
+        exported.write_bytes(b"docx-bytes")
+        return exported
+
+    async def fake_convert(
+        file_path: Path,
+        vault_path: Path,
+        profile,
+        sensitivity,
+        tool,
+    ) -> tuple[ConvertTool, str, dict]:
+        assert file_path.name == "doc123.docx"
+        assert vault_path == vault.resolve()
+        assert profile is None
+        assert sensitivity is None
+        assert tool is None
+        return (
+            ConvertTool.MARKDOWNIFY,
+            "# Shared Draft\n\nConverted body.",
+            {"title": "Shared Draft", "authors": "Ada Lovelace", "year": "1843"},
+        )
+
+    monkeypatch.setattr("carrel.cli.google.export_from_google_workspace", fake_export)
+    monkeypatch.setattr("carrel.cli.google.run_convert_pipeline", fake_convert)
+
+    result = runner.invoke(
+        app,
+        ["google", "export", "https://docs.google.com/document/d/doc123/edit", "--vault", str(vault)],
+    )
+
+    assert result.exit_code == 0
+    stored = frontmatter.load(vault / "papers" / "lovelace-1843" / "paper.md")
+    assert stored["title"] == "Shared Draft"
+    assert stored["converter"] == "markdownify"
+    assert stored["source_file"] == "doc123.docx"
+    assert "Converted body." in stored.content
+
+
+def test_google_export_without_gws_shows_install_hint(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:  # noqa: ARG001
+        raise ToolNotInstalled("gws", "brew install googleworkspace-cli && gws auth login -s drive")
+
+    monkeypatch.setattr("carrel.cli.google.export_from_google_workspace", fake_export)
+
+    result = runner.invoke(
+        app,
+        ["google", "export", "https://docs.google.com/document/d/doc123/edit", "--vault", str(vault)],
+    )
+
+    assert result.exit_code == 1
+    assert "brew install googleworkspace-cli && gws auth login -s drive" in result.output

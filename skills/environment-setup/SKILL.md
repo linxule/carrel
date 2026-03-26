@@ -85,7 +85,7 @@ After scaffolding, update `.carrel/environment.json` with the researcher's profi
 
 If the decision tree indicates mineru or zotero:
 - Add them to the project `.mcp.json`
-- Guide the researcher through API key setup (see `docs/api-keys-guide.md`)
+- Guide the researcher through API key setup (see API Key Storage section in `references/decision-tree.md`)
 - Or note as "available later" if they're not ready
 
 ### Step 6: Human Steps

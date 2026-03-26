@@ -16,9 +16,9 @@ The `carrel` CLI handles all mechanical transcription work. This skill focuses o
 ## Primary Command
 
 ```bash
-carrel transcript create <source> [--vault PATH] [--tool coli|groq|gemini] \
+carrel transcript create <source> [--vault PATH] [--tool coli|groq|gemini|youtube_captions] \
   [--kind recording|interview|meeting|lecture] [--speakers N] \
-  [--sensitivity high|medium|low] [--force] [--dry-run]
+  [--force] [--dry-run]
 ```
 
 The CLI handles tool routing, filing (`transcripts/<kind>-<name>-<date>.md`), and idempotency. Don't re-implement those.
@@ -27,12 +27,12 @@ The CLI handles tool routing, filing (`transcripts/<kind>-<name>-<date>.md`), an
 
 ### Tool selection
 
-- **YouTube URL** → always suggest `--tool gemini`. If researcher has no Gemini key, the CLI will give a clear error — don't try workarounds.
+- **YouTube URL** → omit `--tool` and the CLI uses local captions (free, no API key, includes timestamps). Suggest `--tool gemini` when captions are missing, poor quality, or the researcher wants AI-processed transcription from the actual audio+video.
 - **Local audio, sensitive data** → default to `coli` (local). Warn before suggesting `--tool groq`: "This will send audio to Groq's servers — is that okay given the sensitivity?"
-- **Local audio, non-sensitive, slow hardware** → `--tool groq` is faster and cheaper than waiting on a slow local model.
-- **Default** → omit `--tool` and let the CLI decide (coli for local audio).
+- **Local audio, non-sensitive, slow hardware** → `--tool groq` is faster and gives word-level timestamps for better paragraph reconstruction.
+- **Default** → omit `--tool` and let the CLI decide (coli for local audio, local captions for YouTube).
 
-Speaker diarization is available via `local-stt-mcp` (transport layer, optional) — if the researcher needs clean speaker labels and has it configured, mention it as an option.
+For speaker diarization, pass `--speakers N` when the number of speakers is known — coli uses this to improve speaker separation.
 
 ### Kind selection
 

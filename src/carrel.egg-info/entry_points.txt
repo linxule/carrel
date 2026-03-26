@@ -1,0 +1,2 @@
+[console_scripts]
+carrel = carrel.cli.main:app

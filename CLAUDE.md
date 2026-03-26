@@ -6,11 +6,13 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                          # 18 tests — routers, filers, scaffold, naming, idempotency
-uv run carrel env doctor               # Hardware + tools audit
-uv run carrel vault init /tmp/test     # Scaffold a vault
-uv run carrel paper convert paper.pdf  # Convert PDF (liteparse default)
-uv run carrel transcript create rec.m4a  # Transcribe audio (coli default)
+uv run pytest                                    # 29 tests
+uv run carrel env doctor                         # Hardware + tools audit
+uv run carrel vault init /tmp/test               # Scaffold a vault
+uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
+uv run carrel transcript create rec.m4a          # Transcribe audio (coli default)
+uv run carrel capture url https://example.com    # Web capture (defuddle)
+uv run carrel google export <google-docs-url>    # Google Docs export (gws)
 ```
 
 ## Architecture
@@ -59,7 +61,10 @@ No markdownify fallback for PDFs. Missing liteparse → clear error with install
 No markdownify fallback for audio. Missing coli → clear error.
 
 ### YouTube
-`gemini` only (explicit `--tool gemini` or cloud_consent in profile). No fallback — requires Gemini API key.
+`youtube_captions` (local default, fetches existing captions with timestamps) > `gemini` (cloud, explicit `--tool gemini` or cloud_consent)
+
+### Web pages
+`defuddle` (local default, smart content extraction) > `markitdown` (fallback if defuddle not installed)
 
 ## Key Design Rules
 
