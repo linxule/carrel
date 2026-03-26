@@ -30,9 +30,10 @@ The core library NEVER asks questions or makes judgment calls. Skills handle tha
 ```
 carrel/
 ├── src/carrel/           # Python core library
-│   ├── cli/              # typer CLI (paper, transcript, vault, env commands)
-│   ├── convert/          # PDF/doc conversion (router, adapters, filer)
+│   ├── cli/              # typer CLI (paper, transcript, vault, env, capture, google)
+│   ├── convert/          # PDF/doc conversion (router, adapters, filer, pipeline)
 │   ├── transcribe/       # Audio/video transcription (router, adapters, filer)
+│   ├── google/           # Google Workspace export (gws CLI integration)
 │   ├── vault/            # Vault scaffold, organize, templates
 │   ├── env/              # Audit, profile, install commands
 │   ├── models.py         # Pydantic models (options, results, enums)
@@ -74,12 +75,23 @@ No markdownify fallback for audio. Missing coli → clear error.
 - **Subprocesses**: `asyncio.create_subprocess_exec` (never `shell=True`). Configurable timeouts.
 - **No AI imports**: Core library is deterministic. AI lives in the transport/skill layer.
 
+## Feedback Loops
+
+Interview preferences flow into two systems that must stay in sync:
+- **environment.json** → CLI router (structured, mechanical). The CLI reads `cloud_consent`, `sensitivity`, etc.
+- **Vault CLAUDE.md** → Claude's judgment (narrative, contextual). Claude reads this every session.
+
+The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from the interview. When preferences change, update BOTH files. The session-start hook surfaces preferences so Claude has immediate context.
+
 ## Gotchas
 
-- `markitdown` (Microsoft's library) is the actual converter — NOT the MCP tool names (`youtube-to-markdown` etc. don't exist as CLI commands)
+- `markitdown` (Microsoft's library) is the non-PDF converter — NOT the old MCP tool names
+- `defuddle` is the web capture tool — much better than markitdown for URLs
 - Install constants are centralized in `env/install.py` — don't duplicate
 - coli install uses `bun add -g @marswave/coli` (not npm)
+- gws (Google Workspace CLI) requires Google Cloud project + OAuth — high friction setup, see `references/gws-setup-guide.md`
 - `generate-cheatsheet.js` is still a Node.js script (not yet ported to Python CLI)
+- youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
 
 ## Relationship to ItDepends
 
@@ -91,6 +103,8 @@ Multi-model review process: spec written, reviewed by Codex (adversarial) + Gemi
 
 | File | Purpose |
 |------|---------|
-| `planning/specs/001-core-library-extraction-v3.md` | Implementation spec (final) |
+| `planning/specs/001-core-library-extraction-v3.md` | Core library spec (final) |
+| `planning/specs/002-tool-expansion-and-cleanup.md` | Tool expansion: defuddle, YouTube captions, gws |
 | `planning/reviews/003-implementation-review.md` | Post-implementation review |
-| `planning/reports/003-report-codex.md` | Fix report |
+| `planning/reports/002-report-codex.md` | Tool expansion report |
+| `planning/reports/003-report-codex.md` | Core library fix report |
