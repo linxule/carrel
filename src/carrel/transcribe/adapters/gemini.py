@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+import httpx
+
+from carrel.errors import TranscriptionError
+
+
+async def transcribe_with_gemini(
+    youtube_url: str,
+    api_key: str,
+    prompt: str = "Transcribe this video with timestamps and speaker labels.",
+    timeout: int = 300,
+) -> str:
+    body = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt},
+                    {"file_data": {"mime_type": "text/uri-list", "file_uri": youtube_url}},
+                ]
+            }
+        ]
+    }
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+            params={"key": api_key},
+            json=body,
+        )
+    if response.status_code >= 400:
+        raise TranscriptionError(
+            "gemini request failed",
+            hint=f"Gemini returned HTTP {response.status_code}. Check GEMINI_API_KEY and URL access.",
+        )
+    payload = response.json()
+    try:
+        return payload["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise TranscriptionError(
+            "gemini response was missing transcript content",
+            hint="Retry the request or fall back to markdownify for caption extraction",
+        ) from exc

@@ -1,0 +1,40 @@
+[project]
+name = "carrel"
+version = "0.1.0"
+description = "Research environment toolkit -- convert, transcribe, organize"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "typer>=0.9",
+    "rich>=13.0",
+    "python-frontmatter>=1.1",
+    "pyyaml>=6.0",
+    "httpx>=0.24",
+    "markitdown>=0.0.1a3",
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1",
+]
+
+[project.scripts]
+carrel = "carrel.cli.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/carrel"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 100
