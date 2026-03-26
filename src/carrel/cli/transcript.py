@@ -176,7 +176,8 @@ def list_command(
         vault_path = resolve_vault(vault)
         transcripts = sorted((vault_path / "transcripts").glob("*.md"))
         if fmt == OutputFormat.JSON:
-            console.print([str(path) for path in transcripts])
+            import json
+            print(json.dumps([str(path) for path in transcripts]))
         else:
             for path in transcripts:
                 console.print(path)

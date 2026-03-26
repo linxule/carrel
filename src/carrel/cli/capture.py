@@ -13,7 +13,7 @@ from carrel.cli import emit_carrel_error, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
 from carrel.convert.adapters.defuddle import capture_with_defuddle, capture_with_markitdown_url
 from carrel.convert.frontmatter import render_frontmatter
-from carrel.errors import CarrelError, ToolNotInstalled
+from carrel.errors import CarrelError
 from carrel.models import FileResult
 from carrel.vault.organize import slugify
 
@@ -39,7 +39,7 @@ async def _capture_url(url: str) -> tuple[str, dict, str]:
     try:
         content, metadata = await capture_with_defuddle(url)
         return content, metadata, "defuddle"
-    except ToolNotInstalled:
+    except CarrelError:
         content, metadata = await capture_with_markitdown_url(url)
         return content, metadata, "markitdown"
 

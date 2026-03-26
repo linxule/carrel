@@ -6,7 +6,7 @@ import frontmatter
 from typer.testing import CliRunner
 
 from carrel.cli.main import app
-from carrel.errors import ToolNotInstalled
+from carrel.errors import ConversionError, ToolNotInstalled
 
 runner = CliRunner()
 
@@ -95,3 +95,28 @@ def test_capture_url_falls_back_to_markitdown(tmp_path, monkeypatch) -> None:
     stored = frontmatter.load(vault / "inbox" / "fallback-capture.md")
     assert stored["capture_tool"] == "markitdown"
     assert stored.content == "Fallback body"
+
+
+def test_capture_url_falls_back_on_defuddle_runtime_error(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    async def fake_defuddle(url: str) -> tuple[str, dict]:  # noqa: ARG001
+        raise ConversionError("defuddle timed out", hint="Retry")
+
+    async def fake_markitdown(url: str) -> tuple[str, dict]:
+        assert url == "https://example.com/slow-site"
+        return ("Recovered body", {"title": "Recovered Page", "domain": "example.com"})
+
+    monkeypatch.setattr("carrel.cli.capture.capture_with_defuddle", fake_defuddle)
+    monkeypatch.setattr("carrel.cli.capture.capture_with_markitdown_url", fake_markitdown)
+
+    result = runner.invoke(
+        app,
+        ["capture", "url", "https://example.com/slow-site", "--vault", str(vault)],
+    )
+
+    assert result.exit_code == 0
+    stored = frontmatter.load(vault / "inbox" / "recovered-page.md")
+    assert stored["capture_tool"] == "markitdown"
+    assert stored.content == "Recovered body"

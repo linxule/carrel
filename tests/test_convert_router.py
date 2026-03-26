@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from carrel.convert.router import select_convert_tool
-from carrel.errors import ToolNotInstalled
+from carrel.errors import CarrelError, ToolNotInstalled
 from carrel.models import (
     ApiKeyStatus,
     BinaryInfo,
@@ -73,3 +73,25 @@ def test_convert_router_errors_when_no_pdf_tool_available() -> None:
             tools=make_tools(),
         )
     assert exc.value.hint is not None
+
+
+def test_convert_router_rejects_defuddle_for_files() -> None:
+    with pytest.raises(CarrelError, match="defuddle is for web capture"):
+        select_convert_tool(
+            file=Path("paper.pdf"),
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(lit=True),
+            explicit_tool=ConvertTool.DEFUDDLE,
+        )
+
+
+def test_convert_router_rejects_defuddle_for_non_pdf_too() -> None:
+    with pytest.raises(CarrelError, match="defuddle is for web capture"):
+        select_convert_tool(
+            file=Path("notes.docx"),
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(),
+            explicit_tool=ConvertTool.DEFUDDLE,
+        )

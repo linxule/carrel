@@ -1,6 +1,6 @@
 import pytest
 
-from carrel.errors import ToolNotInstalled
+from carrel.errors import CarrelError, ToolNotInstalled
 from carrel.models import (
     ApiKeyStatus,
     BinaryInfo,
@@ -85,3 +85,36 @@ def test_transcribe_router_errors_without_audio_tools() -> None:
             tools=make_tools(),
         )
     assert exc.value.hint is not None
+
+
+def test_transcribe_router_rejects_gemini_for_local_file() -> None:
+    with pytest.raises(CarrelError, match="only works with YouTube URLs"):
+        select_transcribe_tool(
+            source="interview.m4a",
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(gemini_key=True),
+            explicit_tool=TranscribeTool.GEMINI,
+        )
+
+
+def test_transcribe_router_rejects_youtube_captions_for_local_file() -> None:
+    with pytest.raises(CarrelError, match="only works with YouTube URLs"):
+        select_transcribe_tool(
+            source="/path/to/lecture.wav",
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(),
+            explicit_tool=TranscribeTool.YOUTUBE_CAPTIONS,
+        )
+
+
+def test_transcribe_router_allows_gemini_for_youtube_url() -> None:
+    tool = select_transcribe_tool(
+        source="https://www.youtube.com/watch?v=test123",
+        sensitivity=Sensitivity.MEDIUM,
+        hardware=HardwareCapability.MEDIUM,
+        tools=make_tools(gemini_key=True),
+        explicit_tool=TranscribeTool.GEMINI,
+    )
+    assert tool == TranscribeTool.GEMINI

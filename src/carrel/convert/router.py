@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from carrel.errors import ToolNotInstalled
+from carrel.errors import CarrelError, ToolNotInstalled
 from carrel.env.install import install_command_for
 from carrel.models import ConvertTool, HardwareCapability, Sensitivity, ToolAvailability
 
@@ -17,6 +17,11 @@ def select_convert_tool(
 ) -> ConvertTool:
     _ = sensitivity, hardware
     if explicit_tool is not None:
+        if explicit_tool == ConvertTool.DEFUDDLE:
+            raise CarrelError(
+                "defuddle is for web capture, not file conversion",
+                hint="Use 'carrel capture url <URL>' for web pages, or omit --tool for auto-detection.",
+            )
         return explicit_tool
     if file.suffix.lower() != ".pdf":
         return ConvertTool.MARKDOWNIFY

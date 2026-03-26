@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from carrel.errors import ToolNotInstalled
+from carrel.errors import CarrelError, ToolNotInstalled
 from carrel.env.install import install_command_for
 from carrel.models import HardwareCapability, Sensitivity, ToolAvailability, TranscribeTool
 
@@ -25,6 +25,11 @@ def select_transcribe_tool(
 ) -> TranscribeTool:
     _ = sensitivity, hardware
     if explicit_tool is not None:
+        if explicit_tool in {TranscribeTool.GEMINI, TranscribeTool.YOUTUBE_CAPTIONS} and not _is_youtube_url(source):
+            raise CarrelError(
+                f"{explicit_tool.value} only works with YouTube URLs",
+                hint="For local audio files, use --tool coli (local) or --tool groq (cloud).",
+            )
         return explicit_tool
     if _is_youtube_url(source):
         if cloud_consent and tools.api_keys.get("gemini") and tools.api_keys["gemini"].configured:

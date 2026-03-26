@@ -122,7 +122,8 @@ def list_command(
         vault_path = resolve_vault(vault)
         papers = sorted((vault_path / "papers").glob("*/paper.md"))
         if fmt == OutputFormat.JSON:
-            console.print([str(path) for path in papers])
+            import json
+            print(json.dumps([str(path) for path in papers]))
         else:
             for path in papers:
                 console.print(path)
