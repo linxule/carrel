@@ -72,51 +72,96 @@ Run `carrel vault init <path>` to create:
 - Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration (core plugins, templates setup)
 - `.carrel/environment.json` (structured profile with defaults)
-- `CLAUDE.md` (auto-loaded every session)
 - `_templates/` (paper, meeting, reflection, daily note templates)
 - `_meta/cheat_sheet.md` (customized reference card)
 
-Consult `references/obsidian-setup.md` for .obsidian/ config details.
-Consult `skills/vault-ops/templates/` for template contents.
+After scaffolding, update `.carrel/environment.json` with the researcher's profile from the interview.
 
-After scaffolding, update `.carrel/environment.json` with the researcher's profile from the interview using `carrel env profile`.
+### Step 5: Write Personalized CLAUDE.md
 
-### Step 5: Configure Optional Tools
+**This is critical.** Write a `CLAUDE.md` file in the vault root that encodes the researcher's preferences in natural language. Claude loads this file automatically every session — it's the bridge between the structured profile and Claude's judgment.
 
-If the decision tree indicates mineru or zotero:
-- Add them to the project `.mcp.json`
+Write CLAUDE.md with these sections:
+
+```markdown
+# Research Environment — [Researcher Name]
+
+## About This Researcher
+[Field, role, what they're working on, what they care about — from the interview]
+
+## Preferences
+- Sensitivity: [HIGH/MEDIUM/LOW] — [what this means for this person]
+- Cloud tools: [comfortable/prefer local/local only] — [specific guidance]
+- [If cloud comfortable]: Preferred cloud tools: [gemini for YouTube, groq for audio, etc.]
+- [If sensitive]: ALWAYS use local tools. Never send data to cloud APIs without explicit permission.
+
+## Available Tools
+[List what was installed and configured, in plain language]
+- PDF conversion: liteparse (local) [+ mineru if configured]
+- Audio: coli (local) [+ groq if configured]
+- YouTube: [local captions / Gemini — based on what was set up]
+- Web capture: defuddle
+- [Zotero, vox, gws — if configured]
+
+## How to Work With [Name]
+[Comfort level, explanation preferences, proactiveness level — from interview]
+- [beginner]: Explain what you're doing in plain language. Don't assume they know markdown or git.
+- [advanced]: Be concise. They know the tools.
+
+## Session Notes
+[Leave empty — Claude can append notes here across sessions about what's working, what the researcher prefers, patterns noticed]
+```
+
+**Why Claude writes this, not a script:** You just did the interview. You know this person — their field, their concerns, their comfort level. A script can only template. You can write guidance that actually helps future-you work with this specific researcher.
+
+**When to update CLAUDE.md:** Whenever the researcher's preferences change meaningfully (new tool added, sensitivity changed, new workflow discovered). Read `.carrel/environment.json` to verify CLAUDE.md is still in sync. If it's stale, update the relevant section.
+
+### Step 6: Configure Optional Tools
+
+If the decision tree indicates mineru, zotero, or gws:
+- Add them to the project `.mcp.json` (for MCP-based tools like zotero/vox)
 - Guide the researcher through API key setup (see API Key Storage section in `references/decision-tree.md`)
+- For gws: see `references/gws-setup-guide.md` — this is a high-friction setup, set expectations
 - Or note as "available later" if they're not ready
 
-### Step 6: Human Steps
+### Step 7: Human Steps
 
 Tell the researcher what THEY need to do (Claude can't install GUI apps):
 - Install Obsidian: "Download from obsidian.md, or I can try `brew install obsidian` if you'd like"
 - Open Obsidian → "Open folder as vault" → select this project folder
 - Install Web Clipper for their browser (Chrome/Firefox/Safari extension store)
 
-### Step 7: Verify & Generate Cheat Sheet
+### Step 8: Verify & Generate Cheat Sheet
 
 Run `scripts/generate-cheatsheet.js` to create a customized reference card at `_meta/cheat_sheet.md`. The template is in `references/cheatsheet-template.md`.
 
 Test one operation end-to-end:
 - "Let's test the setup. Drop a PDF or Word file in here and I'll convert it to your vault."
 
-### Step 8: Wrap Up
+### Step 9: Wrap Up
 
 - Confirm what's installed and working
 - Point to the cheat sheet in Obsidian
 - "Next time you open Claude Desktop with this folder, I'll remember everything."
 
+## Preference Changes (Mid-Session or Returning User)
+
+When a researcher's preferences change:
+1. Update `.carrel/environment.json` with the new values
+2. Update the relevant section of `CLAUDE.md` to match
+3. If tools changed: run `carrel env doctor` to verify availability
+
+Examples:
+- "I got a Gemini key" → update environment.json cloud_consent + tools_configured, update CLAUDE.md Available Tools section
+- "My data is more sensitive now" → update sensitivity everywhere, update CLAUDE.md Preferences section to reflect local-only
+- "I don't use transcription anymore" → note in CLAUDE.md, don't offer transcription proactively
+
+The key principle: **environment.json is the structured truth, CLAUDE.md is the narrative truth.** Keep them in sync. When in doubt, read environment.json and verify CLAUDE.md matches.
+
 ## Scripts
 
 ### generate-cheatsheet.js
 Creates customized cheat sheet from environment.json.
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/skills/environment-setup/scripts/generate-cheatsheet.js" \
-  --project-path /path/to/project
-```
 
 Reads `.carrel/environment.json`, writes `_meta/cheat_sheet.md`.
 
@@ -125,4 +170,4 @@ Reads `.carrel/environment.json`, writes `_meta/cheat_sheet.md`.
 - **Commands**: `/carrel-setup` triggers this skill
 - **Agents**: `@setup-interviewer` (optional) provides richer conversational interview; the protocol in references/ works directly without it
 - **Skills**: `vault-ops` for ongoing vault operations after setup
-- **Hooks**: `carrel env doctor` (SessionStart) audits the environment on open
+- **Hooks**: SessionStart hook checks for `.carrel/` and surfaces researcher profile

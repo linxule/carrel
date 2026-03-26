@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * SessionStart Hook: Check Carrel environment
+ * SessionStart Hook: Check Carrel environment and surface researcher profile
  *
- * Runs at session start to verify .carrel/ exists and tools are available.
+ * Runs at session start to verify .carrel/ exists, tools are available,
+ * and surface the researcher's preferences so Claude can act on them.
  * Non-blocking — provides guidance, never prevents work.
  */
 
@@ -25,7 +26,6 @@ function main() {
   const projectRoot = findCarrelRoot(process.cwd());
 
   if (!projectRoot) {
-    // No .carrel/ found — suggest setup
     console.log('');
     console.log('Welcome! This folder doesn\'t have a Carrel research environment yet.');
     console.log('Run /carrel-setup to get started, or just tell me about your research.');
@@ -33,7 +33,6 @@ function main() {
     process.exit(0);
   }
 
-  // .carrel/ exists — check environment
   const envPath = path.join(projectRoot, '.carrel', 'environment.json');
 
   if (!fs.existsSync(envPath)) {
@@ -56,14 +55,48 @@ function main() {
       process.exit(0);
     }
 
-    // Everything looks good — brief welcome
+    // Surface researcher profile for Claude's context
     const name = researcher.name ? ` ${researcher.name.split(' ')[0]}` : '';
+    const sensitivity = env.sensitivity || env.interview?.data?.sensitivity || 'medium';
+    const cloudConsent = env.cloud_consent ?? env.interview?.preferences?.cloud_comfort ?? 'prefer_local';
+    const toolsConfigured = env.tools_configured || {};
+
     console.log('');
-    console.log(`Welcome back${name}. Your Carrel research environment is ready.`);
+    console.log(`Welcome back${name}. Carrel research environment is ready.`);
+
+    // Surface key preferences so Claude knows how to behave
+    console.log('');
+    console.log('Researcher profile:');
+    console.log(`  Sensitivity: ${sensitivity}`);
+    console.log(`  Cloud preference: ${cloudConsent}`);
+
+    // Surface configured tools
+    const activeTools = Object.entries(toolsConfigured)
+      .filter(([, v]) => v === true)
+      .map(([k]) => k);
+    if (activeTools.length > 0) {
+      console.log(`  Active tools: ${activeTools.join(', ')}`);
+    }
+
+    // Check for preference/reality mismatches
+    const wantedTools = env.interview?.preferences?.multi_model_providers || [];
+    for (const tool of wantedTools) {
+      const key = tool.toLowerCase();
+      if (toolsConfigured[key] === false || !toolsConfigured[key]) {
+        console.log(`  Note: ${tool} was requested during setup but is not yet configured.`);
+      }
+    }
+
+    // Remind Claude to check CLAUDE.md is in sync
+    const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+    if (!fs.existsSync(claudeMdPath)) {
+      console.log('');
+      console.log('Note: No CLAUDE.md found in vault. Consider running /carrel-setup to generate one.');
+    }
+
     console.log('');
 
   } catch (error) {
-    // Corrupted env file — don't block, just note it
     console.log('');
     console.log('Note: Could not read environment config. Run /carrel-status to check.');
     console.log('');
