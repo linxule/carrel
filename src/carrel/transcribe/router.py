@@ -25,10 +25,16 @@ def select_transcribe_tool(
 ) -> TranscribeTool:
     _ = sensitivity, hardware
     if explicit_tool is not None:
-        if explicit_tool in {TranscribeTool.GEMINI, TranscribeTool.YOUTUBE_CAPTIONS} and not _is_youtube_url(source):
+        is_yt = _is_youtube_url(source)
+        if explicit_tool in {TranscribeTool.GEMINI, TranscribeTool.YOUTUBE_CAPTIONS} and not is_yt:
             raise CarrelError(
                 f"{explicit_tool.value} only works with YouTube URLs",
                 hint="For local audio files, use --tool coli (local) or --tool groq (cloud).",
+            )
+        if explicit_tool in {TranscribeTool.COLI, TranscribeTool.GROQ} and is_yt:
+            raise CarrelError(
+                f"{explicit_tool.value} only works with local audio files",
+                hint="For YouTube URLs, use --tool gemini (cloud) or omit --tool for local captions.",
             )
         return explicit_tool
     if _is_youtube_url(source):

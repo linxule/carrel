@@ -109,6 +109,28 @@ def test_transcribe_router_rejects_youtube_captions_for_local_file() -> None:
         )
 
 
+def test_transcribe_router_rejects_groq_for_youtube_url() -> None:
+    with pytest.raises(CarrelError, match="only works with local audio files"):
+        select_transcribe_tool(
+            source="https://www.youtube.com/watch?v=abc123",
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(groq_key=True),
+            explicit_tool=TranscribeTool.GROQ,
+        )
+
+
+def test_transcribe_router_rejects_coli_for_youtube_url() -> None:
+    with pytest.raises(CarrelError, match="only works with local audio files"):
+        select_transcribe_tool(
+            source="https://youtu.be/abc123",
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(coli=True),
+            explicit_tool=TranscribeTool.COLI,
+        )
+
+
 def test_transcribe_router_allows_gemini_for_youtube_url() -> None:
     tool = select_transcribe_tool(
         source="https://www.youtube.com/watch?v=test123",
