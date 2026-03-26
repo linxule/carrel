@@ -77,7 +77,11 @@ def search_command(
         vault_path = resolve_vault(vault)
         matches = []
         for path in sorted(vault_path.rglob("*.md")):
-            if query.lower() in path.read_text(encoding="utf-8").lower():
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            if query.lower() in text.lower():
                 matches.append(str(path))
         if fmt == OutputFormat.JSON:
             console.print(json.dumps(matches))

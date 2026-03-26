@@ -1,6 +1,6 @@
 ---
 name: convert
-description: "Use when a researcher wants to convert a PDF, Word document, PowerPoint, spreadsheet, or image to markdown. Triggers on 'convert', 'import', 'add this paper', a dropped file path, or any mention of PDF/DOCX/PPTX/XLSX conversion."
+description: "This skill should be used when a researcher wants to convert a PDF, Word document, PowerPoint, spreadsheet, or image to markdown. Triggers on 'convert', 'import', 'add this paper', a dropped file path, or any mention of PDF/DOCX/PPTX/XLSX conversion."
 ---
 
 # convert

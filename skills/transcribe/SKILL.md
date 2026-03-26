@@ -27,7 +27,7 @@ The CLI handles tool routing, filing (`transcripts/<kind>-<name>-<date>.md`), an
 
 ### Tool selection
 
-- **YouTube URL** → omit `--tool` and the CLI uses local captions (free, no API key, includes timestamps). Suggest `--tool gemini` when captions are missing, poor quality, or the researcher wants AI-processed transcription from the actual audio+video.
+- **YouTube URL** → omit `--tool` and the CLI uses local captions (free, no API key, includes timestamps). Run with local captions first (the default). If the output quality is poor (garbled text, missing segments, wrong language), offer to re-run with `--tool gemini` for AI-processed transcription from the actual audio+video.
 - **Local audio, sensitive data** → default to `coli` (local). Warn before suggesting `--tool groq`: "This will send audio to Groq's servers — is that okay given the sensitivity?"
 - **Local audio, non-sensitive, slow hardware** → `--tool groq` is faster and gives word-level timestamps for better paragraph reconstruction.
 - **Default** → omit `--tool` and let the CLI decide (coli for local audio, local captions for YouTube).

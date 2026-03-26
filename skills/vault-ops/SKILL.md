@@ -1,6 +1,6 @@
 ---
 name: vault-ops
-description: "This skill should be used when a researcher wants to create, search, organize, or manage notes in their Obsidian vault. Triggers on 'create a note', 'find my notes about', 'organize', 'search vault', 'link notes', 'use template', or any vault file operation."
+description: "This skill should be used when a researcher wants to create, search, organize, or manage notes in their Obsidian vault. Triggers on 'create a note', 'find my notes about', 'organize', 'search vault', 'link notes', 'use template', 'vault status', 'check inbox', 'what's in my vault', or any vault file operation."
 ---
 
 # vault-ops

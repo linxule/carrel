@@ -45,9 +45,12 @@ function main() {
 
   try {
     const env = JSON.parse(fs.readFileSync(envPath, 'utf8'));
-    const researcher = env.interview?.researcher;
 
-    if (!researcher) {
+    // Detect format: flat (Python ResearcherProfile) or nested (legacy JS interview)
+    const isFlat = env.name !== undefined || env.sensitivity !== undefined || env.cloud_consent !== undefined;
+    const isNested = env.interview?.researcher !== undefined;
+
+    if (!isFlat && !isNested) {
       console.log('');
       console.log('Carrel is partially set up but the interview wasn\'t completed.');
       console.log('Run /carrel-setup to finish configuration.');
@@ -55,8 +58,9 @@ function main() {
       process.exit(0);
     }
 
-    // Surface researcher profile for Claude's context
-    const name = researcher.name ? ` ${researcher.name.split(' ')[0]}` : '';
+    // Read fields: flat (canonical) first, fall back to nested (legacy)
+    const rawName = env.name || env.interview?.researcher?.name || null;
+    const name = rawName ? ` ${rawName.split(' ')[0]}` : '';
     const sensitivity = env.sensitivity || env.interview?.data?.sensitivity || 'medium';
     const cloudConsent = env.cloud_consent ?? env.interview?.preferences?.cloud_comfort ?? 'prefer_local';
     const toolsConfigured = env.tools_configured || {};
@@ -79,7 +83,8 @@ function main() {
     }
 
     // Check for preference/reality mismatches
-    const wantedTools = env.interview?.preferences?.multi_model_providers || [];
+    // Flat: env.preferences.multi_model_providers; Legacy: env.interview.preferences.multi_model_providers
+    const wantedTools = env.preferences?.multi_model_providers || env.interview?.preferences?.multi_model_providers || [];
     for (const tool of wantedTools) {
       const key = tool.toLowerCase();
       if (toolsConfigured[key] === false || !toolsConfigured[key]) {

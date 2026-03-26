@@ -35,10 +35,14 @@ def export_command(
         profile = read_profile(vault_path)
         export_target_for(url, export_format, vault_path)
         started = time.perf_counter()
-        exported = asyncio.run(export_from_google_workspace(url, vault_path, export_format))
-        selected_tool, content, metadata = asyncio.run(
-            run_convert_pipeline(exported, vault_path, profile, sensitivity, tool)
-        )
+        async def _export_and_convert():
+            exported = await export_from_google_workspace(url, vault_path, export_format)
+            selected_tool, content, metadata = await run_convert_pipeline(
+                exported, vault_path, profile, sensitivity, tool
+            )
+            return exported, selected_tool, content, metadata
+
+        exported, selected_tool, content, metadata = asyncio.run(_export_and_convert())
         filed = file_paper(
             content=content,
             metadata={**metadata, "source_url": url},

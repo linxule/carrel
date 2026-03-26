@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+from functools import partial
 from urllib.parse import parse_qs, urlparse
 
 from carrel.errors import ToolNotInstalled, TranscriptionError
@@ -46,7 +48,8 @@ async def transcribe_with_youtube_captions(url: str) -> tuple[str, dict]:
     video_id = extract_youtube_video_id(url)
     try:
         ytt_api = YouTubeTranscriptApi()
-        fetched = ytt_api.fetch(video_id)
+        loop = asyncio.get_running_loop()
+        fetched = await loop.run_in_executor(None, partial(ytt_api.fetch, video_id))
     except Exception as exc:  # pragma: no cover - library exception classes vary by version
         raise TranscriptionError(
             "youtube captions unavailable",

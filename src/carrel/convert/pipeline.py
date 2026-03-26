@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from carrel.cli import resolve_cloud_consent
+from carrel.consent import resolve_cloud_consent
 from carrel.convert.adapters.liteparse import convert_with_liteparse
 from carrel.convert.adapters.markdownify import convert_with_markdownify
 from carrel.convert.adapters.mineru import convert_with_mineru

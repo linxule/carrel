@@ -133,7 +133,11 @@ Tell the researcher what THEY need to do (Claude can't install GUI apps):
 
 ### Step 8: Verify & Generate Cheat Sheet
 
-Run `scripts/generate-cheatsheet.js` to create a customized reference card at `_meta/cheat_sheet.md`. The template is in `references/cheatsheet-template.md`.
+Run the cheat sheet generator to create a customized reference card at `_meta/cheat_sheet.md`. The template is in `references/cheatsheet-template.md`.
+
+```bash
+bun run skills/environment-setup/scripts/generate-cheatsheet.js
+```
 
 Test one operation end-to-end:
 - "Let's test the setup. Drop a PDF or Word file in here and I'll convert it to your vault."
@@ -161,9 +165,11 @@ The key principle: **environment.json is the structured truth, CLAUDE.md is the 
 ## Scripts
 
 ### generate-cheatsheet.js
-Creates customized cheat sheet from environment.json.
+Creates customized cheat sheet from environment.json. This is a Node.js script not yet ported to the Python CLI.
 
 Reads `.carrel/environment.json`, writes `_meta/cheat_sheet.md`.
+
+Run with: `bun run skills/environment-setup/scripts/generate-cheatsheet.js`
 
 ## Related
 

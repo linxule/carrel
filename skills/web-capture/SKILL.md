@@ -1,6 +1,6 @@
 ---
 name: web-capture
-description: "Use when a researcher wants to save web content to their vault. Triggers on URLs, 'save this article', 'clip this page', 'capture this website', or 'add this to my vault' with a URL."
+description: "This skill should be used when a researcher wants to save web content to their vault. Triggers on URLs, 'save this article', 'clip this page', 'capture this website', or 'add this to my vault' with a URL."
 ---
 
 # web-capture
@@ -40,6 +40,7 @@ If the article relates to existing vault content, suggest links:
 - **Academic paper on a website** (not PDF): Use `carrel capture url` — defuddle extracts article content cleanly
 - **PDF hosted online**: Download it first, then `carrel paper convert` — the paper pipeline handles PDFs better
 - **YouTube video page**: Use `carrel transcript create <youtube-url>` instead — the transcript pipeline is purpose-built for this
+- **Google Docs/Sheets/Slides URL** (`docs.google.com`, `sheets.google.com`, `slides.google.com`): Route to `carrel google export <url>` instead — the Google Workspace pipeline handles authenticated export with proper formatting
 
 ## Alternative: Web Clipper
 

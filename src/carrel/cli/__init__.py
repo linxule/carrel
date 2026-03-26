@@ -5,8 +5,8 @@ from pathlib import Path
 
 import typer
 
+from carrel.consent import resolve_cloud_consent as resolve_cloud_consent
 from carrel.errors import CarrelError, VaultNotFound
-from carrel.models import ResearcherProfile
 
 
 def normalize_path(path: Path) -> Path:
@@ -26,14 +26,6 @@ def resolve_vault(vault: Path | None = None) -> Path:
         if (candidate / ".carrel").exists():
             return candidate
     raise VaultNotFound()
-
-
-def resolve_cloud_consent(tool: str | None, profile: ResearcherProfile | None) -> bool:
-    if tool and tool in {"mineru", "groq", "gemini"}:
-        return True
-    if profile and profile.cloud_consent:
-        return True
-    return False
 
 
 def emit_carrel_error(error: CarrelError) -> None:

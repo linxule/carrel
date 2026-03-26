@@ -146,7 +146,10 @@ async def audit(project_path: Path | None = None) -> AuditResult:
             installed=bool(obsidian_path),
             path=obsidian_path.splitlines()[0] if obsidian_path else None,
         )
-        binaries["zotero"] = BinaryInfo(installed=bool(zotero_path), path=zotero_path)
+        binaries["zotero"] = BinaryInfo(
+            installed=bool(zotero_path),
+            path=zotero_path.splitlines()[0] if zotero_path else None,
+        )
     else:
         binaries["obsidian"] = BinaryInfo(
             installed=shutil.which("obsidian") is not None, path=shutil.which("obsidian")
