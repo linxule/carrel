@@ -5,18 +5,18 @@ description: "This skill should be used when a researcher wants to create, searc
 
 # vault-ops
 
-Read, write, search, and organize the researcher's Obsidian vault. Handles note creation from templates, cross-linking with wiki syntax, and vault-wide search.
+Read, write, search, and organize the researcher's Obsidian vault. The CLI handles mechanical operations — this skill provides the judgment layer: which template, what links, when to reorganize.
 
 ## When to Use
 
-- Researcher wants to create a new note (paper, meeting, reflection, daily)
+- Researcher wants to create a new note (paper notes, meeting, reflection, daily)
 - Researcher asks to find, search, or organize vault content
 - Researcher wants to link notes or explore connections
 - Any read/write operation on vault files
 
 ## Vault Structure
 
-Standard Carrel vault layout:
+Standard Carrel vault layout (created via `carrel vault init <path>`):
 
 ```
 vault/
@@ -26,7 +26,7 @@ vault/
 │       ├── paper.md            # The converted paper content
 │       └── images/             # Extracted figures/assets
 ├── notes/          # Research notes, meeting notes, ideas
-├── transcripts/    # Audio transcriptions
+├── transcripts/    # Audio transcriptions (filed via carrel transcript)
 ├── drafts/         # Writing in progress
 ├── talks/          # Presentation prep
 ├── admin/          # Committee work, letters, admin tasks
@@ -38,39 +38,26 @@ vault/
 
 **Converted papers** and **researcher notes** are different things:
 
-- **Converted paper** = the actual paper content converted from PDF/DOCX → saved to `papers/<author-year-title>/paper.md`. NO note template. Just frontmatter + converted content.
-- **Paper notes** = researcher's own thinking about a paper → saved to `notes/` using `_templates/paper-notes.md`. Links back to the paper with `[[papers/corley-gioia-2004/paper]]`.
+- **Converted paper** = the actual paper content converted from PDF/DOCX → filed to `papers/<author-year>/paper.md` by `carrel paper convert`. NO note template. Just frontmatter + converted content.
+- **Paper notes** = researcher's own thinking about a paper → saved to `notes/` using `_templates/paper-notes.md`. Links back with `[[papers/corley-gioia-2004/paper]]`.
 
-NEVER apply a note template to a converted paper. The convert skill handles papers; vault-ops handles notes.
+NEVER apply a note template to a converted paper. The convert command handles papers; vault-ops handles notes about papers.
 
-## Creating Notes
+## Template Selection Judgment
 
-When creating a new note, use the appropriate template from `_templates/`:
+Use `carrel vault new <template> <name>` to create from template, or apply manually:
 
-1. **Paper notes** (about a paper) → `_templates/paper-notes.md` → save to `notes/`
-2. **Meeting note** → `_templates/meeting.md` → save to `notes/`
-3. **Reflection** → `_templates/reflection.md` → save to `_meta/reflections/`
-4. **Daily note** → `_templates/daily.md` → save to `notes/`
-5. **Freeform note** → no template → save to `notes/` or `inbox/`
+1. **paper-notes** — researcher's thinking about a specific paper → `notes/`
+2. **meeting** — any synchronous conversation → `notes/`
+3. **reflection** — periodic sensemaking, project retrospectives → `_meta/reflections/`
+4. **daily** — daily log, task tracking → `notes/`
+5. **freeform** — no template, open-ended → `notes/` or `inbox/`
 
-Replace `{{date}}` placeholders with today's date (YYYY-MM-DD format).
-
-Name files descriptively: `meeting-kevin-2026-03-26.md`, `draft-introduction.md`, `notes-on-corley-gioia-2004.md`.
-
-## Vault Hygiene
-
-The researcher provides file paths or drops files. Claude organizes everything:
-
-1. **Place** — every file goes in the right folder, never dumped in root
-2. **Rename** — consistent naming (`author-year-short-title` for papers, descriptive for notes)
-3. **File** — subfolders when a paper has assets (images, supplementary)
-4. **Link** — cross-reference with wiki links to related notes and papers
-
-The vault should always be clean and navigable. If files accumulate in `inbox/`, proactively suggest: "You have 5 files in inbox/ — want me to sort them?"
+Replace `{{date}}` placeholders with today's date (YYYY-MM-DD). Name files descriptively: `meeting-kevin-2026-03-26.md`, `notes-on-corley-gioia-2004.md`.
 
 ## YAML Frontmatter
 
-All notes should have YAML frontmatter for Obsidian's Properties feature:
+All notes should have YAML frontmatter for Obsidian's Properties:
 
 ```yaml
 ---
@@ -84,7 +71,7 @@ status: draft
 For paper notes, include: title, authors, year, journal, doi, tags, status.
 For meeting notes: date, participants, project, type.
 
-## Cross-Linking
+## Cross-Linking Intelligence
 
 Use Obsidian wiki-link syntax to connect notes:
 
@@ -92,33 +79,28 @@ Use Obsidian wiki-link syntax to connect notes:
 - `[[note name|display text]]` — link with custom display text
 - `[[note name#heading]]` — link to a specific section
 
-When creating or editing notes, suggest relevant links:
+When creating or editing notes, actively suggest relevant links based on vault content:
 "This paper discusses identity construction — you have notes on that in `[[notes/identity-theory-overview]]`."
 
-## Searching
+Use `carrel vault search <query>` to surface related content before suggesting links.
 
-To search the vault:
-1. Use Grep/Glob tools to find content across markdown files
-2. Search within specific folders for targeted results
-3. Search YAML frontmatter for metadata queries (tags, authors, status)
+## Vault Hygiene
 
-## Organizing
-
-- Move files between folders when the researcher requests
-- Suggest organization: "I notice 5 files in inbox/ — want me to sort them?"
-- Maintain consistent naming conventions
-- Update links when moving files (find and replace `[[old-name]]` → `[[new-name]]`)
+- Check `carrel vault status` to see accumulation before suggesting organization
+- Use `carrel vault organize` to get sorting suggestions for inbox files
+- If inbox has 5+ files, proactively flag: "You have N files in inbox/ — want me to sort them?"
+- Update links when moving files: find and replace `[[old-name]]` → `[[new-name]]`
+- Every file has a home — nothing stays in vault root
 
 ## Guidelines
 
 - Always preserve existing content — never overwrite without asking
-- Add frontmatter to files that don't have it
+- Add frontmatter to files that lack it
 - Use the researcher's vocabulary (from CLAUDE.md profile)
-- Suggest connections proactively: "This reminds me of your note on..."
+- Suggest connections proactively when context is recognizable
 - Keep file paths relative within the vault for Obsidian compatibility
 
 ## Related
 
-- **Skills**: `environment-setup` creates the initial vault structure
-- **Skills**: `convert` adds converted documents to the vault
-- **Commands**: All commands that output to the vault use vault-ops conventions
+- **CLI**: `carrel vault init` creates vault structure; `carrel paper convert` files papers; `carrel transcript` files transcripts
+- **Skills**: `convert` adds converted documents; `environment-setup` bootstraps the workspace

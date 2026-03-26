@@ -44,13 +44,13 @@ Output: structured answers for environment.json.
 
 ### Step 2: Hardware & Tools Audit (silent, ~30 sec)
 
-Run `scripts/check-environment.js` silently. Consult `references/hardware-audit.md` for detailed audit commands and output formatting. It detects:
+Run `carrel env doctor --format json` silently. Consult `references/hardware-audit.md` for output interpretation. It detects:
 - OS, architecture, RAM, disk space
 - Installed tools (node, python, pandoc, ffmpeg, obsidian)
-- Existing MCP configurations
-- Available MCP connections
+- Existing tool configurations
+- Hardware capability tier (high/medium/low)
 
-Do NOT show raw output to the researcher. Summarize findings in plain language:
+Do NOT show raw output to the researcher. Translate findings into plain language:
 "You're on a Mac with Apple Silicon and plenty of storage. I found Python and Node already installed."
 
 ### Step 3: Decision Tree (~2 min)
@@ -68,10 +68,10 @@ Does this sound right? Anything you'd add or skip?"
 
 ### Step 4: Scaffold Vault (~2 min)
 
-Run `scripts/create-vault.js` to create:
+Run `carrel vault init <path>` to create:
 - Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration (core plugins, templates setup)
-- `.carrel/environment.json` (structured profile)
+- `.carrel/environment.json` (structured profile with defaults)
 - `CLAUDE.md` (auto-loaded every session)
 - `_templates/` (paper, meeting, reflection, daily note templates)
 - `_meta/cheat_sheet.md` (customized reference card)
@@ -79,7 +79,9 @@ Run `scripts/create-vault.js` to create:
 Consult `references/obsidian-setup.md` for .obsidian/ config details.
 Consult `skills/vault-ops/templates/` for template contents.
 
-### Step 5: Configure Optional MCPs
+After scaffolding, update `.carrel/environment.json` with the researcher's profile from the interview using `carrel env profile`.
+
+### Step 5: Configure Optional Tools
 
 If the decision tree indicates mineru or zotero:
 - Add them to the project `.mcp.json`
@@ -108,27 +110,6 @@ Test one operation end-to-end:
 
 ## Scripts
 
-### create-vault.js
-Scaffolds the complete vault structure.
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/skills/environment-setup/scripts/create-vault.js" \
-  --project-path /path/to/project
-```
-
-Returns JSON with created/skipped files. Never overwrites existing content.
-Researcher profile and sensitivity are written to `.carrel/environment.json` by Claude after the interview, not via script args.
-
-### check-environment.js
-Audits hardware and installed tools.
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/skills/environment-setup/scripts/check-environment.js" \
-  --project-path /path/to/project
-```
-
-Returns JSON with OS, arch, RAM, disk, installed tools, MCP status.
-
 ### generate-cheatsheet.js
 Creates customized cheat sheet from environment.json.
 
@@ -144,4 +125,4 @@ Reads `.carrel/environment.json`, writes `_meta/cheat_sheet.md`.
 - **Commands**: `/carrel-setup` triggers this skill
 - **Agents**: `@setup-interviewer` (optional) provides richer conversational interview; the protocol in references/ works directly without it
 - **Skills**: `vault-ops` for ongoing vault operations after setup
-- **Hooks**: `check-environment.js` (SessionStart) uses the audit script
+- **Hooks**: `carrel env doctor` (SessionStart) audits the environment on open

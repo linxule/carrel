@@ -1,155 +1,89 @@
 ---
 name: convert
-description: "This skill should be used when a researcher needs to convert a PDF, Word document, PowerPoint, spreadsheet, or image to markdown. Triggers on 'convert', 'import', 'add this paper', drops a file, or mentions PDF/DOCX/PPTX/XLSX conversion."
+description: "Use when a researcher wants to convert a PDF, Word document, PowerPoint, spreadsheet, or image to markdown. Triggers on 'convert', 'import', 'add this paper', a dropped file path, or any mention of PDF/DOCX/PPTX/XLSX conversion."
 ---
 
 # convert
 
-Document conversion pipeline: detect file type, choose the right tool, convert to markdown, add YAML frontmatter, and save to the appropriate vault folder.
+The `carrel` CLI handles all mechanical conversion work. This skill provides the judgment layer: when to invoke which options, how to interpret results, and what to do next.
 
-## When to Use
+## When to Trigger
 
-- Researcher drops a file or gives a file path
-- Researcher says "convert", "import", "add this paper to my vault"
-- Any PDF, DOCX, PPTX, XLSX, or image file needs to become markdown
+- Researcher drops a file path or says "convert", "import", "add this paper"
+- Any PDF, DOCX, PPTX, XLSX, or image needs to become markdown in the vault
 
-## Tool Selection
-
-### PDF Conversion (pick one, in order of preference)
-
-| Tool | Quality | Local/Cloud | Best for | Install |
-|------|---------|-------------|----------|---------|
-| **mineru-mcp** | Best | Cloud API | Complex PDFs — tables, formulas, scanned, multi-column | Needs `MINERU_API_KEY` |
-| **LiteParse** | Good | **Local**, free | Text-heavy academic papers, fast batch processing | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` |
-| markdownify | Poor for PDFs | Local | **Do not use for PDFs.** Fallback only for simple single-column text. | Bundled with plugin |
-
-**Do NOT use markdownify as the default PDF converter.** Its PDF output loses tables, mangles formatting, and produces poor results on academic papers.
-
-**Routing logic:**
-1. Sensitive data → **LiteParse** (local, free, no data leaves machine)
-2. Complex PDFs (tables, formulas, scans) → **mineru** (best quality, cloud)
-3. Text-heavy papers, not sensitive → **LiteParse** (fast, free) or **mineru** (better quality)
-4. Nothing else available → markdownify (last resort)
-
-Check what's available: read `.carrel/environment.json` → `tools_configured`
+## Running a Conversion
 
 ```bash
-# LiteParse — local, fast (~500 pages in 2 seconds)
-lit parse paper.pdf                          # spatial text output
-lit parse paper.pdf --format json -o out.json  # structured JSON with bounding boxes
+carrel paper convert <file> [--vault PATH]
 ```
 
-```
-# mineru — best quality, cloud
-mineru_parse({
-  url: "file:///path/to/paper.pdf",
-  model: "vlm"    // 90%+ accuracy for complex layouts
-})
-```
+That's the default. The CLI picks the right tool automatically (liteparse for PDFs, markitdown for everything else) and handles frontmatter, filing, and idempotency.
 
-**Sensitivity warning for mineru**: MineRU sends the document to a cloud service. If the researcher's sensitivity is "high" or "local_only" (check CLAUDE.md), use LiteParse instead:
-"I'll convert this locally so your document stays on your machine."
+## Judgment Calls
 
-**LiteParse note**: Output is spatial text (preserves layout via whitespace), not Markdown. This works well because Claude can interpret spatial layouts naturally. For the vault, save as-is with YAML frontmatter — don't try to convert the spatial format to Markdown.
+### When to suggest `--tool mineru`
 
-### Non-PDF Formats (markdownify — always available)
+Recommend mineru when the researcher describes or the filename suggests:
+- Tables, figures, or formulas that need accurate extraction
+- Scanned or image-based PDFs
+- Multi-column journal layouts where structure matters
 
-markdownify works well for everything except PDFs:
+Say: "This looks like a complex PDF with tables. Want me to use the cloud converter for better accuracy? (`--tool mineru`)"
 
-| Format | Tool | Notes |
-|--------|------|-------|
-| DOCX | `docx-to-markdown` | Preserves structure well |
-| PPTX | `pptx-to-markdown` | Extracts slide content |
-| XLSX | `xlsx-to-markdown` | Converts to markdown tables |
-| Image | `image-to-markdown` | OCR + metadata |
-| Web URL | `webpage-to-markdown` | Strips navigation/ads |
-| YouTube | `youtube-to-markdown` | Transcript if available |
+Do not suggest mineru unprompted for straightforward text-heavy papers — liteparse handles those well.
 
-## Conversion Flow
+### When to warn about sensitivity
 
-### Step 1: Detect format
-Read the file extension or ask the researcher what kind of file it is.
+If the researcher has mentioned data sensitivity, IRB materials, unpublished manuscripts, or confidential content, note before running:
+- `--tool mineru` sends the document to a cloud API — skip it for sensitive files
+- The default (liteparse) is local and safe
 
-### Step 2: Check sensitivity
-Read CLAUDE.md or `.carrel/environment.json` for sensitivity level.
-- `local_only` or `high`: Use markdownify only. Warn before mineru.
-- `prefer_local`: Try markdownify first. Offer mineru if results are poor.
-- `comfortable_with_cloud`: Use best tool for the job.
+### When to use `--force`
 
-### Step 3: Convert
-Call the appropriate markdownify tool or mineru tool.
+Use `--force` only when the researcher explicitly wants to re-convert something already in the vault, or when quality was poor on a previous run.
 
-### Step 4: Add frontmatter
-For papers, add YAML frontmatter:
+### Dry run
 
-```yaml
----
-title: [extracted or ask researcher]
-authors: [extracted or ask researcher]
-year: [extracted or ask researcher]
-journal: [extracted or ask researcher]
-doi: [if found]
-source_file: [original filename]
-converted: [today's date]
-converter: markdownify|mineru
-tags: []
-status: unread
----
-```
+Offer `--dry-run` when the researcher is unsure what will happen or wants to preview before committing.
 
-For other documents, add minimal frontmatter:
-```yaml
----
-title: [filename or extracted]
-source_file: [original filename]
-converted: [today's date]
-tags: []
----
-```
+## Interpreting Results
 
-### Step 5: Save to vault
+**Success**: Tell the researcher where the file landed and give a one-line quality read:
+"Converted to `papers/corley-gioia-2004/paper.md`. Tables came through cleanly."
 
-**Papers get their own folder** — never a flat file in papers/:
+**Skipped (already converted)**: Explain the idempotency behavior:
+"This paper is already in your vault. Use `--force` if you want to re-convert it."
 
-```
-papers/
-└── corley-gioia-2004/
-    ├── paper.md          # The converted content with frontmatter
-    └── images/           # Extracted figures (if mineru provides them)
-```
+**Error**: The CLI error message includes a hint — relay it and offer a path forward.
 
-Other file types:
-- Slides/presentations → `talks/filename.md`
-- Spreadsheets → `notes/filename.md` or context-dependent
-- Other → `inbox/filename.md` (researcher organizes later)
+## Quality Assessment
 
-**CRITICAL: Do NOT apply note templates to converted papers.** A converted paper is the raw paper content with YAML frontmatter — nothing else. If the researcher later wants to write notes *about* the paper, that's a separate note in `notes/` using the paper-notes template.
+After conversion, scan the output for:
+- Garbled text (OCR artifacts)
+- Broken or missing tables
+- Lost section structure
 
-### Step 6: Confirm
-Tell the researcher what was converted and where it was saved:
-"I've converted your PDF and saved it to `papers/corley-gioia-2004/paper.md`. The tables came through well. Want me to create reading notes, or would you like to convert another paper?"
+If quality is poor, offer re-conversion:
+- "The tables didn't come through well — want to retry with `--tool mineru` for better accuracy?"
+- "Looks like a scanned PDF. The cloud converter handles those better."
 
-## Quality Check
+## Batch Workflow
 
-After conversion, quickly scan the output for:
-- Garbled text (OCR errors)
-- Missing or broken tables
-- Lost formatting (headers, lists)
-- Missing figures (note where they were)
+For multiple files, run each with `carrel paper convert`, then summarize:
+"Converted 5 papers. 4 came through cleanly. One had table issues — flagging `smith-2019` for re-conversion."
 
-If quality is poor, offer alternatives:
-- "The tables didn't convert well. Want me to try the cloud converter for better accuracy?"
-- "Some text looks garbled — this might be a scanned PDF. Let me try a different approach."
+## CRITICAL: Papers Are Not Notes
 
-## Batch Conversion
+A converted paper is raw paper content with YAML frontmatter — nothing else. Never apply a note template to a converted paper. If the researcher wants to write notes *about* a paper, that is a separate file in `notes/` created with the note-taking skill.
 
-If the researcher has multiple files:
-1. List all files to convert
-2. Process each one
-3. Report results: "Converted 5 papers. 4 came through cleanly. One had table issues — I'll flag it."
+## Follow-Up Offers
+
+After a successful conversion, offer:
+- "Want me to create reading notes for this paper?"
+- "Should I check if any papers already in your vault cite this one?"
 
 ## Related
 
-- **MCP**: markdownify (bundled), mineru (optional)
-- **Skills**: `vault-ops` for file placement and frontmatter conventions
-- **Commands**: `/carrel-convert` triggers this skill
+- `carrel paper list` — see what's already converted
+- **Skills**: `vault-ops` for file conventions, `reading-notes` for note creation
