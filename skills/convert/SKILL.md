@@ -15,28 +15,42 @@ Document conversion pipeline: detect file type, choose the right tool, convert t
 
 ## Tool Selection
 
-### PDF Conversion (pick one, in order of quality)
+### PDF Conversion (pick one, in order of preference)
 
-| Tool | Quality | Local/Cloud | When to use |
-|------|---------|-------------|-------------|
-| **mineru-mcp** | Best | Cloud API | Complex PDFs — tables, formulas, scanned, multi-column. Default for PDFs when available. |
-| **LiteParse** | Good | Cloud API | Lighter alternative to mineru. Good for most academic papers. |
-| markdownify | Poor for PDFs | Local | Fallback only. Acceptable for simple single-column text PDFs. |
+| Tool | Quality | Local/Cloud | Best for | Install |
+|------|---------|-------------|----------|---------|
+| **mineru-mcp** | Best | Cloud API | Complex PDFs — tables, formulas, scanned, multi-column | Needs `MINERU_API_KEY` |
+| **LiteParse** | Good | **Local**, free | Text-heavy academic papers, fast batch processing | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` |
+| markdownify | Poor for PDFs | Local | **Do not use for PDFs.** Fallback only for simple single-column text. | Bundled with plugin |
 
-**Do NOT use markdownify as the default PDF converter.** Its PDF output loses tables, mangles formatting, and produces poor results on academic papers. Use mineru or LiteParse.
+**Do NOT use markdownify as the default PDF converter.** Its PDF output loses tables, mangles formatting, and produces poor results on academic papers.
+
+**Routing logic:**
+1. Sensitive data → **LiteParse** (local, free, no data leaves machine)
+2. Complex PDFs (tables, formulas, scans) → **mineru** (best quality, cloud)
+3. Text-heavy papers, not sensitive → **LiteParse** (fast, free) or **mineru** (better quality)
+4. Nothing else available → markdownify (last resort)
 
 Check what's available: read `.carrel/environment.json` → `tools_configured`
 
+```bash
+# LiteParse — local, fast (~500 pages in 2 seconds)
+lit parse paper.pdf                          # spatial text output
+lit parse paper.pdf --format json -o out.json  # structured JSON with bounding boxes
 ```
-# mineru — best quality
+
+```
+# mineru — best quality, cloud
 mineru_parse({
   url: "file:///path/to/paper.pdf",
   model: "vlm"    // 90%+ accuracy for complex layouts
 })
 ```
 
-**Sensitivity warning**: Both mineru and LiteParse are cloud-based. If the researcher's sensitivity is "high" or "local_only" (check CLAUDE.md), warn before using:
-"I can convert this PDF using a cloud service for much better quality, but it means sending the document to an external server. Would you prefer that, or should I try the local conversion?"
+**Sensitivity warning for mineru**: MineRU sends the document to a cloud service. If the researcher's sensitivity is "high" or "local_only" (check CLAUDE.md), use LiteParse instead:
+"I'll convert this locally so your document stays on your machine."
+
+**LiteParse note**: Output is spatial text (preserves layout via whitespace), not Markdown. This works well because Claude can interpret spatial layouts naturally. For the vault, save as-is with YAML frontmatter — don't try to convert the spatial format to Markdown.
 
 ### Non-PDF Formats (markdownify — always available)
 

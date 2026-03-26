@@ -36,15 +36,26 @@ Check `.carrel/environment.json` for hardware capability and sensitivity:
 
 | Condition | Tool | Why |
 |-----------|------|-----|
-| Sensitive data + any hardware | **mlx-whisper-mcp** (local) | Data stays on machine. Requires Apple Silicon. |
-| Capable hardware (Apple Silicon, 16GB+) | **mlx-whisper-mcp** (local) | Fast, free, good quality. |
-| Weak hardware or no local model | **Groq Whisper API** (cloud) | 299x real-time, cheapest cloud ($0.04/hr). |
+| Sensitive data + Apple Silicon 16GB+ | **mlx-whisper-mcp** (local) | Best quality, data stays on machine. |
+| Sensitive data + any Mac (including older) | **coli** (local) | SenseVoice model works on all hardware including Intel Macs. |
+| Capable hardware (Apple Silicon, 16GB+) | **mlx-whisper-mcp** (local) | Best quality, fast, free. |
+| Older/weaker hardware, not sensitive | **Groq Whisper API** (cloud) | 299x real-time, cheapest cloud ($0.04/hr). |
 | Nothing else available | **markdownify** audio-to-markdown | Always bundled. Basic quality. |
 
 Check what's available:
 - `mlx-whisper-mcp`: read `.mcp.json` or environment.json → `tools_configured.mlx_whisper`
+- `coli`: check if `coli` command exists (`which coli`). Installed via `npm i -g @marswave/coli`
 - `Groq`: needs `GROQ_API_KEY` — check environment.json
 - `markdownify`: always available (bundled with plugin)
+
+**coli usage** (local, works on all Macs):
+```bash
+coli asr recording.m4a                    # transcribe file
+coli asr recording.m4a --json             # with language, emotion, timestamps
+coli asr recording.m4a --model sensevoice # SenseVoice (default, multilingual)
+coli asr recording.m4a --model whisper    # Whisper tiny.en (English only, lighter)
+```
+First run downloads the model (~155MB) to `~/.coli/models/`. Requires ffmpeg for non-WAV files.
 
 **Sensitivity warning for cloud tools**: If sensitivity is "high" or "local_only", warn before using Groq or any cloud API:
 "This recording contains sensitive data. I'll transcribe it locally on your machine so nothing is sent to external servers."

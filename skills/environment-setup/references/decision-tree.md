@@ -115,8 +115,13 @@ After the interview, install additional tools based on what the researcher needs
 ```
 Interview results → Install silently:
 
+→ Works with PDFs (almost every researcher):
+  - brew tap run-llama/liteparse && brew install llamaindex-liteparse
+  - Local, free, no API key. Always install this.
+
 → Records audio (interviews, meetings):
   - brew install ffmpeg (if not present)
+  - npm i -g @marswave/coli (local ASR — works on all Macs including older ones)
 
 → Needs vox-mcp (multi-model access):
   - uv is already installed via bootstrap
@@ -131,22 +136,28 @@ Interview results → Install silently:
 
 Summarize installations in plain language: "I set up a tool to handle your audio files" — not "I installed ffmpeg via Homebrew."
 
-## Complex PDF Handling
+## PDF Handling
 
 ```
 Interview: "What kinds of files do you work with most?"
-+ Hardware audit: types of PDFs
++ Hardware audit + Sensitivity check
 
-→ COMPLEX PDFs (scanned, tables, multi-column, figures):
-  - markdownify-mcp handles basic PDFs
-  - Recommend adding mineru-mcp for complex cases
-  - Need: MINERU_API_KEY from mineru.net
-  - WARNING: MineRU API is cloud-based — flag if sensitivity is HIGH
-  - Alternative: suggest manual Adobe/Google Docs conversion for sensitive docs
+→ ALWAYS install LiteParse (local, free, no API key):
+  brew tap run-llama/liteparse && brew install llamaindex-liteparse
+  Handles most academic papers well. Fast (~500 pages/2 sec). Sensitive-data safe.
 
-→ SIMPLE PDFs (text-based, single column):
-  - markdownify-mcp is sufficient
-  - No additional setup needed
+→ COMPLEX PDFs (scanned, tables, multi-column, figures, formulas):
+  + NOT SENSITIVE:
+    - Also add mineru-mcp for best quality on complex cases
+    - Need: MINERU_API_KEY from mineru.net
+    - "For complex papers with tables and figures, I'll use a cloud service
+      that handles them much better."
+  + SENSITIVE (IRB data, confidential docs):
+    - LiteParse only — no cloud
+    - "Everything stays on your machine."
+
+→ Do NOT recommend markdownify for PDF conversion. Its PDF quality is poor.
+  markdownify is for web pages, Word docs, slides, and audio only.
 ```
 
 ## Cloud Storage
