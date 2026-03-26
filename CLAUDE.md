@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 29 tests
+uv run pytest                                    # 37 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -74,6 +74,7 @@ No markdownify fallback for audio. Missing coli → clear error.
 - **Filesystem**: Write only inside vault. Read from anywhere.
 - **Subprocesses**: `asyncio.create_subprocess_exec` (never `shell=True`). Configurable timeouts.
 - **No AI imports**: Core library is deterministic. AI lives in the transport/skill layer.
+- **Router validation**: Routers validate tool+input combinations, not just enum membership. `--tool gemini` on a local file or `--tool coli` on a YouTube URL is rejected with an actionable error. The router is the validation boundary — transports trust it.
 
 ## Feedback Loops
 
