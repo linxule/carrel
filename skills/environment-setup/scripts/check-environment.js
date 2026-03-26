@@ -20,7 +20,12 @@ function run(cmd) {
 }
 
 function which(tool) {
-  return run(`which ${tool}`) !== null;
+  try {
+    execFileSync('which', [tool], { encoding: 'utf8', timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getVersion(cmd) {
@@ -78,10 +83,11 @@ function main() {
 
   // --- Installed tools ---
   const tools = [
+    { name: 'git', check: 'git --version' },
+    { name: 'gh', check: 'gh --version' },
     { name: 'node', check: 'node --version' },
     { name: 'python', check: 'python3 --version' },
     { name: 'uv', check: 'uv --version' },
-    { name: 'bun', check: 'bun --version' },
     { name: 'pandoc', check: 'pandoc --version' },
     { name: 'ffmpeg', check: 'ffmpeg -version 2>&1 | head -1' },
     { name: 'brew', check: 'brew --version' },

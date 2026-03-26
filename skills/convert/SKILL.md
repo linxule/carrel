@@ -15,39 +15,41 @@ Document conversion pipeline: detect file type, choose the right tool, convert t
 
 ## Tool Selection
 
-### markdownify-mcp (default — always available)
+### PDF Conversion (pick one, in order of quality)
 
-The bundled MCP. Handles most formats locally:
+| Tool | Quality | Local/Cloud | When to use |
+|------|---------|-------------|-------------|
+| **mineru-mcp** | Best | Cloud API | Complex PDFs — tables, formulas, scanned, multi-column. Default for PDFs when available. |
+| **LiteParse** | Good | Cloud API | Lighter alternative to mineru. Good for most academic papers. |
+| markdownify | Poor for PDFs | Local | Fallback only. Acceptable for simple single-column text PDFs. |
 
-| Format | Tool | Notes |
-|--------|------|-------|
-| PDF | `pdf-to-markdown` | Good for text-based PDFs |
-| DOCX | `docx-to-markdown` | Preserves structure well |
-| PPTX | `pptx-to-markdown` | Extracts slide content |
-| XLSX | `xlsx-to-markdown` | Converts to markdown tables |
-| Image | `image-to-markdown` | OCR + metadata |
-| Web URL | `webpage-to-markdown` | Strips navigation/ads |
-| YouTube | `youtube-to-markdown` | Transcript if available |
+**Do NOT use markdownify as the default PDF converter.** Its PDF output loses tables, mangles formatting, and produces poor results on academic papers. Use mineru or LiteParse.
 
-### mineru-mcp (optional — for complex PDFs)
-
-Use when markdownify produces poor results on PDFs with:
-- Complex tables with merged cells or multi-column layouts
-- Scanned documents needing high-accuracy OCR
-- Mathematical formulas
-- Dense figures/charts that need extraction
-
-Check if available: read `.carrel/environment.json` → `tools_configured.mineru`
+Check what's available: read `.carrel/environment.json` → `tools_configured`
 
 ```
+# mineru — best quality
 mineru_parse({
   url: "file:///path/to/paper.pdf",
   model: "vlm"    // 90%+ accuracy for complex layouts
 })
 ```
 
-**Sensitivity warning**: MineRU API sends the document to a cloud service. If the researcher's sensitivity is "high" or "local_only" (check CLAUDE.md), warn before using:
-"This PDF has complex tables. My local converter might not handle them well. I can use a more accurate cloud service, but it means sending the document to an external server. Would you prefer that, or should I try the local conversion first?"
+**Sensitivity warning**: Both mineru and LiteParse are cloud-based. If the researcher's sensitivity is "high" or "local_only" (check CLAUDE.md), warn before using:
+"I can convert this PDF using a cloud service for much better quality, but it means sending the document to an external server. Would you prefer that, or should I try the local conversion?"
+
+### Non-PDF Formats (markdownify — always available)
+
+markdownify works well for everything except PDFs:
+
+| Format | Tool | Notes |
+|--------|------|-------|
+| DOCX | `docx-to-markdown` | Preserves structure well |
+| PPTX | `pptx-to-markdown` | Extracts slide content |
+| XLSX | `xlsx-to-markdown` | Converts to markdown tables |
+| Image | `image-to-markdown` | OCR + metadata |
+| Web URL | `webpage-to-markdown` | Strips navigation/ads |
+| YouTube | `youtube-to-markdown` | Transcript if available |
 
 ## Conversion Flow
 
@@ -92,16 +94,26 @@ tags: []
 ```
 
 ### Step 5: Save to vault
-- Papers → `papers/`
-- Slides/presentations → `talks/` or `papers/` depending on context
-- Spreadsheets → `notes/` or context-dependent
-- Other → `inbox/` (let researcher organize later)
 
-Name the file descriptively: `author-year-short-title.md` for papers, `filename.md` for others.
+**Papers get their own folder** — never a flat file in papers/:
+
+```
+papers/
+└── corley-gioia-2004/
+    ├── paper.md          # The converted content with frontmatter
+    └── images/           # Extracted figures (if mineru provides them)
+```
+
+Other file types:
+- Slides/presentations → `talks/filename.md`
+- Spreadsheets → `notes/filename.md` or context-dependent
+- Other → `inbox/filename.md` (researcher organizes later)
+
+**CRITICAL: Do NOT apply note templates to converted papers.** A converted paper is the raw paper content with YAML frontmatter — nothing else. If the researcher later wants to write notes *about* the paper, that's a separate note in `notes/` using the paper-notes template.
 
 ### Step 6: Confirm
 Tell the researcher what was converted and where it was saved:
-"I've converted your PDF to markdown and saved it as `papers/corley-gioia-2004-identity-construction.md`. The tables came through well. Want me to create a summary or highlight key sections?"
+"I've converted your PDF and saved it to `papers/corley-gioia-2004/paper.md`. The tables came through well. Want me to create reading notes, or would you like to convert another paper?"
 
 ## Quality Check
 

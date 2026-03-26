@@ -44,9 +44,10 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 
 ## Prerequisites
 
-- **Claude Desktop** with Claude Code enabled (Settings → Features)
-- **Node.js** — required for the bundled markdownify MCP. If not installed, Claude will detect this during setup and offer to install it (`brew install node` on macOS). Without Node.js, document conversion won't work.
-- **Python + uv** — required only if adding vox-mcp (multi-model access)
+- **Claude Desktop** (download from [claude.ai](https://claude.ai)) with Claude Code enabled (Settings → Features)
+- **macOS** — the bootstrap script handles everything else
+
+New machine? Run the bootstrap script first (see Installation).
 
 ## Optional MCPs
 
@@ -71,88 +72,69 @@ Carrel handles the research environment. For qualitative methodology (Gioia codi
 
 ## Installation
 
-### Option A: Kevin Pilot (Facilitator-Assisted, In Person)
+### Step 1: Bootstrap the Machine
 
-**Pre-session prep (on Kevin's machine or your own):**
+On a fresh Mac (or any Mac missing developer tools), open Terminal and run:
 
-1. Clone the repo to Kevin's machine:
-   ```bash
-   git clone https://github.com/linxule/carrel.git ~/Documents/Apps/carrel
-   ```
-   (Or copy the `carrel/` directory from your machine via USB/AirDrop)
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh)"
+```
 
-2. Open **Claude Desktop** app
+This installs: Xcode CLI tools, Homebrew, Node.js, uv, GitHub CLI, and Claude Code CLI. It's idempotent — safe to run again if something fails. Takes ~10 minutes on a fresh machine.
 
-3. Start a **Claude Code** session (Code tab)
+**If you have the script locally** (e.g., via AirDrop):
+```bash
+bash bootstrap.sh
+```
 
-4. In the Claude Code session, install the plugin from local path:
-   ```
-   /plugin install --local ~/Documents/Apps/carrel
-   ```
-   Or if that doesn't work, try from the terminal before opening Desktop:
-   ```bash
-   claude plugin install --local ~/Documents/Apps/carrel
-   ```
+### Step 2: Start a Research Project
 
-5. Create the research project folder:
-   ```bash
-   mkdir -p ~/Documents/Research
-   ```
+The bootstrap script installs the Carrel plugin automatically. Just:
 
-6. Close and reopen Claude Desktop. Start a new session, selecting `~/Documents/Research` as the project folder.
+1. Create a folder: `mkdir -p ~/Documents/Research`
+2. Open **Claude Desktop** → **Code tab** → select that folder as your project
+3. Type: `/carrel-setup`
+4. Carrel interviews you and configures everything (~15 min)
 
-7. Kevin should see the Carrel welcome message. Say: *"I'd like to set up my research environment"*
+**Requires:** GitHub access to `linxule/carrel`. The facilitator adds the researcher as a collaborator on the private repo. The bootstrap script handles GitHub sign-in.
 
-**During session:**
-- Carrel interviews Kevin (~10 min)
-- You help with human steps: install Obsidian (`brew install obsidian`), Web Clipper
-- Test with a real PDF conversion
-- Walk through the cheat sheet together
+If the plugin didn't install during bootstrap, tell Claude: *"Install the Carrel plugin from linxule/carrel"*
 
-### Option B: Private GitHub Repo (Remote Researchers)
+### Facilitator-Assisted Setup
 
-For researchers you've granted access to the private repo:
+When setting up a researcher's machine in person:
 
-1. Open Claude Desktop → Code tab
-2. Run:
-   ```
-   /plugin marketplace add linxule/carrel
-   /plugin install carrel@linxule
-   ```
-3. Create a research folder and open it as a project
-4. Follow the Quick Start above
-
-Requires: researcher has GitHub access to `linxule/carrel` (add them as collaborator).
-
-### Option C: Public Marketplace (Future)
-
-When ready for wider distribution, submit to the Anthropic plugin marketplace. Researchers would install from the Discover tab in Claude Desktop — no terminal needed.
+1. Run the bootstrap script on their machine
+2. Help them sign in to GitHub during the `gh auth login` step
+3. Open Claude Desktop and install the plugin
+4. Sit with them through the onboarding interview
+5. Help with human steps: install Obsidian (`brew install --cask obsidian`), Web Clipper
+6. Test with a real PDF conversion
+7. Walk through the cheat sheet together
 
 ### Verifying Installation
 
-After install, in any Claude Code session:
+In any Claude Code session:
 ```
 /carrel-status
 ```
-If Carrel is active, it will report the environment state. If not installed, the command won't be recognized.
+If Carrel is active, it reports the environment state. If not installed, the command won't be recognized.
 
 ## Platform Support
 
-The **Code tab** in Claude Desktop runs the full Claude Code engine — all features work.
+Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Code engine.
 
-| Feature | Desktop Code tab | CLI | Cowork |
-|---------|-----------------|-----|--------|
-| Skills (all 6) | Yes | Yes | TBD |
-| Commands (/carrel-*) | Yes | Yes | TBD |
-| Hooks | Yes | Yes | TBD |
-| Agents (@setup-interviewer, @research-partner) | Yes | Yes | TBD |
-| MCP servers | Yes | Yes | TBD |
-| File read/write | Yes | Yes | TBD |
-| Bash commands (brew install, etc.) | Yes | Yes | TBD |
+| Feature | Desktop Code tab | CLI |
+|---------|-----------------|-----|
+| Skills (all 6) | Yes | Yes |
+| Commands (/carrel-*) | Yes | Yes |
+| Hooks | Yes | Yes |
+| Agents (@setup-interviewer, @research-partner) | Yes | Yes |
+| MCP servers | Yes | Yes |
+| File read/write | Yes | Yes |
+| Bash commands (brew install, etc.) | Yes | Yes |
 
-**Recommended for researchers:** Use the **Code tab** in Claude Desktop. It provides full capabilities with a GUI — no terminal required.
-
-**Cowork** is a separate product optimized for knowledge work. Plugin support is not yet documented by Anthropic — assume features may not be available there. Use the **Code tab** for full capabilities.
+**Recommended for researchers:** Use the **Code tab** in Claude Desktop. Full capabilities with a friendly GUI.
 
 ## License
 

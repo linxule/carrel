@@ -1,6 +1,5 @@
 {
   "name": "carrel",
-  "displayName": "Carrel",
   "version": "0.1.0",
   "description": "AI-augmented research environment. Interview-first onboarding, Obsidian vault setup, document conversion, and ongoing research tools for academics.",
   "author": {

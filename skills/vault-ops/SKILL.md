@@ -21,21 +21,33 @@ Standard Carrel vault layout:
 ```
 vault/
 ├── inbox/          # Drop zone — unsorted incoming
-├── papers/         # Converted papers (markdown with frontmatter)
+├── papers/         # Converted papers — one FOLDER per paper
+│   └── corley-gioia-2004/
+│       ├── paper.md            # The converted paper content
+│       └── images/             # Extracted figures/assets
 ├── notes/          # Research notes, meeting notes, ideas
 ├── transcripts/    # Audio transcriptions
 ├── drafts/         # Writing in progress
 ├── talks/          # Presentation prep
 ├── admin/          # Committee work, letters, admin tasks
 ├── _meta/          # Cheat sheet, reflections, friction log
-└── _templates/     # Note templates (paper, meeting, reflection, daily)
+└── _templates/     # Note templates (meeting, reflection, daily, paper-notes)
 ```
+
+## Papers vs Notes — Critical Distinction
+
+**Converted papers** and **researcher notes** are different things:
+
+- **Converted paper** = the actual paper content converted from PDF/DOCX → saved to `papers/<author-year-title>/paper.md`. NO note template. Just frontmatter + converted content.
+- **Paper notes** = researcher's own thinking about a paper → saved to `notes/` using `_templates/paper-notes.md`. Links back to the paper with `[[papers/corley-gioia-2004/paper]]`.
+
+NEVER apply a note template to a converted paper. The convert skill handles papers; vault-ops handles notes.
 
 ## Creating Notes
 
 When creating a new note, use the appropriate template from `_templates/`:
 
-1. **Paper note** → `_templates/paper.md` → save to `papers/`
+1. **Paper notes** (about a paper) → `_templates/paper-notes.md` → save to `notes/`
 2. **Meeting note** → `_templates/meeting.md` → save to `notes/`
 3. **Reflection** → `_templates/reflection.md` → save to `_meta/reflections/`
 4. **Daily note** → `_templates/daily.md` → save to `notes/`
@@ -43,7 +55,18 @@ When creating a new note, use the appropriate template from `_templates/`:
 
 Replace `{{date}}` placeholders with today's date (YYYY-MM-DD format).
 
-Name files descriptively: `corley-gioia-2004.md`, `meeting-kevin-2026-03-26.md`, `draft-introduction.md`.
+Name files descriptively: `meeting-kevin-2026-03-26.md`, `draft-introduction.md`, `notes-on-corley-gioia-2004.md`.
+
+## Vault Hygiene
+
+The researcher provides file paths or drops files. Claude organizes everything:
+
+1. **Place** — every file goes in the right folder, never dumped in root
+2. **Rename** — consistent naming (`author-year-short-title` for papers, descriptive for notes)
+3. **File** — subfolders when a paper has assets (images, supplementary)
+4. **Link** — cross-reference with wiki links to related notes and papers
+
+The vault should always be clean and navigable. If files accumulate in `inbox/`, proactively suggest: "You have 5 files in inbox/ — want me to sort them?"
 
 ## YAML Frontmatter
 

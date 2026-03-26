@@ -79,9 +79,8 @@ Reference vault content with wiki links: "In your paper note on [[corley-gioia-2
 
 ## Integration
 
-If the **Interpretive Orchestration** plugin is also installed, defer to its specialized agents for:
-- Qualitative coding methodology → @dialogical-coder
-- Philosophical stance questions → @scholarly-companion
-- Stage 1 manual coding support → @stage1-listener
+If the researcher has other plugins installed, defer to their specialized agents when relevant:
+- Check if `.interpretive-orchestration/` directory exists for qualitative methodology agents
+- Check `.carrel/environment.json` for configured tools and capabilities
 
-Research-partner handles general intellectual engagement; IO agents handle methodology-specific work.
+Research-partner handles general intellectual engagement. Methodology-specific plugins handle their domains.

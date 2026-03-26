@@ -2,6 +2,20 @@
 
 Maps interview answers + hardware audit → configuration plan.
 
+## Prerequisites (Bootstrap)
+
+The bootstrap script (`bootstrap.sh`) handles machine-level prerequisites before the plugin runs. If a researcher hasn't run it, check for missing tools during the hardware audit and install what's needed:
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| Xcode CLI tools | git, compilers | `xcode-select --install` |
+| Homebrew | package manager | Official installer |
+| Node.js | MCP servers (npx) | `brew install node` |
+| uv | Python tools | `brew install uv` |
+| gh | GitHub CLI | `brew install gh` |
+
+See `references/toolchain-guide.md` for the full toolchain policy (what to install, what to avoid).
+
 ## Core (Always Install)
 
 These are set up for every researcher regardless of answers:
@@ -63,15 +77,59 @@ Interview: "Do you use a reference manager?"
 Interview: "Do you record meetings or interviews?"
 
 → YES:
-  - markdownify-mcp already includes audio-to-markdown
-  - Check if ffmpeg is installed (needed for audio processing)
-  - If not: offer to install via brew
-  - For high-sensitivity audio: note that markdownify processes locally
+  Hardware audit: check Apple Silicon + RAM
+
+  → SENSITIVE DATA (IRB interviews, participant recordings):
+    - MUST use local transcription only
+    - Capable hardware (Apple Silicon, 16GB+):
+      Add mlx-whisper-mcp to project .mcp.json
+    - Weak hardware:
+      Note limitation — local transcription may be slow
+      markdownify audio-to-markdown as fallback (basic quality)
+    - Install ffmpeg if not present: brew install ffmpeg
+
+  → NOT SENSITIVE + CAPABLE HARDWARE:
+    - Add mlx-whisper-mcp (local, fast, free)
+    - Note Groq Whisper as cloud option for large batches
+    - Install ffmpeg if not present
+
+  → NOT SENSITIVE + WEAK HARDWARE:
+    - Configure Groq Whisper (cloud, $0.04/hr, fastest)
+    - Needs GROQ_API_KEY — guide through setup
+    - markdownify as fallback
+
+  → YOUTUBE / VIDEO LECTURES:
+    - If vox-mcp configured with Gemini: YouTube URLs go straight to Gemini
+      (one-step, no download, multimodal — uses audio + visual cues)
+    - If no vox: markdownify youtube-to-markdown (captions only)
 
 → NO:
   - Skip transcription setup
   - Note: available later if needed
 ```
+
+## Post-Interview Tool Installation
+
+After the interview, install additional tools based on what the researcher needs. Follow `references/toolchain-guide.md` strictly — never install conda, pyenv, npm alternatives, etc.
+
+```
+Interview results → Install silently:
+
+→ Records audio (interviews, meetings):
+  - brew install ffmpeg (if not present)
+
+→ Needs vox-mcp (multi-model access):
+  - uv is already installed via bootstrap
+  - No additional Python setup needed
+
+→ Works with LaTeX or EPUB:
+  - brew install pandoc
+
+→ Everything else:
+  - Node.js + markdownify-mcp covers it (already installed)
+```
+
+Summarize installations in plain language: "I set up a tool to handle your audio files" — not "I installed ffmpeg via Homebrew."
 
 ## Complex PDF Handling
 
@@ -118,7 +176,7 @@ Interview: "What does a typical work week look like?"
   - Keep transcripts/ folder
   - Add notes/fieldwork/ subfolder
   - Templates: add interview-note template
-  - Suggest pairing with Interpretive Orchestration plugin
+  - Mention Interpretive Orchestration plugin as optional (see Optional Plugins below)
 
 → QUANTITATIVE RESEARCHER (data analysis, statistics):
   - Rename transcripts/ → data/
@@ -204,6 +262,24 @@ When configuring vox or other MCPs that need API keys, Claude should help the re
 2. Advanced: use system environment variables via Settings → System → Environment Variables
 
 **Security note:** API keys stored in `.mcp.json` are plaintext on the researcher's machine. This is acceptable for personal research environments — the file is local, private, and not shared. For shared machines, use shell profile env vars instead.
+
+## Optional Plugins
+
+These are Claude Code plugins the researcher might benefit from. Mention when relevant — don't push. Same approach as optional MCPs: note as "available later" if they're not ready.
+
+```
+→ QUALITATIVE METHODOLOGY (Gioia, grounded theory, interpretive work):
+  - Recommend: Interpretive Orchestration plugin
+  - "There's a plugin specifically for qualitative coding — Gioia method,
+    grounded theory, that kind of thing. Want me to install it?"
+  - Install: claude plugin marketplace add linxule/interpretive-orchestration
+
+→ OTHER METHODOLOGIES:
+  - No additional plugins currently. Carrel + research-partner handles general work.
+
+→ NOT SURE / LATER:
+  - Note in environment.json. Don't configure now.
+```
 
 ## Obsidian Setup
 
