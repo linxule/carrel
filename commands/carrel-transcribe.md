@@ -16,21 +16,19 @@ Transcribe audio files to markdown text and save to the transcripts folder.
 
 Uses the `transcribe` skill:
 
-1. Detect audio format
-2. Check sensitivity (warn if cloud processing needed for sensitive recordings)
-3. Transcribe using markdownify-mcp's `audio-to-markdown` tool
-4. Add metadata frontmatter (date, duration, participants if known)
-5. Save to `transcripts/`
-6. Offer: summarize key points, extract action items, or add speaker labels
+1. Run `carrel transcript create <file> [--kind interview|meeting|lecture]`
+2. The CLI routes to the right tool (coli local, groq cloud, gemini for YouTube)
+3. After transcription, clean up the output (fix typos, format speaker labels, mark [unclear])
+4. Offer: summarize key points, extract action items, or connect to vault notes
 
 ## Notes
 
-- markdownify handles audio transcription locally
-- For best results: high-quality recordings, clear speech
-- Speaker diarization may be limited — researcher can add labels manually
-- For research interviews: suggest adding participant codes (P001, P002) not real names
+- Default tool is coli (local, works on all Macs including Intel)
+- For sensitive recordings, the default is local — no data leaves the machine
+- For YouTube URLs, use `carrel transcript create <url> --tool gemini`
+- For research interviews: suggest `--kind interview` and participant codes (P001, P002)
 
 ## Related
 
 - **Skill**: `transcribe`
-- **MCP**: markdownify (`audio-to-markdown` tool)
+- **CLI**: `carrel transcript create`, `carrel transcript list`

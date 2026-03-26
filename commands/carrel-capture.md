@@ -16,7 +16,7 @@ Fetch web content, convert to clean markdown, and save to the vault.
 
 Uses the `web-capture` skill:
 
-1. Fetch the URL using markdownify-mcp's `webpage-to-markdown`
+1. Fetch the URL using `markitdown` (handles web pages natively)
 2. Strip navigation, ads, boilerplate
 3. Add frontmatter: title, source URL, capture date, tags
 4. Save to `inbox/` (or researcher-specified folder)
@@ -29,4 +29,3 @@ Remind researchers they can also use the Obsidian Web Clipper browser extension 
 ## Related
 
 - **Skill**: `web-capture`
-- **MCP**: markdownify (`webpage-to-markdown` tool)

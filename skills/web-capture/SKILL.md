@@ -1,6 +1,6 @@
 ---
 name: web-capture
-description: "This skill should be used when a researcher wants to save web content to their vault. Triggers on URLs, 'save this article', 'clip this page', 'capture this website', or 'add this to my vault' with a URL."
+description: "Use when a researcher wants to save web content to their vault. Triggers on URLs, 'save this article', 'clip this page', 'capture this website', or 'add this to my vault' with a URL."
 ---
 
 # web-capture
@@ -16,17 +16,14 @@ Fetch web content, convert to clean markdown, add metadata, and save to the vaul
 ## Capture Flow
 
 ### Step 1: Fetch and convert
-Use markdownify-mcp's `webpage-to-markdown`:
 
+Use `markitdown` to fetch and convert the URL:
+
+```bash
+markitdown "https://example.com/article"
 ```
-webpage-to-markdown({
-  url: "https://example.com/article"
-})
-```
 
-This strips navigation, ads, and boilerplate. Returns clean content.
-
-For YouTube videos, use `youtube-to-markdown` instead — includes transcript if available.
+This strips navigation, ads, and boilerplate. Returns clean markdown to stdout.
 
 ### Step 2: Add frontmatter
 
@@ -55,6 +52,5 @@ Remind researchers they can clip directly from their browser:
 
 ## Related
 
-- **MCP**: markdownify (`webpage-to-markdown`, `youtube-to-markdown`)
 - **Skills**: `vault-ops` for file placement
 - **Commands**: `/carrel-capture` triggers this skill

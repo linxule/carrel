@@ -10,12 +10,12 @@ Shows what's configured, what's working, and what capabilities are available or 
 
 - Researcher asks "what's installed?", "check my setup", "what tools do I have?"
 - Troubleshooting: something that used to work isn't working
-- After adding a new tool or MCP
+- After adding a new tool
 
 ## What Happens
 
 1. Read `.carrel/environment.json` for saved configuration
-2. Run `skills/environment-setup/scripts/check-environment.js` for live audit
+2. Run `carrel env doctor --format json` for live audit
 3. Compare saved config vs actual state
 4. Report in plain language
 
@@ -26,12 +26,15 @@ Present results conversationally:
 "Here's your current setup:
 
 **Working:**
-- Document conversion (markdownify) — converts PDFs, Word docs, web pages
+- Document conversion (liteparse) — converts PDFs locally
+- Non-PDF conversion (markitdown) — Word docs, slides, web pages
+- Audio transcription (coli) — local, works on all Macs
 - Obsidian vault at ~/Documents/Research — 23 notes, 8 papers
 - Note templates ready
 
 **Not configured (available if you want):**
-- Complex PDF conversion (MineRU) — for papers with tricky tables
+- Cloud PDF conversion (mineru) — for papers with tricky tables
+- Cloud transcription (groq) — faster on older hardware
 - Zotero connection — to search your reference library from here
 
 **Issues:**
@@ -42,4 +45,5 @@ Want me to set up any of the missing tools?"
 ## Related
 
 - **Skill**: `environment-setup` (status mode)
+- **CLI**: `carrel env doctor`
 - **Commands**: `/carrel-setup` (full setup if not configured yet)

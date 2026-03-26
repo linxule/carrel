@@ -18,7 +18,7 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
 - **6 skills** (environment setup, vault operations, conversion, transcription, web capture, research partnership)
 - **2 hooks** (session start environment check, session end reflection prompt)
-- **1 MCP** (markdownify — PDF, Word, audio, web conversion)
+- **1 Python core library** (`carrel` CLI — convert, transcribe, vault, env commands)
 
 ## Commands
 

@@ -38,5 +38,5 @@ async def transcribe_with_gemini(
     except (KeyError, IndexError, TypeError) as exc:
         raise TranscriptionError(
             "gemini response was missing transcript content",
-            hint="Retry the request or fall back to markdownify for caption extraction",
+            hint="Retry the request. Check that the YouTube URL is publicly accessible.",
         ) from exc

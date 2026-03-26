@@ -16,28 +16,27 @@ Convert files to markdown and save them to the appropriate vault folder with pro
 
 Uses the `convert` skill:
 
-1. Detect file type
-2. Check sensitivity level (from CLAUDE.md)
-3. Convert using markdownify-mcp (or mineru-mcp for complex PDFs)
-4. Add YAML frontmatter (title, authors, year, tags, source info)
-5. Save to appropriate vault folder (papers/, notes/, etc.)
-6. Confirm with researcher
+1. Run `carrel paper convert <file> [--tool mineru] [--force] [--dry-run]`
+2. The CLI picks the right tool (liteparse for PDFs, markitdown for everything else)
+3. Adds YAML frontmatter (title, authors, year, tags, source info)
+4. Files to `papers/<author-year>/paper.md` with folder-per-paper structure
+5. Assess quality, offer re-conversion with `--tool mineru` if needed
 
 ## Examples
 
 **Single paper:**
 > "Convert this PDF and save it to my papers folder"
-→ Converts, adds frontmatter, saves to papers/author-year-title.md
+> Runs `carrel paper convert paper.pdf`, saves to `papers/corley-gioia-2004/paper.md`
 
-**Web article:**
-> "Save this article to my vault: https://example.com/article"
-→ Fetches, converts, saves to inbox/
+**Complex PDF with tables:**
+> "This has a lot of tables, use the cloud converter"
+> Runs `carrel paper convert paper.pdf --tool mineru`
 
 **Batch:**
 > "Convert all the PDFs in my Downloads folder"
-→ Processes each, reports results
+> Processes each with `carrel paper convert`, reports results
 
 ## Related
 
-- **Skill**: `convert` (full conversion logic and tool selection)
-- **MCP**: markdownify (bundled), mineru (optional for complex PDFs)
+- **Skill**: `convert` (judgment calls — when to use which flags)
+- **CLI**: `carrel paper convert`, `carrel paper list`
