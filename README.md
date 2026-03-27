@@ -46,9 +46,9 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 ## Prerequisites
 
 - **Claude Desktop** (download from [claude.ai](https://claude.ai)) with Claude Code enabled (Settings → Features)
-- **macOS** — the bootstrap script handles everything else
+- **macOS, Linux, or Windows** — the install script handles everything else
 
-New machine? Run the bootstrap script first (see Installation).
+New machine? Run the install script first (see Installation).
 
 ## Installation
 
@@ -76,25 +76,13 @@ bash install.sh          # macOS/Linux
 .\install.ps1            # Windows PowerShell
 ```
 
-**Step 2: Install the plugin via Claude Code in terminal**
-
-After bootstrap, open a new terminal window and run:
-
+**If the plugin didn't install** (the script will tell you), open a new terminal and run:
 ```bash
 claude --dangerously-skip-permissions
 ```
+Then tell Claude: *"Install the Carrel plugin from linxule/carrel"* — it will diagnose and fix whatever went wrong.
 
-Then tell Claude:
-
-> Install the Carrel plugin from linxule/carrel. Add the marketplace, install the plugin, and verify it works.
-
-Claude will run these commands (or fix any issues along the way):
-```bash
-claude plugin marketplace add linxule/carrel
-claude plugin install carrel@carrel --scope user
-```
-
-**Step 3: Start using Carrel**
+**Start using Carrel:**
 
 1. Open **Claude Desktop** → **Code tab**
 2. Select your research folder as the project
@@ -121,7 +109,7 @@ gh auth login
 If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is the reliable sequence:
 
 1. **Check prerequisites**: `node --version`, `uv --version`, `gh auth status`, `claude --version`
-2. **If anything is missing**: Run `bootstrap.sh` or install individually with Homebrew
+2. **If anything is missing**: Run `install.sh` or install individually (brew on macOS, apt/dnf on Linux)
 3. **GitHub auth is required** (private repo): `gh auth login` if not authenticated
 4. **Add marketplace**: `claude plugin marketplace add linxule/carrel`
 5. **Install plugin**: `claude plugin install carrel@carrel --scope user`

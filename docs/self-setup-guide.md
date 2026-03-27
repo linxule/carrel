@@ -9,19 +9,26 @@ You need:
 - **Claude Code** enabled in Claude Desktop (check Settings → Features)
 - **GitHub access** to the Carrel repo (you should have received an invitation email)
 
-## Step 1: Run the Bootstrap Script
+## Step 1: Run the Install Script
 
 Open Terminal (find it in Applications → Utilities, or press Cmd+Space and type "Terminal") and paste:
 
+**macOS / Linux:**
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh)"
+curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
+```
+
+**Windows (PowerShell as Administrator):**
+```powershell
+irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
 ```
 
 This takes about 10 minutes. It installs developer tools, GitHub CLI, and Claude Code. It will ask you to sign in to GitHub — use the account that received the repo invitation.
 
 If someone gave you the script file directly:
 ```bash
-bash bootstrap.sh
+bash install.sh            # macOS/Linux
+.\install.ps1              # Windows PowerShell
 ```
 
 ## Step 2: Install the Carrel Plugin
