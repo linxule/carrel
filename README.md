@@ -54,23 +54,26 @@ New machine? Run the bootstrap script first (see Installation).
 
 There are two paths. **Path A is recommended** — it's more reliable because Claude Code in the terminal can diagnose and fix issues autonomously.
 
-### Path A: Terminal Bootstrap (Recommended)
+### Path A: One-Line Install (Recommended)
 
 Best for fresh machines or when a facilitator is helping set up.
 
-**Step 1: Run the bootstrap script**
-
-On a Mac, open Terminal and run:
-
+**macOS / Linux** — open Terminal and run:
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh)"
+curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
 ```
 
-This installs: Xcode CLI tools, Homebrew, Node.js, uv, GitHub CLI, and Claude Code CLI. It's idempotent — safe to run again if something fails. Takes ~10 minutes on a fresh machine.
+**Windows** — open PowerShell as Administrator and run:
+```powershell
+irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
+```
+
+This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, and installs the Carrel plugin. Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
 
 If you have the script locally (e.g., via AirDrop):
 ```bash
-bash bootstrap.sh
+bash install.sh          # macOS/Linux
+.\install.ps1            # Windows PowerShell
 ```
 
 **Step 2: Install the plugin via Claude Code in terminal**

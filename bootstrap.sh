@@ -3,8 +3,10 @@ set -e
 
 # Carrel Bootstrap — gets a Mac ready for AI-augmented research
 #
-# Usage (remote):
-#   curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh | bash
+# DEPRECATED: Use install.sh instead (cross-platform).
+#   curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
+#
+# This script is kept for backward compatibility.
 #
 # Usage (local):
 #   bash bootstrap.sh
@@ -130,7 +132,7 @@ fi
 step 7 "Carrel plugin"
 info "Registering plugin marketplace and installing..."
 claude plugin marketplace add linxule/carrel 2>/dev/null && ok "Marketplace registered" || info "Marketplace registration — you may need to do this in Claude Desktop"
-claude plugin install carrel@linxule --scope user 2>/dev/null && ok "Plugin installed" || info "Plugin install — you may need to do this in Claude Desktop"
+claude plugin install carrel@carrel --scope user 2>/dev/null && ok "Plugin installed" || info "Plugin install — you may need to do this in Claude Desktop"
 
 # --- 8. Verify ---
 step 8 "Verifying installation"
