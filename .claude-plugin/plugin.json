@@ -1,10 +1,12 @@
 {
   "name": "carrel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI-augmented research environment. Interview-first onboarding, Obsidian vault setup, document conversion, and ongoing research tools for academics.",
   "author": {
     "name": "Xule Lin (Imperial College London)"
   },
+  "commands": "./commands/",
+  "agents": "./agents/",
   "skills": "./skills/",
-  "hooks": "hooks/hooks.json"
+  "hooks": "./hooks/hooks.json"
 }
