@@ -14,7 +14,7 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 
 ## What's Included
 
-- **8 commands** (`/carrel-*` for setup, conversion, transcription, reflection)
+- **9 commands** (`/carrel-*` for setup, conversion, transcription, reflection, migration)
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
 - **6 skills** (environment setup, vault operations, conversion, transcription, web capture, research partnership)
 - **2 hooks** (session start environment check, session end reflection prompt)
@@ -31,6 +31,7 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 | `/carrel-capture` | Save web content to your vault |
 | `/carrel-reflect` | End-of-session reflection |
 | `/carrel-cheatsheet` | Regenerate your reference card |
+| `/carrel-migrate` | Check for updates, show what's new, apply migrations |
 | `/carrel-feedback` | Generate anonymized feedback digest for sharing |
 
 ## Design Philosophy

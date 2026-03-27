@@ -84,6 +84,14 @@ Interview preferences flow into two systems that must stay in sync:
 
 The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from the interview. When preferences change, update BOTH files. The session-start hook surfaces preferences so Claude has immediate context.
 
+## Version & Migration
+
+Plugin version is tracked in `.carrel/plugin-state.json` in each vault. The session-start hook compares this against the plugin's version and nudges the user to run `/carrel-migrate` if they differ.
+
+Migration files live in `migrations/` with a `registry.json` index. Each migration is a markdown file describing what's new, automatic steps, and manual steps. Add new migrations when releasing breaking changes or significant features.
+
+When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.claude-plugin/marketplace.json` to match, and add a migration file if the update affects the user's vault or config.
+
 ## Gotchas
 
 - `markitdown` (Microsoft's library) is the non-PDF converter — NOT the old MCP tool names
