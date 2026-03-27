@@ -86,7 +86,7 @@ The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from
 
 ## Version & Migration
 
-Plugin version is tracked in `.carrel/plugin-state.json` in each vault. The session-start hook compares this against the plugin's version and nudges the user to run `/carrel-migrate` if they differ.
+Plugin version is tracked in `.carrel/plugin-state.json` in each vault. The `/carrel-migrate` command compares this against the plugin's current version, assesses the environment, and suggests improvements.
 
 Migration files live in `migrations/` with a `registry.json` index. Each migration is a markdown file describing what's new, automatic steps, and manual steps. Add new migrations when releasing breaking changes or significant features.
 

@@ -43,19 +43,6 @@ function main() {
     process.exit(0);
   }
 
-  // Version check
-  try {
-    const { checkVersion } = require('./check-version.js');
-    const versionInfo = checkVersion(projectRoot);
-    if (versionInfo.needsMigration) {
-      console.log('');
-      console.log(`Carrel has been updated: ${versionInfo.from} → ${versionInfo.to}`);
-      console.log('Run /carrel-migrate to see what\'s new and apply any changes.');
-    }
-  } catch {
-    // Version check is non-blocking
-  }
-
   try {
     const env = JSON.parse(fs.readFileSync(envPath, 'utf8'));
 
