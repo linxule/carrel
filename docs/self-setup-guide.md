@@ -7,42 +7,59 @@ If you're setting up Carrel on your own (no one guiding you in person), here's w
 You need:
 - **Claude Desktop** installed on your computer ([download here](https://claude.ai/download))
 - **Claude Code** enabled in Claude Desktop (check Settings → Features)
-- The **Carrel plugin** installed (see below)
+- **GitHub access** to the Carrel repo (you should have received an invitation email)
 
-## Step 1: Install the Carrel Plugin
+## Step 1: Run the Bootstrap Script
 
-**If Carrel is on the public marketplace:**
-Open Claude Desktop → click the **+** button → **Plugins** → **Discover** tab → search for "Carrel" → **Install**. Choose "User" scope.
+Open Terminal (find it in Applications → Utilities, or press Cmd+Space and type "Terminal") and paste:
 
-**If you received a GitHub invitation:**
-Open Claude Desktop → start a Claude Code session → type:
-```
-/plugin marketplace add linxule/carrel
-/plugin install carrel@linxule
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh)"
 ```
 
-**If someone gave you the plugin files:**
-Ask them where the files are on your computer, then in a Claude Code session:
-```
-/plugin install --local /path/to/carrel
+This takes about 10 minutes. It installs developer tools, GitHub CLI, and Claude Code. It will ask you to sign in to GitHub — use the account that received the repo invitation.
+
+If someone gave you the script file directly:
+```bash
+bash bootstrap.sh
 ```
 
-## Step 2: Create Your Research Folder
+## Step 2: Install the Carrel Plugin
 
-Using Finder (Mac) or File Explorer (Windows), create a new folder where you want your research vault to live. Good locations:
+Still in Terminal, run:
+
+```bash
+claude --dangerously-skip-permissions
+```
+
+Then type this message to Claude:
+
+> Install the Carrel plugin from linxule/carrel and verify it works.
+
+Claude will handle the marketplace registration and installation. If anything goes wrong, it will diagnose and fix the issue.
+
+Alternatively, if you prefer to run the commands yourself:
+```bash
+claude plugin marketplace add linxule/carrel
+claude plugin install carrel@carrel --scope user
+```
+
+## Step 3: Create Your Research Folder
+
+Using Finder, create a new folder where you want your research vault to live. Good locations:
 
 - `Documents/Research`
 - `Desktop/My Research`
 - Wherever feels natural to you
 
-## Step 3: Open the Folder in Claude Desktop
+## Step 4: Open the Folder in Claude Desktop
 
 1. Open Claude Desktop
-2. Start a new **Claude Code** session
+2. Start a new **Claude Code** session (the **Code** tab)
 3. Select your research folder as the project
 4. You should see a welcome message from Carrel
 
-## Step 4: Run the Setup
+## Step 5: Run the Setup
 
 Type: **"I'd like to set up my research environment"**
 
@@ -53,12 +70,11 @@ Claude will:
 4. Set up your vault structure and tools
 5. Generate a personalized reference card
 
-## Step 5: Install Obsidian
+## Step 6: Install Obsidian
 
 Claude will tell you to install Obsidian — it's the app you'll use to browse your research vault.
 
 - **Mac**: Claude may offer to install it for you, or download from [obsidian.md](https://obsidian.md)
-- **Windows**: Download from [obsidian.md](https://obsidian.md)
 
 After installing:
 1. Open Obsidian
@@ -66,7 +82,7 @@ After installing:
 3. Navigate to your research folder
 4. Click Open
 
-## Step 6: Install Web Clipper (Optional)
+## Step 7: Install Web Clipper (Optional)
 
 The Obsidian Web Clipper lets you save web articles directly to your vault from your browser:
 - Chrome: Search "Obsidian Web Clipper" in Chrome Web Store
@@ -83,6 +99,16 @@ Your cheat sheet is at `_meta/cheat_sheet.md` in your vault — open it in Obsid
 
 **Carrel doesn't seem to be active:**
 Check that the plugin is installed and enabled: Claude Desktop → Plugins → look for "Carrel".
+
+**"Failed to add marketplace":**
+This usually means GitHub authentication isn't set up. Open Terminal and run:
+```bash
+gh auth login
+```
+Then retry the plugin install.
+
+**Plugin installed but commands don't appear:**
+Restart Claude Desktop completely (Cmd+Q, then reopen). Commands, agents, and skills are auto-discovered on startup.
 
 **Claude can't find files in my vault:**
 Make sure you opened the research folder as your project in Claude Desktop.

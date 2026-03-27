@@ -49,6 +49,106 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 
 New machine? Run the bootstrap script first (see Installation).
 
+## Installation
+
+There are two paths. **Path A is recommended** — it's more reliable because Claude Code in the terminal can diagnose and fix issues autonomously.
+
+### Path A: Terminal Bootstrap (Recommended)
+
+Best for fresh machines or when a facilitator is helping set up.
+
+**Step 1: Run the bootstrap script**
+
+On a Mac, open Terminal and run:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh)"
+```
+
+This installs: Xcode CLI tools, Homebrew, Node.js, uv, GitHub CLI, and Claude Code CLI. It's idempotent — safe to run again if something fails. Takes ~10 minutes on a fresh machine.
+
+If you have the script locally (e.g., via AirDrop):
+```bash
+bash bootstrap.sh
+```
+
+**Step 2: Install the plugin via Claude Code in terminal**
+
+After bootstrap, open a new terminal window and run:
+
+```bash
+claude --dangerously-skip-permissions
+```
+
+Then tell Claude:
+
+> Install the Carrel plugin from linxule/carrel. Add the marketplace, install the plugin, and verify it works.
+
+Claude will run these commands (or fix any issues along the way):
+```bash
+claude plugin marketplace add linxule/carrel
+claude plugin install carrel@carrel --scope user
+```
+
+**Step 3: Start using Carrel**
+
+1. Open **Claude Desktop** → **Code tab**
+2. Select your research folder as the project
+3. Type `/carrel-setup` to begin onboarding
+
+### Path B: Claude Desktop Marketplace UI
+
+For users who already have Claude Code and GitHub CLI set up.
+
+1. Open **Claude Desktop** → **Code tab** → click **+** next to the plugin tabs
+2. Click **Add marketplace**
+3. Enter: `linxule/carrel`
+4. Click **Sync**
+5. Find Carrel in the plugin list → toggle it on
+
+**Requires:** GitHub CLI (`gh`) authenticated with access to this repo. If you haven't set this up:
+```bash
+brew install gh
+gh auth login
+```
+
+### For AI Assistants Helping With Setup
+
+If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is the reliable sequence:
+
+1. **Check prerequisites**: `node --version`, `uv --version`, `gh auth status`, `claude --version`
+2. **If anything is missing**: Run `bootstrap.sh` or install individually with Homebrew
+3. **GitHub auth is required** (private repo): `gh auth login` if not authenticated
+4. **Add marketplace**: `claude plugin marketplace add linxule/carrel`
+5. **Install plugin**: `claude plugin install carrel@carrel --scope user`
+6. **Verify**: `claude plugin list` should show `carrel@carrel`
+
+Common issues:
+- `"Failed to add marketplace"` → GitHub auth not set up. Run `gh auth login` first.
+- `"Plugin not found in marketplace"` → Use `carrel@carrel` (not `carrel@linxule`). The marketplace name is `carrel`.
+- Plugin installs but no commands/skills appear → Restart Claude Desktop. Components auto-discover from `commands/`, `agents/`, `skills/` directories.
+
+### Facilitator-Assisted Setup
+
+When setting up a researcher's machine in person:
+
+1. Run the bootstrap script on their machine
+2. Help them sign in to GitHub during the `gh auth login` step
+3. Install the plugin via terminal Claude Code (Path A, Step 2)
+4. Open Claude Desktop and run `/carrel-setup`
+5. Sit with them through the onboarding interview
+6. Help with human steps: install Obsidian (`brew install --cask obsidian`), Web Clipper
+7. Test with a real PDF conversion
+8. Walk through the cheat sheet together
+
+### Verifying Installation
+
+In any Claude Code session:
+```
+/carrel-status
+```
+If Carrel is active, it reports the environment state. If not installed, the command won't be recognized.
+
 ## Optional MCPs
 
 During setup, Carrel may add project-level MCPs based on the interview:
@@ -66,59 +166,9 @@ See `docs/api-keys-guide.md` for setup instructions.
 Carrel handles the research environment. For qualitative methodology (Gioia coding, grounded theory), pair it with the [Interpretive Orchestration](https://github.com/linxule/interpretive-orchestration) plugin:
 
 ```
-/plugin marketplace add linxule/interpretive-orchestration
-/plugin install interpretive-orchestration
+claude plugin marketplace add linxule/interpretive-orchestration
+claude plugin install interpretive-orchestration@interpretive-orchestration --scope user
 ```
-
-## Installation
-
-### Step 1: Bootstrap the Machine
-
-On a fresh Mac (or any Mac missing developer tools), open Terminal and run:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/bootstrap.sh)"
-```
-
-This installs: Xcode CLI tools, Homebrew, Node.js, uv, GitHub CLI, and Claude Code CLI. It's idempotent — safe to run again if something fails. Takes ~10 minutes on a fresh machine.
-
-**If you have the script locally** (e.g., via AirDrop):
-```bash
-bash bootstrap.sh
-```
-
-### Step 2: Start a Research Project
-
-The bootstrap script installs the Carrel plugin automatically. Just:
-
-1. Create a folder: `mkdir -p ~/Documents/Research`
-2. Open **Claude Desktop** → **Code tab** → select that folder as your project
-3. Type: `/carrel-setup`
-4. Carrel interviews you and configures everything (~15 min)
-
-**Requires:** GitHub access to `linxule/carrel`. The facilitator adds the researcher as a collaborator on the private repo. The bootstrap script handles GitHub sign-in.
-
-If the plugin didn't install during bootstrap, tell Claude: *"Install the Carrel plugin from linxule/carrel"*
-
-### Facilitator-Assisted Setup
-
-When setting up a researcher's machine in person:
-
-1. Run the bootstrap script on their machine
-2. Help them sign in to GitHub during the `gh auth login` step
-3. Open Claude Desktop and install the plugin
-4. Sit with them through the onboarding interview
-5. Help with human steps: install Obsidian (`brew install --cask obsidian`), Web Clipper
-6. Test with a real PDF conversion
-7. Walk through the cheat sheet together
-
-### Verifying Installation
-
-In any Claude Code session:
-```
-/carrel-status
-```
-If Carrel is active, it reports the environment state. If not installed, the command won't be recognized.
 
 ## Platform Support
 
