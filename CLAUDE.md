@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 37 tests
+uv run pytest                                    # 41 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -101,6 +101,14 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - gws (Google Workspace CLI) requires Google Cloud project + OAuth — high friction setup, see `references/gws-setup-guide.md`
 - `generate-cheatsheet.js` is still a Node.js script (not yet ported to Python CLI)
 - youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
+
+## Capability Absorption
+
+Carrel grows by absorbing capabilities from the ecosystem (skills repos, MCP servers, CLI tools) and by learning from what researchers actually need. The `self-improve` skill owns this process — see `skills/self-improve/SKILL.md` for the full evaluation criteria, absorption process, and tracking mechanism.
+
+**One-plugin policy**: researchers install Carrel, everything works. No companion dependencies. We absorb and curate, not delegate.
+
+**Registry**: `skills/self-improve/references/capability-registry.md` tracks what's been absorbed, from where, and when to review upstream.
 
 ## Relationship to ItDepends
 

@@ -1,0 +1,60 @@
+# carrel-template: paper-tracker v0.3.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+properties:
+  - name: title
+    type: text
+  - name: authors
+    type: text
+  - name: year
+    type: number
+  - name: tags
+    type: tags
+  - name: status
+    type: text
+  - name: method
+    type: text
+  - name: key-finding
+    type: text
+
+formulas:
+  - name: days-in-vault
+    formula: "(now() - file.ctime).days"
+
+filter: "file.folder = \"papers\""
+
+sort:
+  - property: year
+    direction: desc
+
+views:
+  - type: table
+    name: "All Papers"
+    sort:
+      - property: year
+        direction: desc
+
+  - type: table
+    name: "Needs Notes"
+    filter: "status == \"unread\" || status == \"reading\""
+    sort:
+      - property: file.ctime
+        direction: asc
+
+  - type: table
+    name: "By Method"
+    group: method
+    sort:
+      - property: year
+        direction: desc
+
+  - type: list
+    name: "By Theme"
+    group: tags
+
+summaries:
+  - property: title
+    function: Count
+  - property: days-in-vault
+    function: Average

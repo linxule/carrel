@@ -77,6 +77,17 @@ Run `carrel vault init <path>` to create:
 
 After scaffolding, update `.carrel/environment.json` with the researcher's profile from the interview.
 
+#### Research Database Views
+
+`carrel vault init` automatically includes `.base` database templates based on the researcher's profile preferences. To control which ones are included, set the relevant preference keys before scaffolding (e.g., `preferences.qualitative`, `preferences.many_papers`, `preferences.writing`). `reading-progress.base` is always included. See `references/decision-tree.md` → Research Databases for the full mapping:
+
+- `reading-progress.base` — always include (lightweight reading pipeline dashboard)
+- `paper-tracker.base` — for researchers with many papers or doing literature reviews
+- `interview-tracker.base` — for qualitative researchers with interview data
+- `writing-tracker.base` — for researchers actively writing (thesis, paper, dissertation)
+
+Present these in plain language: "I set up a paper tracker — open it in Obsidian and you'll see a sortable table of all your papers." Don't say "database" or ".base file" unless the researcher is technically comfortable.
+
 ### Step 5: Write Personalized CLAUDE.md
 
 **This is critical.** Write a `CLAUDE.md` file in the vault root that encodes the researcher's preferences in natural language. Claude loads this file automatically every session — it's the bridge between the structured profile and Claude's judgment.
@@ -131,7 +142,7 @@ Tell the researcher what THEY need to do (Claude can't install GUI apps):
 - Open Obsidian → "Open folder as vault" → select this project folder
 - Install Web Clipper for their browser (Chrome/Firefox/Safari extension store)
 
-### Step 8: Verify & Generate Cheat Sheet
+### Step 8: Verify, Cheat Sheet & Environment Dashboard
 
 Run the cheat sheet generator to create a customized reference card at `_meta/cheat_sheet.md`. The template is in `references/cheatsheet-template.md`.
 
@@ -139,13 +150,23 @@ Run the cheat sheet generator to create a customized reference card at `_meta/ch
 bun run skills/environment-setup/scripts/generate-cheatsheet.js
 ```
 
+Create the researcher's environment dashboard from `templates/my-environment.md` → save to `_meta/my-environment.md`. Fill in:
+- Tool statuses (from the audit in Step 2)
+- Which trackers were installed (from Step 4)
+- Which cloud services are configured vs. available-but-not-configured (from the interview)
+- Vault path and Obsidian setup details
+- "Available but Not Configured" table: list tools/services the researcher skipped or deferred (Zotero, mineru, gws, groq, vox — whatever was noted as "available later" in environment.json), with a one-line description and how to activate
+
+This dashboard is the researcher's living view of their environment. It grows as they add tools, MCPs, custom trackers, and Obsidian plugins. Claude updates it whenever the environment changes (see `skills/self-improve/SKILL.md` for the maintenance protocol).
+
 Test one operation end-to-end:
 - "Let's test the setup. Drop a PDF or Word file in here and I'll convert it to your vault."
 
 ### Step 9: Wrap Up
 
 - Confirm what's installed and working
-- Point to the cheat sheet in Obsidian
+- Point to the cheat sheet and environment dashboard in Obsidian
+- "Your environment dashboard at `_meta/my-environment.md` shows everything that's set up and what's available. I'll keep it updated as your setup grows."
 - "Next time you open Claude Desktop with this folder, I'll remember everything."
 
 ## Preference Changes (Mid-Session or Returning User)
@@ -153,12 +174,16 @@ Test one operation end-to-end:
 When a researcher's preferences change:
 1. Update `.carrel/environment.json` with the new values
 2. Update the relevant section of `CLAUDE.md` to match
-3. If tools changed: run `carrel env doctor` to verify availability
+3. Update `_meta/my-environment.md` to reflect the change
+4. If the change affects a tool's status, also update `_meta/cheat_sheet.md` "Your Setup at a Glance" table
+5. If tools changed: run `carrel env doctor` to verify availability
 
 Examples:
-- "I got a Gemini key" → update environment.json cloud_consent + tools_configured, update CLAUDE.md Available Tools section
+- "I got a Gemini key" → update environment.json cloud_consent + tools_configured, update CLAUDE.md Available Tools, move Gemini from "Available but Not Configured" to "Cloud Services" in my-environment.md
 - "My data is more sensitive now" → update sensitivity everywhere, update CLAUDE.md Preferences section to reflect local-only
 - "I don't use transcription anymore" → note in CLAUDE.md, don't offer transcription proactively
+- "I created a custom tracker for you" → add to "My Custom Trackers" in my-environment.md, log in `_meta/capability-log.md` (per self-improve skill)
+- Researcher installs an Obsidian community plugin → add to "Obsidian Setup > Community plugins" in my-environment.md
 
 The key principle: **environment.json is the structured truth, CLAUDE.md is the narrative truth.** Keep them in sync. When in doubt, read environment.json and verify CLAUDE.md matches.
 

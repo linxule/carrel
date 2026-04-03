@@ -1,0 +1,64 @@
+# carrel-template: interview-tracker v0.3.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+properties:
+  - name: participant
+    type: text
+  - name: date
+    type: date
+  - name: kind
+    type: text
+  - name: transcribed
+    type: checkbox
+  - name: coded
+    type: checkbox
+  - name: themes
+    type: tags
+  - name: follow-up
+    type: checkbox
+
+formulas:
+  - name: days-since
+    formula: "(now() - file.ctime).days"
+  - name: coding-status
+    formula: "if(coded, \"done\", if(transcribed, \"ready to code\", \"needs transcription\"))"
+
+filter: "file.folder = \"transcripts\""
+
+sort:
+  - property: date
+    direction: desc
+
+views:
+  - type: table
+    name: "All Interviews"
+    sort:
+      - property: date
+        direction: desc
+
+  - type: table
+    name: "Needs Coding"
+    filter: "transcribed == true && coded == false"
+    sort:
+      - property: date
+        direction: asc
+
+  - type: table
+    name: "Follow-ups Due"
+    filter: "follow-up == true"
+    sort:
+      - property: date
+        direction: asc
+
+  - type: list
+    name: "By Theme"
+    group: themes
+
+summaries:
+  - property: participant
+    function: Count
+  - property: transcribed
+    function: Count
+  - property: coded
+    function: Count

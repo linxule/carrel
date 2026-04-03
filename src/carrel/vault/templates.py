@@ -5,14 +5,27 @@ from pathlib import Path
 
 from carrel.models import ResearcherProfile
 
+# Registry of all template files shipped with the plugin.
+# scaffold.py copies a subset during vault init; the rest are copied
+# manually by Claude based on the decision tree (skills layer).
 TEMPLATE_FILES = [
     "paper.md",
     "paper-notes.md",
     "meeting.md",
     "reflection.md",
     "daily.md",
+    "my-environment.md",
     "vault-scaffold.json",
     "obsidian-config.json",
+]
+
+# Database templates — copied by Claude (not the CLI) based on the
+# decision tree in skills/environment-setup/references/decision-tree.md.
+BASE_TEMPLATES = [
+    "paper-tracker.base",
+    "interview-tracker.base",
+    "reading-progress.base",
+    "writing-tracker.base",
 ]
 
 

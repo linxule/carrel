@@ -47,6 +47,26 @@ function getSessionStats(projectRoot) {
   return stats;
 }
 
+function getRecentCapabilityLogEntries(projectRoot) {
+  const logPath = path.join(projectRoot, '_meta', 'capability-log.md');
+  if (!fs.existsSync(logPath)) return [];
+
+  try {
+    const content = fs.readFileSync(logPath, 'utf8');
+    const today = new Date().toISOString().slice(0, 10);
+    const entries = [];
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('## ' + today)) {
+        const desc = line.replace('## ' + today + ': ', '').trim();
+        if (desc) entries.push(desc);
+      }
+    }
+    return entries;
+  } catch { return []; }
+}
+
 function main() {
   const projectRoot = findCarrelRoot(process.cwd());
 
@@ -73,6 +93,7 @@ function main() {
   }
 
   const stats = getSessionStats(projectRoot);
+  const recentCreations = getRecentCapabilityLogEntries(projectRoot);
   const name = researcher.name ? researcher.name.split(' ')[0] : 'there';
 
   // Output structured remediation for machine parsing (follows IO plugin convention)
@@ -86,6 +107,7 @@ function main() {
     can_bypass: true,
     details: {
       vault_stats: stats,
+      custom_creations_today: recentCreations,
       reflexive_questions: [
         'What was most useful about today\'s session?',
         'Was there anything frustrating or that didn\'t work well?',
@@ -101,6 +123,15 @@ function main() {
 
   if (stats.vault_files > 0) {
     console.log(`Your vault: ${stats.papers} papers, ${stats.notes} notes, ${stats.transcripts} transcripts, ${stats.drafts} drafts.`);
+    console.log('');
+  }
+
+  if (recentCreations.length > 0) {
+    console.log(`Custom capabilities created today: ${recentCreations.length}`);
+    for (const entry of recentCreations) {
+      console.log(`  - ${entry}`);
+    }
+    console.log('These are logged in _meta/capability-log.md for potential inclusion in future Carrel versions.');
     console.log('');
   }
 

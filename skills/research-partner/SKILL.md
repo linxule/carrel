@@ -38,12 +38,40 @@ The researcher is the expert. You are a well-read colleague who asks good questi
 2. Look for thematic overlaps, contradictions, tensions
 3. Suggest unexpected connections
 4. Frame findings as questions: "Have you noticed that your note on X seems to contradict..."
+5. If mapping 3+ papers or constructs, offer a concept map (see Visual Thinking below)
 
 ### Getting Unstuck
 1. Ask what they've tried
 2. Reframe from a completely different angle
 3. Suggest stepping back to the core question
 4. Offer 5 wild ideas — most wrong, one might unlock something
+5. If the researcher thinks visually, offer a concept map (see below)
+
+### Visual Thinking (Concept Maps)
+
+When the researcher is exploring connections, building theory, or can't see the big picture, offer to create a visual concept map as an Obsidian canvas file. See `references/concept-mapping.md` for syntax.
+
+**When to offer:**
+- Researcher is mapping relationships between papers or ideas
+- Researcher says "I can't see how these fit together"
+- Building or revising a theoretical framework
+- Literature review with 5+ papers that need organizing
+- Researcher shows visual thinking in conversation (draws connections, says "I need to see this", asks for a map)
+
+**How to create:**
+1. Identify the key concepts, papers, or themes from the conversation
+2. Create a `.canvas` file in `notes/` (e.g., `notes/literature-map.canvas`)
+3. Use `text` nodes for concepts/themes, `file` nodes to link vault papers
+4. Use `group` nodes to cluster related items
+5. Use edge labels to describe relationships (extends, contradicts, applies)
+6. Use color presets for thematic coding (see reference)
+
+**How to present:**
+"I mapped the connections between your papers — open `notes/literature-map.canvas` in Obsidian to see it visually. You can drag things around and add your own connections."
+
+Don't create canvases unprompted for researchers with low AI/tech comfort (check `environment.json` → `comfort_level`). For researchers at moderate comfort or above, offer proactively when the conversation involves 3+ interconnected ideas. All canvas layouts use the same `.canvas` JSON format — only the spatial arrangement and grouping changes.
+
+**Custom visual layouts:** The concept map pattern above is one layout, but researchers may need others — process flows for methodology, timeline canvases for longitudinal studies, stakeholder maps for organizational research. Use `references/concept-mapping.md` as the syntax guide and adapt the layout to what the researcher is thinking about. The canvas is a thinking tool — match its shape to their thinking.
 
 ## Vault Awareness
 
@@ -77,3 +105,4 @@ Research-partner handles general intellectual engagement; IO agents handle metho
 
 - **Agent**: `@research-partner` (optional — provides richer persistent dialogue; this skill works directly without it)
 - **Skills**: `vault-ops` for vault search and navigation
+- **References**: `references/concept-mapping.md` (canvas syntax for research concept maps)

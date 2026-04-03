@@ -10,22 +10,36 @@
     { "path": "admin", "purpose": "Recommendation letters, committee work, admin tasks" },
     { "path": "_meta", "purpose": "Plugin metadata — cheat sheet, reflections, friction log" },
     { "path": "_meta/reflections", "purpose": "Session reflection logs" },
+    { "path": "_meta/local", "purpose": "Researcher's own capabilities — custom trackers, callout patterns, workflows. Never touched by plugin updates." },
     { "path": "_templates", "purpose": "Obsidian note templates" },
     { "path": ".carrel", "purpose": "Carrel plugin state (hidden)" }
   ],
+  "_comment_databases": "databases.always is included for ALL researchers. customizations.*.additional_databases are ADDED on top of always — never replace it. Claude reads this config via the SKILL layer, not the CLI.",
+  "databases": {
+    "always": ["reading-progress.base"],
+    "many_papers": ["paper-tracker.base"],
+    "qualitative": ["interview-tracker.base"],
+    "writing": ["writing-tracker.base"]
+  },
   "customizations": {
     "qualitative": {
       "add": ["notes/fieldwork"],
+      "additional_databases": ["interview-tracker.base", "paper-tracker.base"],
       "note": "For qualitative researchers with fieldwork data"
     },
     "quantitative": {
       "rename": { "transcripts": "data" },
       "add": ["notes/analysis"],
+      "additional_databases": ["paper-tracker.base"],
       "note": "For quantitative researchers working with datasets"
     },
     "teaching_heavy": {
       "add": ["notes/courses", "notes/students"],
       "note": "For researchers with significant teaching load"
+    },
+    "writing_heavy": {
+      "additional_databases": ["writing-tracker.base"],
+      "note": "For researchers actively writing papers, thesis, or dissertation"
     }
   }
 }

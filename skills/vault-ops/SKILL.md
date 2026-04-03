@@ -92,6 +92,89 @@ Use `carrel vault search <query>` to surface related content before suggesting l
 - Update links when moving files: find and replace `[[old-name]]` → `[[new-name]]`
 - Every file has a home — nothing stays in vault root
 
+## Obsidian Formatting
+
+Use Obsidian-specific formatting to make notes more readable in the GUI. See `references/obsidian-formatting.md` for full syntax.
+
+### When to Use Callouts
+
+Use callouts in **reading notes** and **interview summaries** — the files researchers revisit most:
+
+- `> [!quote]` — direct quotes with attribution (paper notes, interview excerpts)
+- `> [!question]` — open questions the researcher should return to
+- `> [!important]` — key findings worth highlighting
+- `> [!warning]` — sensitivity alerts on files with participant data
+
+Don't over-use callouts in converted papers or transcripts — those are raw content. Callouts belong in the researcher's own notes.
+
+### When to Use Embeds
+
+Use `![[file#heading]]` embeds when a note references a specific section of a paper or transcript. This lets the researcher see the relevant passage inline without switching files.
+
+Note: block-ID embeds (`![[file#^block-id]]`) require a `^block-id` marker to already exist in the source file. Only use them if you've confirmed or placed the marker — otherwise the embed silently breaks.
+
+### When to Use Foldable Callouts
+
+For long quotes or extended passages (10+ lines), use collapsed-by-default callouts: `> [!quote]- Click to expand`. This keeps reading notes scannable. Short quotes (1-3 lines) should never be folded.
+
+### Frontmatter for Bases
+
+All notes should include structured frontmatter (tags, status, date) because Research Databases query these fields. See YAML Frontmatter section above and `references/research-databases.md` for which fields the database templates expect.
+
+## Research Databases
+
+Obsidian Bases (`.base` files) give researchers live, filterable views over their vault — like Notion databases but local. See `references/research-databases.md` for full syntax and `templates/*.base` for research templates.
+
+### When to Suggest a Database View
+
+- Researcher has **10+ papers** and asks "what have I read?" or "I'm losing track"
+- Researcher asks to **sort, filter, or compare** across multiple files
+- Qualitative researcher managing **interview coding progress**
+- Researcher tracking **writing progress** across draft sections
+- Any "show me everything that matches X" request
+
+### Available Templates
+
+| Template | Best for | Key fields |
+|----------|----------|-----------|
+| `paper-tracker.base` | Literature management | title, authors, year, status, method, key-finding, tags + days-in-vault formula |
+| `interview-tracker.base` | Qualitative research | participant, date, kind, transcribed, coded, themes, follow-up + coding-status formula |
+| `reading-progress.base` | Reading pipeline | title, status, tags + days-in-vault, is-stale formulas |
+| `writing-tracker.base` | Active writing projects | section, status, word-count, due-date, blockers + days-until-due formula |
+
+Before creating a custom database, check whether an existing template already covers the researcher's need — the fields above are often sufficient with minor customization.
+
+### Creating a Database View
+
+1. Choose the right template from `templates/*.base`
+2. Copy it to the vault root (or relevant folder)
+3. Customize filters/columns for the researcher's specific needs
+4. Tell the researcher: "Open `paper-tracker.base` in Obsidian — you'll see a sortable table of all your papers."
+
+### Custom Database Views
+
+The 4 templates are starting points. Researchers often need something the templates don't cover — grant applications, student supervision, conference submissions, teaching evaluations, fieldwork sites, you name it.
+
+When a researcher asks to track something not covered by the templates, **create a custom .base file** using `references/research-databases.md` as the syntax guide:
+
+1. Ask what they want to track and what columns matter
+2. Identify which vault folder (or frontmatter tags) to query
+3. Start with a `file.folder` filter + 3-5 frontmatter properties the researcher named; add formulas only if they ask for calculations
+4. Write the `.base` file, then run through the validation checklist in `references/research-databases.md` before saving (verify folder paths, escaped strings, property type alignment)
+5. Save to the vault root with a descriptive name (e.g., `grant-tracker.base`) — do NOT add a `carrel-template:` marker (this is vault-local)
+6. Tell the researcher: "Open `grant-tracker.base` in Obsidian — you can sort and filter it."
+
+Also customize existing templates when they're close but not quite right — add columns, change filters, add views. The templates are meant to be adapted, not used verbatim.
+
+The same applies to **callouts and canvas files**. If a researcher's discipline has specific annotation patterns (e.g., field notes with `[!observation]` and `[!memo]` callouts), create those patterns using `references/obsidian-formatting.md`. If they need a visual map beyond the standard concept map, build it using the canvas syntax in `skills/research-partner/references/concept-mapping.md`.
+
+### Keeping Databases Useful
+
+Database views are only as good as the frontmatter in the notes they query. When creating or editing notes:
+- Always include `status` (unread, reading, noted, cited)
+- Always include `tags` for thematic filtering
+- For transcripts: include `transcribed`, `coded`, `follow-up` booleans
+
 ## Guidelines
 
 - Always preserve existing content — never overwrite without asking
@@ -104,3 +187,4 @@ Use `carrel vault search <query>` to surface related content before suggesting l
 
 - **CLI**: `carrel vault init` creates vault structure; `carrel paper convert` files papers; `carrel transcript` files transcripts
 - **Skills**: `convert` adds converted documents; `environment-setup` bootstraps the workspace
+- **References**: `references/obsidian-formatting.md` (callouts, embeds, properties), `references/research-databases.md` (bases syntax + templates)

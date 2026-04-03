@@ -284,6 +284,45 @@ Interview: "What does a typical work week look like?"
   - De-emphasize papers/ and transcripts/
 ```
 
+## Research Databases (Bases)
+
+```
+Assessed from interview context — don't ask directly about "databases."
+Instead, infer from their workflow and paper volume.
+
+→ WORKS WITH MANY PAPERS (10+ papers, systematic review, literature review):
+  - Create paper-tracker.base in vault root during scaffold
+  - Create reading-progress.base in vault root during scaffold
+  - If early-stage (researcher says "just starting", "first year", "beginning"):
+    → Prefer SMALL SCALE path. Offer paper-tracker when papers accumulate.
+  - Present: "I set up a paper tracker — open it in Obsidian and you'll see
+    a sortable table of all your papers, filterable by theme, method, or status."
+
+→ QUALITATIVE RESEARCHER WITH INTERVIEWS:
+  - Create interview-tracker.base in vault root during scaffold
+  - Present: "There's an interview tracker that shows which transcripts
+    are coded and which need follow-up. It updates automatically."
+
+→ ACTIVELY WRITING (thesis, paper, dissertation):
+  - Create writing-tracker.base in vault root during scaffold
+  - Present: "I added a writing tracker — it shows your sections, word counts,
+    and deadlines in one view."
+
+→ SMALL SCALE / UNSURE:
+  - Create reading-progress.base only (lightweight, always useful)
+  - Skip paper-tracker and interview-tracker unless they accumulate files later
+  - The session-start hook or vault-ops skill can suggest adding trackers
+    when file counts grow
+
+Note: Bases require structured frontmatter in notes (status, tags, etc.).
+The convert, transcribe, and vault-ops skills already add this frontmatter.
+
+Note: carrel vault init copies .base files automatically based on the profile's
+preferences dict. Set preferences.qualitative, preferences.many_papers, or
+preferences.writing to true before running scaffold. reading-progress.base is
+always included regardless of profile.
+```
+
 ## Multi-Model Access (Vox)
 
 ```

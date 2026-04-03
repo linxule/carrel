@@ -4,7 +4,30 @@ import json
 from pathlib import Path
 
 from carrel.models import ResearcherProfile, ScaffoldResult
-from carrel.vault.templates import copy_template, load_obsidian_config, load_scaffold_config, render_cheat_sheet
+from carrel.vault.templates import (
+    BASE_TEMPLATES,
+    copy_template,
+    load_obsidian_config,
+    load_scaffold_config,
+    read_template,
+    render_cheat_sheet,
+)
+
+def _select_bases(scaffold: dict, profile: ResearcherProfile) -> list[str]:
+    """Pick which .base templates to include based on profile and scaffold config."""
+    db_config = scaffold.get("databases", {})
+    bases = set(db_config.get("always", []))
+    prefs = profile.preferences
+
+    if prefs.get("many_papers") or prefs.get("literature_review"):
+        bases.update(db_config.get("many_papers", []))
+    if prefs.get("qualitative") or prefs.get("interviews"):
+        bases.update(db_config.get("qualitative", []))
+    if prefs.get("writing") or prefs.get("thesis") or prefs.get("dissertation"):
+        bases.update(db_config.get("writing", []))
+
+    return sorted(bases)
+
 
 DEFAULT_PROFILE = ResearcherProfile(
     sensitivity="medium",
@@ -73,6 +96,25 @@ def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> Scaf
     cheat_sheet = vault / "_meta" / "cheat_sheet.md"
     action, raw_path = _safe_write(cheat_sheet, render_cheat_sheet(vault, active_profile))
     (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
+
+    env_dashboard = vault / "_meta" / "my-environment.md"
+    action, raw_path = _safe_write(env_dashboard, read_template("my-environment.md"))
+    (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
+
+    capability_log = vault / "_meta" / "capability-log.md"
+    action, raw_path = _safe_write(
+        capability_log,
+        "# Capability Log\n\nCustom capabilities created by Claude in this vault.\n",
+    )
+    (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
+
+    for base_name in _select_bases(scaffold, active_profile):
+        target = vault / base_name
+        if target.exists():
+            skipped.append(_safe_relative(target, vault))
+        else:
+            copy_template(base_name, target)
+            created.append(_safe_relative(target, vault))
 
     friction_log = vault / "_meta" / "friction_log.md"
     action, raw_path = _safe_write(
