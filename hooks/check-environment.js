@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { checkVersion } = require('./check-version');
 
 function findCarrelRoot(startPath) {
   let currentPath = startPath;
@@ -20,6 +21,186 @@ function findCarrelRoot(startPath) {
     currentPath = path.dirname(currentPath);
   }
   return null;
+}
+
+function readJsonFile(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function parseFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  const result = {};
+  for (const line of match[1].split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx > 0) {
+      const key = line.slice(0, idx).trim();
+      const val = line.slice(idx + 1).trim();
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
+function countUncheckedItems(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const matches = content.match(/^- \[ \]/gm);
+    return matches ? matches.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function daysBetween(dateA, dateB) {
+  return Math.floor(Math.abs(dateA - dateB) / (1000 * 60 * 60 * 24));
+}
+
+function safeWriteJson(filePath, data) {
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmpPath, filePath);
+}
+
+function checkAutomation(projectRoot, env) {
+  const briefsDir = path.join(projectRoot, '_meta', 'briefs');
+  if (!fs.existsSync(briefsDir)) return;
+
+  try {
+    // 1. Read last_session_start from plugin-state.json
+    const statePath = path.join(projectRoot, '.carrel', 'plugin-state.json');
+    const pluginState = readJsonFile(statePath) || {};
+    const lastSessionStart = pluginState.last_session_start
+      ? new Date(pluginState.last_session_start)
+      : null;
+
+    const now = new Date();
+
+    // 2. Check for new morning briefs
+    try {
+      const briefs = fs.readdirSync(briefsDir)
+        .filter(f => f.endsWith('.md') && /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+        .sort()
+        .reverse();
+
+      if (briefs.length > 0) {
+        const latestDate = briefs[0].replace('.md', '');
+        const latestBriefTime = new Date(latestDate + 'T00:00:00Z');
+        if (!lastSessionStart || latestBriefTime > lastSessionStart) {
+          // Try to extract summary counts from the brief
+          let summary = '';
+          try {
+            const briefContent = fs.readFileSync(path.join(briefsDir, briefs[0]), 'utf8');
+            const parts = [];
+            const processedMatch = briefContent.match(/Processed:\s*(\d+)/);
+            const pendingMatch = briefContent.match(/Pending decisions:\s*(\d+)/);
+            const suggestionsSection = briefContent.match(/## Suggestions\n([\s\S]*?)(?=\n##|$)/);
+            if (processedMatch) parts.push(`${processedMatch[1]} processed`);
+            if (pendingMatch && pendingMatch[1] !== '0') parts.push(`${pendingMatch[1]} pending`);
+            if (suggestionsSection) {
+              const suggCount = (suggestionsSection[1].match(/^- \*\*/gm) || []).length;
+              if (suggCount > 0) parts.push(`${suggCount} suggestion${suggCount === 1 ? '' : 's'}`);
+            }
+            if (parts.length > 0) summary = ` — ${parts.join(', ')}`;
+          } catch {}
+          console.log(`  Morning brief ready (${latestDate})${summary}`);
+        }
+      }
+    } catch {}
+
+    // 3. Check for active plans
+    try {
+      const plansDir = path.join(projectRoot, '_meta', 'plans');
+      if (fs.existsSync(plansDir)) {
+        const planFiles = fs.readdirSync(plansDir)
+          .filter(f => f.endsWith('.md'))
+          .sort((a, b) => {
+            try {
+              const statA = fs.statSync(path.join(plansDir, a)).mtimeMs;
+              const statB = fs.statSync(path.join(plansDir, b)).mtimeMs;
+              return statB - statA;
+            } catch { return 0; }
+          })
+          .slice(0, 5);
+
+        const activePlans = [];
+        for (const file of planFiles) {
+          if (activePlans.length >= 3) break;
+          try {
+            const content = fs.readFileSync(path.join(plansDir, file), 'utf8');
+            const fm = parseFrontmatter(content);
+            if (fm.status === 'active') {
+              activePlans.push(fm.title || file.replace('.md', ''));
+            }
+          } catch {}
+        }
+        for (const title of activePlans) {
+          console.log(`  Active plan: '${title}'`);
+        }
+      }
+    } catch {}
+
+    // 4. Check for pending decisions
+    try {
+      const decisionsPath = path.join(projectRoot, '_meta', 'pending-decisions.md');
+      const count = countUncheckedItems(decisionsPath);
+      if (count > 0) {
+        console.log(`  ${count} pending decision${count === 1 ? '' : 's'} from overnight processing`);
+      }
+    } catch {}
+
+    // 5. Check for pending approvals
+    try {
+      const approvalsPath = path.join(projectRoot, '_meta', 'pending-approvals.md');
+      const count = countUncheckedItems(approvalsPath);
+      if (count > 0) {
+        console.log(`  ${count} pending approval${count === 1 ? '' : 's'} — review with /carrel-automate or approve inline`);
+      }
+    } catch {}
+
+    // 6. Check automation status
+    try {
+      const automation = env.automation;
+      if (automation && automation.enabled) {
+        // Check if no briefs in last 7 days
+        const briefs = fs.readdirSync(briefsDir)
+          .filter(f => f.endsWith('.md') && /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+          .sort()
+          .reverse();
+
+        if (briefs.length > 0) {
+          const latestDate = new Date(briefs[0].replace('.md', '') + 'T00:00:00Z');
+          if (daysBetween(now, latestDate) > 7) {
+            console.log('  Automation configured but no recent briefs — is the Desktop scheduled task running?');
+          }
+        } else {
+          console.log('  Automation configured but no recent briefs — is the Desktop scheduled task running?');
+        }
+
+        // Check if review is stale
+        if (automation.last_reviewed && automation.review_cadence) {
+          const lastReviewed = new Date(automation.last_reviewed);
+          const cadenceMap = { monthly: 30, quarterly: 90, biannual: 180 };
+          const maxDays = cadenceMap[automation.review_cadence];
+          if (maxDays && daysBetween(now, lastReviewed) > maxDays) {
+            const reviewDate = automation.last_reviewed.slice(0, 10);
+            console.log(`  Automation preferences last reviewed ${reviewDate}. Run /carrel-automate to update.`);
+          }
+        }
+      }
+    } catch {}
+
+    // 7. Write last_session_start (after all output)
+    try {
+      pluginState.last_session_start = now.toISOString();
+      safeWriteJson(statePath, pluginState);
+    } catch {}
+
+  } catch {}
 }
 
 function main() {
@@ -98,6 +279,16 @@ function main() {
       console.log('');
       console.log('Note: No CLAUDE.md found in vault. Consider running /carrel-setup to generate one.');
     }
+
+    // Check for plugin version changes
+    const versionResult = checkVersion(projectRoot);
+    if (versionResult.needsMigration) {
+      console.log('');
+      console.log(`  Carrel updated: ${versionResult.from} → ${versionResult.to}. Run /carrel-migrate to see what's new.`);
+    }
+
+    // Automation checks (gated on _meta/briefs/ existence)
+    checkAutomation(projectRoot, env);
 
     console.log('');
 

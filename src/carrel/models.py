@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -25,6 +25,24 @@ class TranscribeTool(str, Enum):
     GROQ = "groq"
     GEMINI = "gemini"
     YOUTUBE_CAPTIONS = "youtube_captions"
+
+
+class TrustLevel(str, Enum):
+    ADVISORY = "advisory"
+    CONSULTATIVE = "consultative"
+    DELEGATED = "delegated"
+    PARTNERSHIP = "partnership"
+
+
+class AutomationModel(str, Enum):
+    SONNET = "sonnet"
+    OPUS = "opus"
+
+
+class AutomationSchedule(str, Enum):
+    DAILY = "daily"
+    WEEKDAYS = "weekdays"
+    WEEKLY = "weekly"
 
 
 class HardwareCapability(str, Enum):
@@ -112,6 +130,21 @@ class AuditResult(BaseModel):
     tools: ToolAvailability
 
 
+class AutomationConfig(BaseModel):
+    enabled: bool = False
+    inbox_processing: bool = True
+    vault_health: bool = True
+    cross_linking_suggestions: bool = True
+    gap_analysis: bool = False
+    draft_feedback: bool = False
+    reflection_synthesis: bool = True
+    trust_level: TrustLevel = TrustLevel.ADVISORY
+    model: AutomationModel = AutomationModel.SONNET
+    schedule: AutomationSchedule = AutomationSchedule.DAILY
+    review_cadence: Literal["monthly", "quarterly", "biannual"] = "quarterly"
+    last_reviewed: str | None = None
+
+
 class ResearcherProfile(BaseModel):
     name: str | None = None
     field: str | None = None
@@ -120,3 +153,4 @@ class ResearcherProfile(BaseModel):
     comfort_level: str = "beginner"
     tools_configured: dict[str, bool] = Field(default_factory=dict)
     preferences: dict[str, Any] = Field(default_factory=dict)
+    automation: AutomationConfig = Field(default_factory=AutomationConfig)

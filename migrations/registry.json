@@ -6,6 +6,13 @@
       "file": "0.1.0-to-0.3.0.md",
       "breaking": false,
       "summary": "AirDrop/local install → GitHub marketplace"
+    },
+    {
+      "from": "0.3.0",
+      "to": "0.4.0",
+      "file": "0.3.0-to-0.4.0.md",
+      "breaking": false,
+      "summary": "Scheduled automation, batch processing, research self-portrait, analytical threads"
     }
   ]
 }

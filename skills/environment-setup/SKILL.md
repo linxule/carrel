@@ -162,7 +162,18 @@ This dashboard is the researcher's living view of their environment. It grows as
 Test one operation end-to-end:
 - "Let's test the setup. Drop a PDF or Word file in here and I'll convert it to your vault."
 
-### Step 9: Wrap Up
+### Step 9: Overnight Maintenance (optional)
+
+Offer this briefly — it's an opt-in, not a required step:
+
+> "Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. This uses Claude Desktop's scheduled tasks feature and costs approximately $3-8/month in API usage via Sonnet."
+
+- **Interested** → Run `/carrel-automate` now to configure it, or note it for later.
+- **Not now** → Skip. Mention they can always run `/carrel-automate` later to enable it.
+
+Don't push. Some researchers prefer manual control. Move on.
+
+### Step 10: Wrap Up
 
 - Confirm what's installed and working
 - Point to the cheat sheet and environment dashboard in Obsidian

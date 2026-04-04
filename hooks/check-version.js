@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Version check helper — called by check-environment.js
+ * Version check helper — imported by check-environment.js
  *
- * Compares the installed plugin version against the user's last-seen version
- * stored in .carrel/plugin-state.json. Outputs a migration nudge if they differ.
+ * Compares the installed plugin version (from .claude-plugin/plugin.json) against
+ * the last-seen version stored in .carrel/plugin-state.json. Used by the session-start
+ * hook to surface a migration nudge when the plugin has been updated.
  *
- * Returns: { needsMigration: boolean, from: string|null, to: string }
+ * Returns: { needsMigration: boolean, from: string|null, to: string, firstRun?: boolean }
  */
 
 const fs = require('fs');
@@ -28,7 +29,7 @@ function getLastSeenVersion(carrelRoot) {
   try {
     const statePath = path.join(carrelRoot, '.carrel', 'plugin-state.json');
     const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-    return state.version || null;
+    return state.plugin_version || state.version || null;
   } catch {
     return null;
   }

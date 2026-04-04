@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 41 tests
+uv run pytest                                    # 49 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -36,11 +36,11 @@ carrel/
 │   ├── google/           # Google Workspace export (gws CLI integration)
 │   ├── vault/            # Vault scaffold, organize, templates
 │   ├── env/              # Audit, profile, install commands
-│   ├── models.py         # Pydantic models (options, results, enums)
+│   ├── models.py         # Pydantic models (options, results, enums, AutomationConfig)
 │   └── errors.py         # CarrelError with actionable hints
 ├── tests/                # pytest suite
 ├── templates/            # Vault templates (loaded by vault/templates.py)
-├── skills/               # Plugin skills (convert, transcribe, vault-ops, environment-setup, etc.)
+├── skills/               # Plugin skills (convert, transcribe, vault-ops, environment-setup, automation, etc.)
 ├── agents/               # Plugin agents (setup-interviewer, research-partner)
 ├── hooks/                # Plugin hooks (session start/end)
 ├── commands/             # Plugin slash commands (/carrel-*)
@@ -76,6 +76,18 @@ No markdownify fallback for audio. Missing coli → clear error.
 - **No AI imports**: Core library is deterministic. AI lives in the transport/skill layer.
 - **Router validation**: Routers validate tool+input combinations, not just enum membership. `--tool gemini` on a local file or `--tool coli` on a YouTube URL is rejected with an actionable error. The router is the validation boundary — transports trust it.
 
+## Scheduled Automation (v0.4)
+
+Carrel can run overnight via Desktop App local scheduled tasks. The `automation` skill defines the contract; `/carrel-automate` configures it.
+
+- **Trust levels**: Advisory (suggest only) → Consultative (propose, researcher approves) → Delegated (act on new items, experimental) → Partnership (reorganize, experimental)
+- **AutomationConfig** in `models.py`: per-capability booleans, trust level, model, schedule, review cadence
+- **Session-start hook**: surfaces morning briefs, active plans, pending decisions/approvals (gated on `_meta/briefs/` existence)
+- **Generated prompt**: `_meta/automation-prompt.md` — per-researcher, uses vault detection (no absolute path)
+- **Two-track sync**: `environment.json` + vault `CLAUDE.md` must both reflect automation preferences
+
+Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (configure), `/carrel-mirror` (research self-portrait)
+
 ## Feedback Loops
 
 Interview preferences flow into two systems that must stay in sync:
@@ -90,7 +102,7 @@ Plugin version is tracked in `.carrel/plugin-state.json` in each vault. The `/ca
 
 Migration files live in `migrations/` with a `registry.json` index. Each migration is a markdown file describing what's new, automatic steps, and manual steps. Add new migrations when releasing breaking changes or significant features.
 
-When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.claude-plugin/marketplace.json` to match, and add a migration file if the update affects the user's vault or config.
+When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.claude-plugin/marketplace.json` and `pyproject.toml` + `src/carrel/__init__.py` to match, and add a migration file if the update affects the user's vault or config. The `check-version.js` hook module reads `plugin_version` from plugin-state.json and is wired into the session-start hook.
 
 ## Gotchas
 
@@ -125,3 +137,7 @@ Multi-model review process: spec written, reviewed by Codex (adversarial) + Gemi
 | `planning/reviews/003-implementation-review.md` | Post-implementation review |
 | `planning/reports/002-report-codex.md` | Tool expansion report |
 | `planning/reports/003-report-codex.md` | Core library fix report |
+| `planning/specs/004-scheduled-automation-and-shared-agency.md` | v0.4 spec: scheduled automation + graduated trust |
+| `planning/reviews/004-review-codex.md` | v0.4 adversarial review (Codex) |
+| `planning/reviews/004-review-architect.md` | v0.4 feasibility review (architect) |
+| `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |

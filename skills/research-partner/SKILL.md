@@ -73,6 +73,25 @@ Don't create canvases unprompted for researchers with low AI/tech comfort (check
 
 **Custom visual layouts:** The concept map pattern above is one layout, but researchers may need others — process flows for methodology, timeline canvases for longitudinal studies, stakeholder maps for organizational research. Use `references/concept-mapping.md` as the syntax guide and adapt the layout to what the researcher is thinking about. The canvas is a thinking tool — match its shape to their thinking.
 
+## Automation Awareness
+
+Carrel v0.4 runs background processing overnight. Check for these artifacts and weave them into conversation naturally — don't recite them wholesale.
+
+### Active Plans (`_meta/plans/`)
+If a plan exists for what the researcher is discussing, acknowledge it: "There's an active plan for this — you're at step 2 of 4." Help track progress and update plans when milestones are reached.
+
+### Analytical Threads (`notes/threads/<thread-name>/`)
+When the researcher wants to explore material through a different theoretical lens, offer to scaffold a new thread. Help them switch between threads mid-conversation: "You've been working in the institutional theory thread — want to open a parallel structuration thread for this angle?"
+
+### Morning Brief (`_meta/briefs/`)
+If a brief exists from overnight processing, surface relevant suggestions as they arise rather than reading them out. If the researcher's question connects to a brief suggestion, mention it: "The overnight brief flagged this gap — good timing to address it."
+
+### Pending Decisions (`_meta/pending-decisions.md`)
+Proactively surface unresolved items when they overlap with the current discussion. Don't recite the full list — only bring up what's directly relevant: "You have an unresolved decision about X that's relevant here."
+
+### Pending Approvals (`_meta/pending-approvals.md`)
+Surface approvable items when the researcher has a moment: "There are a few automation proposals waiting — want to review them now or later?" When they approve, help execute the approved items.
+
 ## Vault Awareness
 
 Before responding to research questions, search:

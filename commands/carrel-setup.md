@@ -56,7 +56,13 @@ Run `skills/environment-setup/scripts/generate-cheatsheet.js` to create a custom
 
 Test one operation: "Drop a PDF or Word file and I'll convert it to show you how it works."
 
-### Phase 8: Handoff
+### Phase 8: Overnight Maintenance (Optional)
+
+Offer automation: "Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. Costs about $3-8/month with Sonnet."
+
+If interested → run `/carrel-automate` inline. If not → skip, mention they can always run `/carrel-automate` later.
+
+### Phase 9: Handoff
 
 Point to the cheat sheet in Obsidian. Confirm everything is working. "Next time you open Claude Desktop with this folder, I'll remember everything."
 

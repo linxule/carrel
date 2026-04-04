@@ -92,6 +92,34 @@ Use `carrel vault search <query>` to surface related content before suggesting l
 - Update links when moving files: find and replace `[[old-name]]` → `[[new-name]]`
 - Every file has a home — nothing stays in vault root
 
+## Analytical Threads
+
+When a researcher wants to explore material through different theoretical lenses, analytical threads keep the experiments organized without flattening them into a single interpretation.
+
+### Structure
+
+1. Create `notes/threads/<thread-name>/` (e.g., `notes/threads/practice-theory/`)
+2. Create a thread overview note at `notes/threads/<thread-name>/README.md` with:
+   - **Lens** — what theoretical or methodological frame is being applied
+   - **Starting questions** — what the thread is trying to answer or surface
+   - **Source material** — wiki-links to the papers/transcripts being analyzed (e.g., `[[papers/corley-gioia-2004/paper]]`)
+   - **Status** — one of: `active` / `paused` / `completed` / `abandoned` (with reason)
+3. Notes within a thread follow normal vault-ops conventions — templates, frontmatter, cross-links, all the same rules apply
+
+### Principles
+
+- No thread is "primary" — parallel threads are preserved intellectual experiments, not a competition
+- Use frontmatter `tags` to mark thread membership (e.g., `tags: [thread/practice-theory]`) so Obsidian Bases can filter across threads
+- "Abandoned" threads stay in the vault with a note explaining why — the dead end is data, not failure
+
+### When to Suggest Threads
+
+- Researcher has the same corpus but asks "what if I look at this through a different lens"
+- Researcher is comparing two theoretical framings and doesn't want to commit yet
+- Researcher has notes that feel like they're pulling in conflicting directions
+
+Don't suggest threads for normal note accumulation — threads are for deliberate parallel analysis, not general organization.
+
 ## Obsidian Formatting
 
 Use Obsidian-specific formatting to make notes more readable in the GUI. See `references/obsidian-formatting.md` for full syntax.
