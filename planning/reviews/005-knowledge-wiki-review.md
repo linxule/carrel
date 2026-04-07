@@ -63,6 +63,16 @@ Separate from code review, examined the AI-researcher interaction ergonomics. Fo
 - Existing-page edit reverts rely on git history / session checkpoints
 - wiki_preference fields are read by Claude, not enforced by hooks
 
+## Round 3: Sonnet UX Review
+
+Focused review of /carrel-automate interview flow after wiki integration.
+
+- **Critical**: Silent skip on wiki_maintenance hides the feature from researchers who don't have a wiki yet. **Fixed**: mention field map capability even when not active; use "field map" language throughout.
+- **Critical**: trust-activation.md unconditionally set `wiki_maintenance: true` on wiki activation, bypassing the automation interview. **Fixed**: wiki activation no longer auto-enables maintenance; researcher opts in via `/carrel-automate`.
+- **Critical**: Returning-researcher flow didn't surface newly available wiki_maintenance. **Fixed**: Step 3 re-checks `wiki_enabled` and prompts if wiki was activated since last review.
+- **Critical**: Cost model missing wiki maintenance entry. **Fixed**: added $0.15-0.40/run, $5-15/month estimate.
+- **Important**: Example prompt template ambiguous about wiki section conditionality. **Fixed**: marked as "include only if wiki_maintenance is true; otherwise omit entirely."
+
 ## Commits
 
 | Commit | Description |
@@ -70,3 +80,7 @@ Separate from code review, examined the AI-researcher interaction ergonomics. Fo
 | `aa804dc` | Knowledge wiki feature: 3 new skill files + full integration across 12 files |
 | `c51a40f` | Round 1 fixes + dialogue surface (callouts, insights, framing, transparency) |
 | `baf476f` | Round 2 fixes (hook placement, trust invariants, filing consistency, revert story) |
+| `187e9b0` | Project docs (CLAUDE.md + review history) |
+| `e31eeab` | CLAUDE.md quality improvements (B+ → A) |
+| `1788485` | Version bump to 0.5.0 with migration file |
+| `07003e5` | /carrel-automate interview flow fixes (Sonnet review) |
