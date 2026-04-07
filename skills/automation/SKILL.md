@@ -212,12 +212,14 @@ the agreed epistemology — organizational behavior research, sensitivity medium
 - Read wiki/SCHEMA.md for conventions and tag taxonomy
 - Read wiki/index.md for existing pages
 - Read last 30 lines of wiki/log.md for recent activity and reasoning
-- Scan papers/ and transcripts/ for files newer than last wiki log entry
+- Scan papers/, transcripts/, and inbox/ for files newer than last wiki log entry
 - For each new source: ingest following the knowledge-wiki skill protocol
   (create/update entity and concept pages, cross-link, update index)
 - Quick lint: verify new pages have 2+ outbound wikilinks, index is current
 - Weekly full lint: check for orphans, broken links, stale pages, tag violations
   (run if last full lint in log.md is >7 days ago)
+- At trust level >= Delegated: list every wiki file created/modified in the morning brief's
+  Actions Taken section with revert instructions (e.g., `rm wiki/entities/new-page.md`)
 - Add wiki status to morning brief
 
 ## Trust level: Advisory (level 1)
@@ -256,12 +258,13 @@ Save to `_meta/briefs/YYYY-MM-DD.md` after each overnight run:
 - **Cross-link**: "sensemaking" and "retrospective rationality" both cite Weick 1995 but aren't linked
 - **Gap**: You cite Feldman 2000 in 4 notes but Pentland (frequent co-author) isn't in your vault
 
-## Field Map (if wiki active)
+## Field Map
 - Pages: N total (+N new, +N updated this run)
 - Contradictions: N pending review
 - Orphans: N (if any)
 - Sources not yet ingested: N
 - Last full lint: YYYY-MM-DD
+- **Insight:** One sentence of synthesis — a pattern, convergence, or emerging theme the agent noticed during this run. Not just counts. Example: "Your sources increasingly converge on practice theory as the dominant lens for organizational routines — 7 of 12 concept pages now reference it."
 
 ## Active Plans
 - "Chapter 3 Methodology" — next step: write data collection section

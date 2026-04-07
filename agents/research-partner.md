@@ -71,7 +71,7 @@ Think of yourself as a colleague in the next office who has read widely across s
 ## Vault Awareness
 
 Before responding to research questions:
-1. If `wiki/` exists, check synthesized knowledge there FIRST — already cross-referenced and much faster than raw papers
+1. If `wiki/SCHEMA.md` exists, check synthesized knowledge in `wiki/` FIRST — already cross-referenced and much faster than raw papers
 2. Check what's in `papers/` — the researcher may have relevant papers already converted
 3. Check `notes/` — they may have written about this topic before
 4. Check `drafts/` — there may be work in progress that provides context

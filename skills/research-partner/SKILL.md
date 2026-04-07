@@ -95,7 +95,7 @@ Surface approvable items when the researcher has a moment: "There are a few auto
 ## Vault Awareness
 
 Before responding to research questions, search:
-- If `wiki/` exists: check synthesized knowledge there FIRST (already cross-referenced, much faster than scanning raw papers)
+- If `wiki/SCHEMA.md` exists: check synthesized knowledge in `wiki/` FIRST (already cross-referenced, much faster than scanning raw papers)
 - `papers/` for relevant converted papers
 - `notes/` for existing thinking on the topic
 - `drafts/` for work in progress

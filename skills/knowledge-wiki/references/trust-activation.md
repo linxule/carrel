@@ -41,7 +41,7 @@ Watch for these during interactive sessions. Any 2-3 of these together suggest t
 - Researcher is tracking a fast-moving field over months
 
 **Do NOT propose when:**
-- Researcher has fewer than 10 sources
+- Researcher has fewer than 15 sources
 - Researcher has expressed preference for managing their own notes/synthesis
 - Trust level is advisory and researcher hasn't shown synthesis-seeking signals
 - Researcher is in the middle of a focused task (bad timing)
@@ -55,6 +55,10 @@ When signals are strong enough, propose during a natural pause in the session. F
 ### The pitch (adapt to context)
 
 > "You've got [N] papers and [N] transcripts now, and you're asking questions that cut across them. I could maintain a field map for you — topic pages that synthesize what your sources say about each concept, entity pages for key researchers and organizations, and I'd flag where sources contradict each other. You'd review what I write. Think of it as a living summary of your field that gets smarter with every paper you add.
+>
+> The field map would capture what your sources say — the field's voice. Your notes in `notes/` stay yours — your voice, your developing argument. Where they diverge is where your contribution lives.
+>
+> If you ever disagree with something I wrote, just add a `> [!researcher]` note on the page and I'll respect it. You stay the authority.
 >
 > Want me to draft a structure? You'd approve it before I create anything."
 
@@ -131,6 +135,11 @@ wiki/
   This vault has an active field map in wiki/. Claude maintains synthesized
   topic and entity pages. Review wiki pages in Obsidian (filter graph to path:wiki/).
   Contradictions are flagged for your review.
+
+  The wiki is the field's voice — what sources say. Your notes/ are your voice —
+  what you think. Where they diverge is where your contribution lives.
+  Add > [!researcher] callouts to any wiki page to correct or annotate — Claude
+  will read and respect them.
   ```
 
 **Step 3 — Incremental cold start:**

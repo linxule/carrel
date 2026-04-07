@@ -45,6 +45,8 @@ def test_researcher_profile_missing_automation_key() -> None:
     assert profile.automation.trust_level == TrustLevel.ADVISORY
     assert profile.automation.wiki_maintenance is False
     assert profile.wiki_enabled is False
+    assert profile.wiki_preference is None
+    assert profile.wiki_proposal_deferred_until is None
 
 
 def test_automation_config_roundtrip() -> None:

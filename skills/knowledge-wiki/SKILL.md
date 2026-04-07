@@ -93,8 +93,10 @@ Lightweight. For answering questions about the researcher's domain.
 1. Read `wiki/index.md` to find relevant pages
 2. For large wikis (50+ pages), also search across `wiki/**/*.md` for key terms
 3. Read relevant wiki pages
-4. Synthesize answer, citing wiki pages: "Based on [[wiki/concepts/sensemaking]] and [[wiki/entities/weick]]..."
-5. If the answer is a substantial synthesis worth keeping → file to `wiki/queries/` or `wiki/comparisons/`, update index.md, and append to log.md
+4. Synthesize answer, **always citing the wiki source**: "Based on the wiki's [[wiki/concepts/sensemaking]] page and [[wiki/entities/weick]]..." — citation transparency lets the researcher trace and verify.
+5. If the answer is a substantial synthesis worth keeping:
+   - At **consultative** trust: propose filing — "This synthesis might be worth keeping as a wiki page. Want me to save it to `wiki/queries/`?"
+   - At **delegated+** trust: file directly to `wiki/queries/` or `wiki/comparisons/`, update index.md, append to log.md
 
 **Logging:** Only log queries that result in a filed wiki page. Trivial lookups do NOT require logging — this keeps read mode lightweight.
 
@@ -126,7 +128,7 @@ When `wiki_maintenance` is enabled in `environment.json → automation`:
 The overnight prompt includes wiki operations AFTER inbox processing (so newly converted papers are available):
 
 1. Orient: read SCHEMA.md, index.md, recent log.md
-2. Scan `papers/` and `transcripts/` for files newer than last wiki log entry
+2. Scan `papers/`, `transcripts/`, and `inbox/` for files newer than last wiki log entry
 3. For each new source: run ingest protocol (see `references/wiki-protocol.md`)
 4. Quick lint: verify new pages have 2+ outbound links, index is current
 5. Add wiki status to morning brief:

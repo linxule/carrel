@@ -150,7 +150,7 @@ When the researcher adds a source or when automation detects new files:
 
 **Step 1 — Identify new sources:**
 - In interactive mode: researcher points to a specific file or says "I just added a paper"
-- In automation mode: scan `papers/` and `transcripts/` for files with mtime newer than the last log entry
+- In automation mode: scan `papers/`, `transcripts/`, and `inbox/` for converted markdown files with mtime newer than the last log entry
 
 **Step 2 — Read the source:**
 - Read the converted markdown from its location in the vault
@@ -275,6 +275,27 @@ WHERE contains(tags, "sensemaking")
 
 ---
 
+## Researcher Callouts — The Dialogue Surface
+
+The wiki is the agent's voice. The researcher's voice lives in `notes/`. But sometimes the researcher needs to talk back to a specific wiki page — to correct, disagree, or add context that the agent should respect.
+
+**Convention:** The researcher adds `> [!researcher]` callouts directly to wiki pages:
+
+```markdown
+> [!researcher] This oversimplifies — Smith's argument is more nuanced
+> than "purely retrospective." See [[notes/smith-critique]].
+```
+
+**Agent behavior when encountering `[!researcher]` callouts:**
+- **Never overwrite or remove** a researcher callout. It is authoritative.
+- **Read all callouts during orientation** — they are corrections and constraints.
+- **Incorporate the feedback** into future updates of that page. If the researcher says the synthesis is wrong, adjust the synthesis (not the callout).
+- **If the correction changes your understanding**, update related pages too and note in the log: "Adjusted per researcher callout on [[page-name]]."
+
+This is the back channel. The wiki log is the agent talking to its future self. Researcher callouts are the researcher talking to the agent's future self. Together they make the vault a space where both parties leave durable messages.
+
+---
+
 ## Pitfalls
 
 - **Never modify files in papers/ or transcripts/** — sources are immutable
@@ -287,3 +308,4 @@ WHERE contains(tags, "sensemaking")
 - **Include reasoning in log entries** — the next Claude instance needs to follow precedent
 - **Ask before mass-updating** — if an ingest would touch 10+ existing pages, confirm scope (interactive mode) or note in brief (automation mode)
 - **Handle contradictions explicitly** — note both claims with dates, mark in frontmatter, flag for review
+- **Never remove `[!researcher]` callouts** — these are the researcher's authoritative voice on wiki pages. Read, respect, incorporate.

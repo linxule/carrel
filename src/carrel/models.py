@@ -153,6 +153,8 @@ class ResearcherProfile(BaseModel):
     cloud_consent: bool = False
     comfort_level: str = "beginner"
     wiki_enabled: bool = False
+    wiki_preference: str | None = None
+    wiki_proposal_deferred_until: str | None = None
     tools_configured: dict[str, bool] = Field(default_factory=dict)
     preferences: dict[str, Any] = Field(default_factory=dict)
     automation: AutomationConfig = Field(default_factory=AutomationConfig)
