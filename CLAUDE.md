@@ -92,12 +92,16 @@ Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (conf
 
 Optional synthesis layer based on [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Maintains interlinked entity and concept pages that compound knowledge across sources. Adapted from [Hermes Agent's implementation](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
 
-- **Trust-gated activation**: emerges through graduated trust, not setup-time config. Advisory=off, Consultative=propose with approval, Delegated=autonomous maintenance, Partnership=structural reorganization.
-- **Folder mapping**: carrel's `papers/` and `transcripts/` ARE the source layer. `wiki/` inside the vault is the synthesis layer. No separate `raw/` tree.
-- **Operations**: ingest (new source → update wiki pages), query (answer from compiled knowledge), lint (health check)
-- **Ephemeral agent adaptations**: log.md includes reasoning per decision (handoff between Claude instances), lazy orientation (full wiki context loaded only for writes), morning brief includes wiki status
-- **Automation**: `wiki_maintenance` capability in AutomationConfig. Runs after inbox processing so newly converted papers are available.
+- **Trust-gated activation**: emerges through graduated trust, not setup-time config. Advisory=off, Consultative=propose with approval, Delegated=autonomous maintenance, Partnership=structural reorganization. Activation implies at least consultative — a vault cannot have an active wiki at advisory.
+- **Folder mapping**: carrel's `papers/`, `transcripts/`, and `inbox/` ARE the source layer. `wiki/` inside the vault is the synthesis layer. No separate `raw/` tree.
+- **Operations**: ingest (new source → update wiki pages), query (answer from compiled knowledge, trust-gated filing), lint (health check)
+- **Ephemeral agent adaptations**: log.md includes reasoning per decision (handoff between Claude instances), lazy orientation (full wiki context loaded only for writes), morning brief includes wiki status + insight
+- **Dialogue surface**: researcher callouts (`> [!researcher]`) on wiki pages — agent reads, never overwrites. The wiki is the field's voice; `notes/` is the researcher's voice; the gap between them is the contribution.
+- **Automation**: `wiki_maintenance` capability in AutomationConfig. Runs after inbox processing so newly converted papers are available. At delegated trust, morning brief includes per-file revert instructions.
+- **Preference fields**: `wiki_enabled`, `wiki_preference` ("agent-managed" | "researcher-managed" | null), `wiki_proposal_deferred_until` on ResearcherProfile — read by Claude during session orientation, not code-enforced.
+- **Wiki detection**: research-partner and session-start hook check `wiki/SCHEMA.md` (not just `wiki/`) to confirm an active wiki.
 - **Skill**: `skills/knowledge-wiki/` — SKILL.md + references/wiki-protocol.md + references/trust-activation.md
+- **Upstream watch**: Karpathy gist + NousResearch/hermes-agent in `capability-registry.md` for quarterly review
 
 ## Feedback Loops
 
@@ -152,3 +156,4 @@ Multi-model review process: spec written, reviewed by Codex (adversarial) + Gemi
 | `planning/reviews/004-review-codex.md` | v0.4 adversarial review (Codex) |
 | `planning/reviews/004-review-architect.md` | v0.4 feasibility review (architect) |
 | `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
+| `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
