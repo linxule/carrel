@@ -42,7 +42,9 @@ The wiki follows carrel's graduated trust model. The same `trust_level` in `auto
 | **Delegated** | Agent maintains wiki autonomously for new sources. Logs every action with reasoning. | Yes — new pages, updates, index maintenance |
 | **Partnership** | Agent reorganizes structure, splits/merges pages, identifies research gaps. | Yes — including structural changes |
 
-**Explicit opt-in overrides trust gating.** If a researcher says "set up a knowledge wiki" at any trust level, proceed. Their request IS the trust grant for wiki operations.
+**Explicit opt-in overrides trust gating.** If a researcher says "set up a knowledge wiki" at any trust level, proceed — their request IS the trust grant. Wiki operations then behave at consultative level (propose, await approval) unless the researcher's global trust level is already higher.
+
+**Invariant:** If `wiki_enabled: true`, the wiki operates at least at consultative level for wiki-specific actions, regardless of `automation.trust_level`. A vault cannot have an active wiki at advisory — activation implies consultative.
 
 ## Vault Integration — Folder Mapping
 

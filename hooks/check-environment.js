@@ -127,31 +127,6 @@ function checkAutomation(projectRoot, env) {
       }
     } catch {}
 
-    // 2b. Wiki status fallback (when no brief or automation is off)
-    if (env && env.wiki_enabled) {
-      try {
-        const wikiSchema = path.join(projectRoot, 'wiki', 'SCHEMA.md');
-        if (fs.existsSync(wikiSchema)) {
-          // Only show if not already surfaced via brief
-          const briefsDir = path.join(projectRoot, '_meta', 'briefs');
-          const hasBrief = fs.existsSync(briefsDir) && fs.readdirSync(briefsDir).filter(f => f.endsWith('.md')).length > 0;
-          if (!hasBrief) {
-            const wikiDirs = ['entities', 'concepts', 'comparisons', 'queries'];
-            let pageCount = 0;
-            for (const dir of wikiDirs) {
-              const dirPath = path.join(projectRoot, 'wiki', dir);
-              if (fs.existsSync(dirPath)) {
-                pageCount += fs.readdirSync(dirPath).filter(f => f.endsWith('.md')).length;
-              }
-            }
-            if (pageCount > 0) {
-              console.log(`  Wiki active: ${pageCount} pages`);
-            }
-          }
-        }
-      } catch {}
-    }
-
     // 3. Check for active plans
     try {
       const plansDir = path.join(projectRoot, '_meta', 'plans');
@@ -329,6 +304,31 @@ function main() {
 
     // Automation checks (gated on _meta/briefs/ existence)
     checkAutomation(projectRoot, env);
+
+    // Wiki status fallback (when no brief surfaced wiki info)
+    if (env && env.wiki_enabled) {
+      try {
+        const wikiSchema = path.join(projectRoot, 'wiki', 'SCHEMA.md');
+        if (fs.existsSync(wikiSchema)) {
+          const wkBriefsDir = path.join(projectRoot, '_meta', 'briefs');
+          const hasBrief = fs.existsSync(wkBriefsDir) &&
+            fs.readdirSync(wkBriefsDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)).length > 0;
+          if (!hasBrief) {
+            const wikiDirs = ['entities', 'concepts', 'comparisons', 'queries'];
+            let pageCount = 0;
+            for (const dir of wikiDirs) {
+              const dirPath = path.join(projectRoot, 'wiki', dir);
+              if (fs.existsSync(dirPath)) {
+                pageCount += fs.readdirSync(dirPath).filter(f => f.endsWith('.md')).length;
+              }
+            }
+            if (pageCount > 0) {
+              console.log(`  Wiki active: ${pageCount} pages`);
+            }
+          }
+        }
+      } catch {}
+    }
 
     console.log('');
 

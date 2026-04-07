@@ -42,9 +42,12 @@ Watch for these during interactive sessions. Any 2-3 of these together suggest t
 
 **Do NOT propose when:**
 - Researcher has fewer than 15 sources
-- Researcher has expressed preference for managing their own notes/synthesis
+- `wiki_preference` is `"researcher-managed"` in environment.json — they said no permanently
+- `wiki_proposal_deferred_until` is set and hasn't passed — they said "not now"
 - Trust level is advisory and researcher hasn't shown synthesis-seeking signals
 - Researcher is in the middle of a focused task (bad timing)
+
+**Important:** These fields are read by Claude during session orientation, not enforced by code hooks. This is consistent with carrel's design — skills guide behavior through environment.json preferences, not through code gates. Claude must check these fields before proposing.
 
 ---
 

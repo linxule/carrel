@@ -201,8 +201,9 @@ When the researcher asks about their domain:
 - Cite wiki pages: "Based on [[wiki/concepts/sensemaking]] and [[wiki/entities/weick]]..."
 - When the wiki has contradictions noted, present both positions
 
-**Step 4 — File if valuable:**
-- If the answer is a substantial comparison, deep dive, or novel synthesis → save to `wiki/queries/` or `wiki/comparisons/`
+**Step 4 — File if valuable (trust-gated):**
+- At **consultative** trust: propose filing — "This synthesis might be worth keeping. Want me to save it to `wiki/queries/`?"
+- At **delegated+** trust: file directly to `wiki/queries/` or `wiki/comparisons/`
 - Don't file trivial lookups — only answers that would be painful to re-derive
 - Update index.md if filed
 

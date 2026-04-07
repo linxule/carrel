@@ -219,7 +219,10 @@ the agreed epistemology — organizational behavior research, sensitivity medium
 - Weekly full lint: check for orphans, broken links, stale pages, tag violations
   (run if last full lint in log.md is >7 days ago)
 - At trust level >= Delegated: list every wiki file created/modified in the morning brief's
-  Actions Taken section with revert instructions (e.g., `rm wiki/entities/new-page.md`)
+  Actions Taken section with revert instructions:
+  - New pages: `rm wiki/entities/new-page.md` + remove from index
+  - Edited pages: note what changed (section added/modified). Full revert of edits relies on
+    git history or session checkpoints — the brief provides enough context to identify what to review.
 - Add wiki status to morning brief
 
 ## Trust level: Advisory (level 1)
