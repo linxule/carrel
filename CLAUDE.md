@@ -36,7 +36,7 @@ carrel/
 │   ├── google/           # Google Workspace export (gws CLI integration)
 │   ├── vault/            # Vault scaffold, organize, templates
 │   ├── env/              # Audit, profile, install commands
-│   ├── models.py         # Pydantic models (options, results, enums, AutomationConfig)
+│   ├── models.py         # Pydantic models (options, results, enums, AutomationConfig, ResearcherProfile)
 │   └── errors.py         # CarrelError with actionable hints
 ├── tests/                # pytest suite
 ├── templates/            # Vault templates (loaded by vault/templates.py)
@@ -90,18 +90,16 @@ Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (conf
 
 ## Knowledge Wiki
 
-Optional synthesis layer based on [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Maintains interlinked entity and concept pages that compound knowledge across sources. Adapted from [Hermes Agent's implementation](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
+Optional synthesis layer: agent-maintained entity/concept pages that compound knowledge across sources. Adapted from [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) + [Hermes Agent](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
 
-- **Trust-gated activation**: emerges through graduated trust, not setup-time config. Advisory=off, Consultative=propose with approval, Delegated=autonomous maintenance, Partnership=structural reorganization. Activation implies at least consultative — a vault cannot have an active wiki at advisory.
-- **Folder mapping**: carrel's `papers/`, `transcripts/`, and `inbox/` ARE the source layer. `wiki/` inside the vault is the synthesis layer. No separate `raw/` tree.
-- **Operations**: ingest (new source → update wiki pages), query (answer from compiled knowledge, trust-gated filing), lint (health check)
-- **Ephemeral agent adaptations**: log.md includes reasoning per decision (handoff between Claude instances), lazy orientation (full wiki context loaded only for writes), morning brief includes wiki status + insight
-- **Dialogue surface**: researcher callouts (`> [!researcher]`) on wiki pages — agent reads, never overwrites. The wiki is the field's voice; `notes/` is the researcher's voice; the gap between them is the contribution.
-- **Automation**: `wiki_maintenance` capability in AutomationConfig. Runs after inbox processing so newly converted papers are available. At delegated trust, morning brief includes per-file revert instructions.
-- **Preference fields**: `wiki_enabled`, `wiki_preference` ("agent-managed" | "researcher-managed" | null), `wiki_proposal_deferred_until` on ResearcherProfile — read by Claude during session orientation, not code-enforced.
-- **Wiki detection**: research-partner and session-start hook check `wiki/SCHEMA.md` (not just `wiki/`) to confirm an active wiki.
-- **Skill**: `skills/knowledge-wiki/` — SKILL.md + references/wiki-protocol.md + references/trust-activation.md
-- **Upstream watch**: Karpathy gist + NousResearch/hermes-agent in `capability-registry.md` for quarterly review
+- **Trust-gated**: Advisory=off, Consultative=propose with approval, Delegated=autonomous. Activation implies at least consultative.
+- **Folder mapping**: `papers/`, `transcripts/`, `inbox/` = source layer. `wiki/` = synthesis layer. No separate `raw/`.
+- **Operations**: ingest, query (trust-gated filing), lint. See `skills/knowledge-wiki/SKILL.md`.
+- **Dialogue**: researcher callouts (`> [!researcher]`) on wiki pages — agent reads, never overwrites. Wiki = field's voice; `notes/` = researcher's voice; gap = contribution.
+- **Ephemeral agent**: log.md includes reasoning per decision (cross-instance handoff). Lazy orientation (full context only for writes).
+- **Automation**: `wiki_maintenance` in AutomationConfig. At delegated trust, briefs include per-file revert instructions + one-sentence insight.
+- **Model fields**: `wiki_enabled`, `wiki_preference`, `wiki_proposal_deferred_until` on ResearcherProfile. Read by Claude, not code-enforced.
+- **Detection**: check `wiki/SCHEMA.md` existence (not just `wiki/`). Upstream in `capability-registry.md`.
 
 ## Feedback Loops
 
@@ -128,6 +126,7 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - gws (Google Workspace CLI) requires Google Cloud project + OAuth — high friction setup, see `references/gws-setup-guide.md`
 - `generate-cheatsheet.js` is still a Node.js script (not yet ported to Python CLI)
 - youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
+- Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
 
 ## Capability Absorption
 
