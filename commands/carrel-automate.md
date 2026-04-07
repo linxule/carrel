@@ -32,7 +32,7 @@ Have a short conversational interview. Cover:
 - Gap analysis (flag under-cited claims, missing literature)
 - Draft feedback (light structural notes on in-progress writing)
 - Reflection synthesis (weekly/monthly summary of what you've been reading and thinking)
-- Wiki maintenance (update knowledge wiki with new sources, run consistency checks) — only offer if `wiki_enabled: true` in environment.json; skip silently otherwise
+- Field map maintenance (keep your knowledge field map current with new sources, run consistency checks) — only offer as a toggle if `wiki_enabled: true` in environment.json. If `wiki_enabled` is false, skip the toggle but add a brief closing note: "One capability not set up yet is a knowledge field map — I can synthesize your sources into topic and entity pages over time. Ask me about a 'field map' to start that when you're ready."
 
 **Trust level?** Explain each briefly before asking:
 - *Advisory* — suggestions only, nothing written without your approval
@@ -54,7 +54,9 @@ Have a short conversational interview. Cover:
 
 ### Step 3: Interview (Returning)
 
-Show the current configuration in a readable summary. Ask: "What would you like to change?" Apply only the requested changes.
+Show the current configuration in a readable summary. Re-check `wiki_enabled` in environment.json — if it is now `true` but `wiki_maintenance` is `false`, surface this as a new option: "Since your last automation review, you've set up a knowledge field map. Would you like to include field map maintenance in overnight automation?"
+
+Ask: "What would you like to change?" Apply only the requested changes.
 
 ### Step 4: Update environment.json
 

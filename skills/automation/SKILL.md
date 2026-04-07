@@ -208,7 +208,7 @@ the agreed epistemology — organizational behavior research, sensitivity medium
 - Read _meta/reflections/ entries since last mirror
 - Write synthesis to _meta/mirror/ only if 30+ days since last mirror
 
-### 7. Wiki maintenance [enabled — if wiki_maintenance is true]
+### 7. Field map maintenance [include only if wiki_maintenance is true; otherwise omit entirely]
 - Read wiki/SCHEMA.md for conventions and tag taxonomy
 - Read wiki/index.md for existing pages
 - Read last 30 lines of wiki/log.md for recent activity and reasoning
@@ -349,9 +349,11 @@ Mention during setup so the researcher can make an informed choice:
 | Cross-linking suggestions | $0.05-0.10 |
 | Gap analysis | $0.03-0.07 |
 | Draft feedback (1 draft) | $0.07-0.15 |
-| Full overnight run | $0.10-0.25 |
+| Field map maintenance (5-10 sources) | $0.15-0.40 |
+| Full overnight run (without field map) | $0.10-0.25 |
+| Full overnight run (with field map) | $0.25-0.65 |
 
-**Daily full run with Sonnet: approximately $3-8/month.** Monthly mirror with Opus runs about $0.50-1.00 per synthesis.
+**Daily full run with Sonnet: approximately $3-8/month** without field map, **$5-15/month** with field map maintenance (depends on vault size and new source volume). Monthly mirror with Opus runs about $0.50-1.00 per synthesis.
 
 ---
 

@@ -131,7 +131,8 @@ wiki/
 
 **Step 2 — Record activation:**
 - Set `wiki_enabled: true` in `.carrel/environment.json`
-- If automation is configured, set `wiki_maintenance: true` in automation config
+- Set `wiki_preference: "agent-managed"` in `.carrel/environment.json`
+- If automation is configured (`automation.enabled: true`), do NOT auto-enable `wiki_maintenance`. Instead note to the researcher: "Since you have overnight automation configured, you can enable field map maintenance in `/carrel-automate`. For now the field map runs interactively only."
 - Update vault `CLAUDE.md` with wiki conventions section:
   ```
   ## Knowledge Wiki
@@ -210,7 +211,7 @@ When wiki is activated or trust changes, update both persistence layers:
   "wiki_preference": "agent-managed",
   "wiki_proposal_deferred_until": null,
   "automation": {
-    "wiki_maintenance": true,
+    "wiki_maintenance": false,
     "trust_level": "consultative"
   }
 }
