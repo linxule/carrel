@@ -63,6 +63,7 @@ Automation preferences live in `.carrel/environment.json` under an `automation` 
     "gap_analysis": false,
     "draft_feedback": false,
     "reflection_synthesis": true,
+    "wiki_maintenance": false,
     "trust_level": "advisory",
     "model": "sonnet",
     "schedule": "daily",
@@ -79,6 +80,7 @@ Automation preferences live in `.carrel/environment.json` under an `automation` 
 - `gap_analysis` — identify frequently-cited authors whose work isn't in the vault
 - `draft_feedback` — analytical feedback on recent drafts (defaults OFF — most intimate)
 - `reflection_synthesis` — synthesize reflection entries into monthly mirror
+- `wiki_maintenance` — update the knowledge wiki with new sources, run lint (defaults OFF — requires wiki activation via `knowledge-wiki` skill)
 
 **Schedule options:** `daily` / `weekdays` / `weekly`
 
@@ -206,6 +208,18 @@ the agreed epistemology — organizational behavior research, sensitivity medium
 - Read _meta/reflections/ entries since last mirror
 - Write synthesis to _meta/mirror/ only if 30+ days since last mirror
 
+### 7. Wiki maintenance [enabled — if wiki_maintenance is true]
+- Read wiki/SCHEMA.md for conventions and tag taxonomy
+- Read wiki/index.md for existing pages
+- Read last 30 lines of wiki/log.md for recent activity and reasoning
+- Scan papers/ and transcripts/ for files newer than last wiki log entry
+- For each new source: ingest following the knowledge-wiki skill protocol
+  (create/update entity and concept pages, cross-link, update index)
+- Quick lint: verify new pages have 2+ outbound wikilinks, index is current
+- Weekly full lint: check for orphans, broken links, stale pages, tag violations
+  (run if last full lint in log.md is >7 days ago)
+- Add wiki status to morning brief
+
 ## Trust level: Advisory (level 1)
 - Write all suggestions to _meta/suggestions/. Never act on vault files.
 - Never write to _meta/pending-approvals.md — that is for Consultative level.
@@ -241,6 +255,13 @@ Save to `_meta/briefs/YYYY-MM-DD.md` after each overnight run:
 [High-confidence items only]
 - **Cross-link**: "sensemaking" and "retrospective rationality" both cite Weick 1995 but aren't linked
 - **Gap**: You cite Feldman 2000 in 4 notes but Pentland (frequent co-author) isn't in your vault
+
+## Field Map (if wiki active)
+- Pages: N total (+N new, +N updated this run)
+- Contradictions: N pending review
+- Orphans: N (if any)
+- Sources not yet ingested: N
+- Last full lint: YYYY-MM-DD
 
 ## Active Plans
 - "Chapter 3 Methodology" — next step: write data collection section

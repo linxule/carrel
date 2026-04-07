@@ -138,6 +138,7 @@ class AutomationConfig(BaseModel):
     gap_analysis: bool = False
     draft_feedback: bool = False
     reflection_synthesis: bool = True
+    wiki_maintenance: bool = False
     trust_level: TrustLevel = TrustLevel.ADVISORY
     model: AutomationModel = AutomationModel.SONNET
     schedule: AutomationSchedule = AutomationSchedule.DAILY
@@ -151,6 +152,7 @@ class ResearcherProfile(BaseModel):
     sensitivity: Sensitivity = Sensitivity.MEDIUM
     cloud_consent: bool = False
     comfort_level: str = "beginner"
+    wiki_enabled: bool = False
     tools_configured: dict[str, bool] = Field(default_factory=dict)
     preferences: dict[str, Any] = Field(default_factory=dict)
     automation: AutomationConfig = Field(default_factory=AutomationConfig)

@@ -32,6 +32,7 @@ Have a short conversational interview. Cover:
 - Gap analysis (flag under-cited claims, missing literature)
 - Draft feedback (light structural notes on in-progress writing)
 - Reflection synthesis (weekly/monthly summary of what you've been reading and thinking)
+- Wiki maintenance (update knowledge wiki with new sources, run consistency checks) — only offer if `wiki_enabled: true` in environment.json; skip silently otherwise
 
 **Trust level?** Explain each briefly before asking:
 - *Advisory* — suggestions only, nothing written without your approval
@@ -68,6 +69,7 @@ Write the `automation` section to `.carrel/environment.json`:
   "gap_analysis": false,
   "draft_feedback": false,
   "reflection_synthesis": true,
+  "wiki_maintenance": false,
   "trust_level": "advisory",
   "model": "sonnet",
   "schedule": "daily",

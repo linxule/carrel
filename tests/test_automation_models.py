@@ -22,6 +22,7 @@ def test_automation_config_defaults() -> None:
     assert cfg.gap_analysis is False
     assert cfg.draft_feedback is False
     assert cfg.reflection_synthesis is True
+    assert cfg.wiki_maintenance is False
     assert cfg.trust_level == TrustLevel.ADVISORY
     assert cfg.model == AutomationModel.SONNET
     assert cfg.schedule == AutomationSchedule.DAILY
@@ -42,6 +43,8 @@ def test_researcher_profile_missing_automation_key() -> None:
 
     assert profile.automation.enabled is False
     assert profile.automation.trust_level == TrustLevel.ADVISORY
+    assert profile.automation.wiki_maintenance is False
+    assert profile.wiki_enabled is False
 
 
 def test_automation_config_roundtrip() -> None:
@@ -91,6 +94,8 @@ def test_researcher_profile_json_includes_automation() -> None:
 
     assert "automation" in data
     assert data["automation"]["enabled"] is False
+    assert data["automation"]["wiki_maintenance"] is False
     assert data["automation"]["trust_level"] == "advisory"
     assert data["automation"]["model"] == "sonnet"
     assert data["automation"]["schedule"] == "daily"
+    assert data["wiki_enabled"] is False

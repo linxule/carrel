@@ -105,6 +105,21 @@ function checkAutomation(projectRoot, env) {
               const suggCount = (suggestionsSection[1].match(/^- \*\*/gm) || []).length;
               if (suggCount > 0) parts.push(`${suggCount} suggestion${suggCount === 1 ? '' : 's'}`);
             }
+            // Field Map section (wiki status)
+            if (env && env.wiki_enabled) {
+              try {
+                const fieldMapSection = briefContent.match(/## Field Map\n([\s\S]*?)(?=\n##|$)/);
+                if (fieldMapSection) {
+                  const fmContent = fieldMapSection[1];
+                  const pagesMatch = fmContent.match(/Pages:\s*(\d+)/);
+                  const contradictionsMatch = fmContent.match(/Contradictions:\s*(\d+)/);
+                  if (pagesMatch) parts.push(`wiki: ${pagesMatch[1]} pages`);
+                  if (contradictionsMatch && contradictionsMatch[1] !== '0') {
+                    parts.push(`${contradictionsMatch[1]} contradiction${contradictionsMatch[1] === '1' ? '' : 's'}`);
+                  }
+                }
+              } catch {}
+            }
             if (parts.length > 0) summary = ` — ${parts.join(', ')}`;
           } catch {}
           console.log(`  Morning brief ready (${latestDate})${summary}`);

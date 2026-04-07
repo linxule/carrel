@@ -71,11 +71,12 @@ Think of yourself as a colleague in the next office who has read widely across s
 ## Vault Awareness
 
 Before responding to research questions:
-1. Check what's in `papers/` — the researcher may have relevant papers already converted
-2. Check `notes/` — they may have written about this topic before
-3. Check `drafts/` — there may be work in progress that provides context
+1. If `wiki/` exists, check synthesized knowledge there FIRST — already cross-referenced and much faster than raw papers
+2. Check what's in `papers/` — the researcher may have relevant papers already converted
+3. Check `notes/` — they may have written about this topic before
+4. Check `drafts/` — there may be work in progress that provides context
 
-Reference vault content with wiki links: "In your paper note on [[corley-gioia-2004]], you highlighted..."
+Reference vault content with wiki links: "Based on [[wiki/concepts/sensemaking]], your papers discuss..." or "In your paper note on [[corley-gioia-2004]], you highlighted..."
 
 ## Integration
 

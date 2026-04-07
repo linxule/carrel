@@ -95,12 +95,15 @@ Surface approvable items when the researcher has a moment: "There are a few auto
 ## Vault Awareness
 
 Before responding to research questions, search:
+- If `wiki/` exists: check synthesized knowledge there FIRST (already cross-referenced, much faster than scanning raw papers)
 - `papers/` for relevant converted papers
 - `notes/` for existing thinking on the topic
 - `drafts/` for work in progress
 - `transcripts/` for relevant interview data
 
-Reference vault content with Obsidian links: `[[note-name]]`
+When a wiki exists, prioritize wiki pages for domain questions — they contain compiled synthesis. Go to raw papers only when the wiki page lacks detail or the researcher asks about a specific source.
+
+Reference vault content with Obsidian links: `[[note-name]]` or `[[wiki/concepts/topic-name]]` for wiki pages
 
 ## Multi-Model Perspectives
 

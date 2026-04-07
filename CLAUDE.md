@@ -40,7 +40,7 @@ carrel/
 │   └── errors.py         # CarrelError with actionable hints
 ├── tests/                # pytest suite
 ├── templates/            # Vault templates (loaded by vault/templates.py)
-├── skills/               # Plugin skills (convert, transcribe, vault-ops, environment-setup, automation, etc.)
+├── skills/               # Plugin skills (convert, transcribe, vault-ops, environment-setup, automation, knowledge-wiki, etc.)
 ├── agents/               # Plugin agents (setup-interviewer, research-partner)
 ├── hooks/                # Plugin hooks (session start/end)
 ├── commands/             # Plugin slash commands (/carrel-*)
@@ -87,6 +87,17 @@ Carrel can run overnight via Desktop App local scheduled tasks. The `automation`
 - **Two-track sync**: `environment.json` + vault `CLAUDE.md` must both reflect automation preferences
 
 Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (configure), `/carrel-mirror` (research self-portrait)
+
+## Knowledge Wiki
+
+Optional synthesis layer based on [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Maintains interlinked entity and concept pages that compound knowledge across sources. Adapted from [Hermes Agent's implementation](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
+
+- **Trust-gated activation**: emerges through graduated trust, not setup-time config. Advisory=off, Consultative=propose with approval, Delegated=autonomous maintenance, Partnership=structural reorganization.
+- **Folder mapping**: carrel's `papers/` and `transcripts/` ARE the source layer. `wiki/` inside the vault is the synthesis layer. No separate `raw/` tree.
+- **Operations**: ingest (new source → update wiki pages), query (answer from compiled knowledge), lint (health check)
+- **Ephemeral agent adaptations**: log.md includes reasoning per decision (handoff between Claude instances), lazy orientation (full wiki context loaded only for writes), morning brief includes wiki status
+- **Automation**: `wiki_maintenance` capability in AutomationConfig. Runs after inbox processing so newly converted papers are available.
+- **Skill**: `skills/knowledge-wiki/` — SKILL.md + references/wiki-protocol.md + references/trust-activation.md
 
 ## Feedback Loops
 

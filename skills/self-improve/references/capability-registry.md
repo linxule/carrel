@@ -9,6 +9,7 @@ Tracks what Carrel has absorbed, where it came from, and when to check for updat
 | Obsidian formatting (callouts, embeds, properties) | kepano/obsidian-skills/obsidian-markdown @ v1.0.1 | `vault-ops/references/obsidian-formatting.md` | — | 2026-04-03 | 2026-07-01 |
 | Research databases (Obsidian Bases) | kepano/obsidian-skills/obsidian-bases @ v1.0.1 | `vault-ops/references/research-databases.md` | `paper-tracker.base`, `interview-tracker.base`, `reading-progress.base`, `writing-tracker.base` | 2026-04-03 | 2026-07-01 |
 | Concept mapping (JSON Canvas) | kepano/obsidian-skills/json-canvas @ v1.0.1 | `research-partner/references/concept-mapping.md` | — | 2026-04-03 | 2026-07-01 |
+| Knowledge wiki (compiled synthesis) | karpathy/LLM-wiki gist + NousResearch/hermes-agent/skills/research/llm-wiki @ v2.0.0 | `knowledge-wiki/references/wiki-protocol.md` | — | 2026-04-07 | 2026-07-07 |
 
 ## Evaluated and Skipped
 
@@ -36,4 +37,6 @@ Track custom creations that recur across researchers. Add an entry after the fir
 Sources to check during quarterly review:
 
 - [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) -- Obsidian formatting, bases, canvas
+- [karpathy/LLM-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — Knowledge wiki pattern (original gist)
+- [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) — Hermes Agent skill implementations (llm-wiki, research tools)
 - Obsidian changelog — new file types, syntax changes, plugin API updates
