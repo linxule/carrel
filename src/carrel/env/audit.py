@@ -7,6 +7,7 @@ import platform
 import shutil
 from pathlib import Path
 
+from carrel.env.platform import detect_platform
 from carrel.models import (
     ApiKeyStatus,
     AuditResult,
@@ -101,6 +102,7 @@ async def audit(project_path: Path | None = None) -> AuditResult:
 
     resolved_project = project_path.expanduser().resolve() if project_path else None
     system_name = platform.system()
+    detected_platform = detect_platform()
     os_name = {"Darwin": "macOS", "Windows": "Windows", "Linux": "Linux"}.get(
         system_name, system_name
     )
@@ -169,6 +171,7 @@ async def audit(project_path: Path | None = None) -> AuditResult:
     )
     return AuditResult(
         os=os_name,
+        platform=detected_platform,
         arch=arch,
         os_version=os_version,
         ram_gb=ram_gb,

@@ -6,6 +6,7 @@ import frontmatter
 from typer.testing import CliRunner
 
 from carrel.cli.main import app
+from carrel.env.platform import Platform
 from carrel.models import ApiKeyStatus, AuditResult, BinaryInfo, HardwareCapability, ToolAvailability
 
 runner = CliRunner()
@@ -19,6 +20,7 @@ def _init_vault(path: Path) -> None:
 def _audit_result(*, gemini_key: bool = False) -> AuditResult:
     return AuditResult(
         os="macOS",
+        platform=Platform.MACOS,
         arch="arm64",
         hardware_capability=HardwareCapability.HIGH,
         tools=ToolAvailability(

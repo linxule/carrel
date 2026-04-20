@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from carrel.env.platform import Platform
+
 
 class Sensitivity(str, Enum):
     HIGH = "high"
@@ -100,6 +102,7 @@ class ScaffoldResult(BaseModel):
 
 class AuditResult(BaseModel):
     os: str
+    platform: Platform
     arch: str
     os_version: str | None = None
     ram_gb: int | None = None

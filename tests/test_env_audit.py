@@ -3,6 +3,7 @@ import json
 import pytest
 
 from carrel.env import audit as audit_module
+from carrel.env.platform import Platform
 
 
 @pytest.mark.asyncio
@@ -46,6 +47,7 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers(tmp_path, monkeypatc
     result = await audit_module.audit(tmp_path)
 
     assert result.os == "macOS"
+    assert result.platform is Platform.MACOS
     assert result.arch == "arm64"
     assert result.ram_gb == 16
     assert result.hardware_capability.value == "high"
