@@ -8,6 +8,8 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 # Core library
 uv run pytest                                    # ~168 tests
 uv run carrel env doctor                         # Hardware + tools audit
+uv run carrel env validate --vault .            # Validate environment.json + drift markers
+uv run carrel env fix --safe --vault .          # Apply safe environment.json repairs
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
 uv run carrel transcript create rec.m4a          # Transcribe audio (coli default)
@@ -152,7 +154,8 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Sensitivity gate (v0.7.0): the full 16-row (sensitivity × cloud_consent × requested_tool) matrix is implemented in `src/carrel/policy/sensitivity.py:select_tool`. HIGH blocks cloud regardless of consent (gws included — Google API calls send data). MEDIUM requires explicit `--tool <cloud>` to route to cloud. LOW defaults local-first; `cloud_consent=True` auto-routes when local unavailable. `consent.py:resolve_cloud_consent` is now a thin backward-compat wrapper around `policy.sensitivity`. Use `--explain` on `carrel paper convert` / `transcript create` / `google export` to see the routing decision + rationale without executing.
 - Vault writes go through `safe_path.safe_vault_join` (v0.5.4) — resolves the path and rejects anything escaping the vault root. Used by all filers + scaffold + google export.
 - Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it.
-- Profile sync (v0.7.0): `_meta/my-environment.md` and `_meta/automation-prompt.md` are now deterministic (regenerate via `carrel vault dashboard|automation-prompt --force`). Vault `CLAUDE.md` uses HTML-comment markers (`<!-- carrel:field -->value<!-- /carrel:field -->`); `carrel vault check-sync` surfaces drift. Hook runs check-sync once per 24h.
+- Environment drift (v0.7.0, spec 006): `carrel env validate --vault .` is the full validator and `carrel env fix --safe --vault .` applies deterministic repairs to `.carrel/environment.json` only. Hook runs `env validate` once per 24h and surfaces `/carrel-fix` when drift needs review.
+- Profile sync (v0.7.0): `_meta/my-environment.md` and `_meta/automation-prompt.md` are now deterministic (regenerate via `carrel vault dashboard|automation-prompt --force`). Vault `CLAUDE.md` uses HTML-comment markers (`<!-- carrel:field -->value<!-- /carrel:field -->`); `carrel vault check-sync` still exists for marker-only inspection.
 
 ## Capability Absorption
 
@@ -182,7 +185,7 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/004-review-architect.md` | v0.4 feasibility review (architect) |
 | `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
 | `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
-| `planning/specs/006-environment-validation-and-self-healing.md` | v0.7 spec: schema validation, lint, doctor agent; consumes spec 007's PlatformToolMatrix (pre-implementation, sequenced after 007) |
+| `planning/specs/006-environment-validation-and-self-healing.md` | v0.7.0 spec: schema validation, safe repair, `/carrel-fix`, hook surfacing, PlatformToolMatrix-backed re-sync — **fully implemented in v0.7.0** |
 | `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree. **Fully implemented in v0.7.0** after the 2026-04-20 blocker resolution. |
 | `planning/research/007-windows-tools-research.md` | Research that unblocked spec 007 (liteparse + gws Windows install paths; Web Clipper rejection; native Google Docs Markdown export tip) |
 | `planning/reviews/008-deployment-readiness-triangulated.md` | Synthesis of Kimi + Codex + internal code-reviewer findings on the v0.5.0→v0.5.2 sprint; tiered fix plan — **fully implemented in v0.5.3** (B1, B2, A1-A7, S1-S3, H1-H3) |

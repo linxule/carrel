@@ -29,9 +29,9 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 
 ## What's Included
 
-- **13 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration)
+- **14 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery)
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **10 skills** (environment setup, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, self-improve)
+- **11 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, self-improve)
 - **2 hooks** (session start environment check, session end reflection prompt)
 - **1 Python core library** (`carrel` CLI — convert, transcribe, vault, env commands)
 
@@ -43,6 +43,7 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 | `/carrel-batch` | Batch convert or transcribe a folder of files and file them to your vault |
 | `/carrel-capture` | Save web content to your vault |
 | `/carrel-cheatsheet` | Regenerate your reference card |
+| `/carrel-fix` | Diagnose environment drift and guide recovery |
 | `/carrel-setup` | Full onboarding: interview, audit, scaffold vault |
 | `/carrel-status` | Check what's installed and working |
 | `/carrel-convert` | Convert PDF/Word/slides to markdown in your vault |
