@@ -15,6 +15,7 @@ def select_convert_tool(
     cloud_consent: bool = False,
     explicit_tool: ConvertTool | None = None,
 ) -> ConvertTool:
+    # Used by consent gate; see planning/specs/010-policy-module.md.
     _ = sensitivity, hardware
     if explicit_tool is not None:
         if explicit_tool == ConvertTool.DEFUDDLE:

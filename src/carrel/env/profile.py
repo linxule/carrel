@@ -35,12 +35,3 @@ def write_profile(vault: Path, profile: ResearcherProfile) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(profile.model_dump_json(indent=2), encoding="utf-8")
     return path
-
-
-def update_profile(vault: Path, **updates) -> ResearcherProfile:
-    """Merge updates into existing profile."""
-
-    current = read_profile(vault) or ResearcherProfile()
-    merged = current.model_copy(update=updates)
-    write_profile(vault, merged)
-    return merged

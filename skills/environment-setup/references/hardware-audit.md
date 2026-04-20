@@ -53,34 +53,55 @@ cat .mcp.json 2>/dev/null
 
 ## Output Format
 
-Structure results as JSON for environment.json:
+`carrel env doctor --format json` serializes the `AuditResult` Pydantic model, not `environment.json`.
 
 ```json
 {
-  "system": {
-    "os": "macOS",
-    "os_version": "15.4",
-    "arch": "arm64",
-    "ram_gb": 36,
-    "disk_free_gb": 120,
-    "gpu": "Apple M3 Max"
-  },
+  "os": "macOS",
+  "arch": "arm64",
+  "os_version": "15.4",
+  "ram_gb": 36,
+  "disk_free": "120Gi",
+  "hardware_capability": "high",
   "tools": {
-    "node": { "installed": true, "version": "22.1.0" },
-    "python": { "installed": true, "version": "3.12.4" },
-    "pandoc": { "installed": true, "version": "3.1.12" },
-    "ffmpeg": { "installed": false },
-    "obsidian": { "installed": true },
-    "zotero": { "installed": false },
-    "brew": { "installed": true }
-  },
-  "existing_mcps": {
-    "claude_desktop": [],
-    "claude_code_user": [],
-    "project": []
+    "binaries": {
+      "node": {
+        "installed": true,
+        "version": "v22.1.0",
+        "path": "/opt/homebrew/bin/node"
+      },
+      "ffmpeg": {
+        "installed": false,
+        "version": null,
+        "path": null
+      },
+      "obsidian": {
+        "installed": true,
+        "version": null,
+        "path": "/Applications/Obsidian.app"
+      }
+    },
+    "api_keys": {
+      "mineru": {
+        "configured": false,
+        "env_var": "MINERU_API_KEY"
+      },
+      "groq": {
+        "configured": true,
+        "env_var": "GROQ_API_KEY"
+      }
+    },
+    "mcp_servers": ["zotero", "vox"]
   }
 }
 ```
+
+Notes:
+- `hardware_capability` is one of `high`, `medium`, or `low`.
+- `tools.binaries` is a dictionary keyed by tool name (`git`, `gh`, `node`, `bun`, `python`, `uv`, `brew`, `lit`, `coli`, `defuddle`, `gws`, `markitdown`, `ffmpeg`, `pandoc`, `obsidian`, `zotero` when detected).
+- Each binary entry uses the `BinaryInfo` shape: `installed`, optional `version`, optional `path`.
+- `tools.api_keys` is a dictionary keyed by supported cloud tool name and uses the `ApiKeyStatus` shape: `configured`, `env_var`.
+- `tools.mcp_servers` is the sorted list of project MCP server names from `.mcp.json`.
 
 ## How to Present
 

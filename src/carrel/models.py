@@ -68,16 +68,6 @@ class ToolAvailability(BaseModel):
     api_keys: dict[str, ApiKeyStatus]
     mcp_servers: list[str]
 
-
-class ConvertOptions(BaseModel):
-    file: Path
-    vault: Path
-    tool: ConvertTool | None = None
-    sensitivity: Sensitivity | None = None
-    force: bool = False
-    dry_run: bool = False
-
-
 class ConvertResult(BaseModel):
     path: Path | None
     tool: ConvertTool
@@ -85,19 +75,6 @@ class ConvertResult(BaseModel):
     duration_seconds: float
     skipped: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class TranscribeOptions(BaseModel):
-    source: str
-    vault: Path
-    tool: TranscribeTool | None = None
-    sensitivity: Sensitivity | None = None
-    kind: str = "recording"
-    speakers: int | None = None
-    force: bool = False
-    dry_run: bool = False
-    timeout: int | None = None
-
 
 class TranscribeResult(BaseModel):
     path: Path | None

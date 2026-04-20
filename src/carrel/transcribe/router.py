@@ -23,6 +23,7 @@ def select_transcribe_tool(
     cloud_consent: bool = False,
     explicit_tool: TranscribeTool | None = None,
 ) -> TranscribeTool:
+    # Used by consent gate; see planning/specs/010-policy-module.md.
     _ = sensitivity, hardware
     if explicit_tool is not None:
         is_yt = _is_youtube_url(source)
