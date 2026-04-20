@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 
 from carrel import __version__
@@ -28,12 +29,13 @@ def _read_setup_state(vault: Path) -> SetupState:
             "No setup-state.json found",
             hint=f"Expected {path}. Run `carrel vault init` or `/carrel-setup` first.",
         )
-    state = SetupState.model_validate_json(path.read_text(encoding="utf-8"))
-    if state.last_completed_phase < 4:
+    try:
+        state = SetupState.model_validate_json(path.read_text(encoding="utf-8"))
+    except ValidationError as error:
         raise CarrelError(
             f"Malformed setup state at {path}",
-            hint="`last_completed_phase` must be between 4 and 9. Run `carrel setup-state reset --confirm` to recover.",
-        )
+            hint="Run `carrel setup-state reset --confirm` to recover from corrupted setup progress.",
+        ) from error
     return state
 
 

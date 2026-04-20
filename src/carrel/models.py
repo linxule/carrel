@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Sensitivity(str, Enum):
@@ -155,9 +155,18 @@ class SetupState(BaseModel):
     to surface a resume prompt for paused setups.
     """
 
-    last_completed_phase: int = Field(ge=0, le=9)
-    version: str
-    completed_at: str | None = None  # ISO date YYYY-MM-DD when setup completes
+    last_completed_phase: int = Field(ge=4, le=9)
+    version: str = Field(pattern=r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
+    completed_at: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+    @model_validator(mode="after")
+    def validate_completion_state(self) -> SetupState:
+        is_complete = self.completed_at is not None
+        if (self.last_completed_phase == 9) != is_complete:
+            raise ValueError(
+                "last_completed_phase must be 9 if and only if completed_at is set"
+            )
+        return self
 
 
 class ResearcherProfile(BaseModel):
