@@ -43,13 +43,17 @@ The core library NEVER asks questions or makes judgment calls. Skills handle tha
 ```
 carrel/
 ├── src/carrel/           # Python core library
-│   ├── cli/              # typer CLI (paper, transcript, vault, env, capture, google)
+│   ├── cli/              # typer CLI (paper, transcript, vault, env, capture, google, setup-state, trust)
 │   ├── convert/          # PDF/doc conversion (router, adapters, filer, pipeline)
 │   ├── transcribe/       # Audio/video transcription (router, adapters, filer)
 │   ├── google/           # Google Workspace export (gws CLI integration)
-│   ├── vault/            # Vault scaffold, organize, templates
-│   ├── env/              # Audit, profile, install commands
-│   ├── models.py         # Pydantic models (options, results, enums, AutomationConfig, ResearcherProfile)
+│   ├── vault/            # Vault scaffold, organize, templates, markers, dashboard, automation_prompt
+│   ├── env/              # Audit, profile, install, validation, healing, platform
+│   ├── policy/           # Sensitivity routing (16-row matrix) + trust enforcement
+│   ├── models.py         # Pydantic models (options, results, enums, AutomationConfig, ResearcherProfile, SetupState)
+│   ├── safe_path.py      # Vault containment helper
+│   ├── youtube_url.py    # Unified YouTube URL parser
+│   ├── source_hash.py    # Unified source-hash helper for idempotency
 │   └── errors.py         # CarrelError with actionable hints
 ├── tests/                # pytest suite
 ├── templates/            # Vault templates (loaded by vault/templates.py)
@@ -60,8 +64,8 @@ carrel/
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
 ├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
 ├── install.sh            # macOS/Linux one-line installer (curl | bash)
-├── install.ps1           # Windows installer (see Gotchas re: partial Windows support)
-└── pyproject.toml        # pydantic + typer + rich + httpx + markitdown
+├── install.ps1           # Windows installer (first-class as of v0.7.0)
+└── pyproject.toml        # pydantic + typer + rich + httpx + markitdown + defuddle + youtube-transcript-api
 ```
 
 ## Tool Routing
@@ -169,35 +173,8 @@ Carrel grows by absorbing capabilities from the ecosystem (skills repos, MCP ser
 
 Carrel is the on-ramp to ItDepends (abductive research agent). Same Python + pydantic + typer + rich stack. Carrel modules may become ItDepends components (profile → Mneme, vault papers → Scholia).
 
-## Spec & Review History
+## Spec & Review Process
 
-Multi-model review process: each spec gets adversarial reviews before implementation. The default reviewer set is **Codex (deep adversarial pass) + Kimi (independent second-pair-of-eyes) + a feasibility/architect pass**. Some specs go through multiple rounds. All artifacts in `planning/`.
+Each spec gets adversarial reviews before implementation. Default reviewer set: **Codex (deep adversarial pass) + Kimi (independent second-pair-of-eyes) + a feasibility/architect pass**. Some specs go through multiple rounds. Spec "Open Questions" must be locked (decision + rationale) before delegated implementation.
 
-| File | Purpose |
-|------|---------|
-| `planning/specs/001-core-library-extraction-v3.md` | Core library spec (final) |
-| `planning/specs/002-tool-expansion-and-cleanup.md` | Tool expansion: defuddle, YouTube captions, gws |
-| `planning/reviews/003-implementation-review.md` | Post-implementation review |
-| `planning/reports/002-report-codex.md` | Tool expansion report |
-| `planning/reports/003-report-codex.md` | Core library fix report |
-| `planning/specs/004-scheduled-automation-and-shared-agency.md` | v0.4 spec: scheduled automation + graduated trust |
-| `planning/reviews/004-review-codex.md` | v0.4 adversarial review (Codex) |
-| `planning/reviews/004-review-architect.md` | v0.4 feasibility review (architect) |
-| `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
-| `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
-| `planning/specs/006-environment-validation-and-self-healing.md` | v0.7.0 spec: schema validation, safe repair, `/carrel-fix`, hook surfacing, PlatformToolMatrix-backed re-sync — **fully implemented in v0.7.0** |
-| `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree. **Fully implemented in v0.7.0** after the 2026-04-20 blocker resolution. |
-| `planning/research/007-windows-tools-research.md` | Research that unblocked spec 007 (liteparse + gws Windows install paths; Web Clipper rejection; native Google Docs Markdown export tip) |
-| `planning/reviews/008-deployment-readiness-triangulated.md` | Synthesis of Kimi + Codex + internal code-reviewer findings on the v0.5.0→v0.5.2 sprint; tiered fix plan — **fully implemented in v0.5.3** (B1, B2, A1-A7, S1-S3, H1-H3) |
-| `planning/reviews/008-review-kimi.md` | Kimi rounds 1+2: schema drift findings + post-fix re-review |
-| `planning/reviews/008-review-codex.md` | Codex fresh adversarial pass: 2 BLOCKERS + #1 recommendation (deterministic state-transition CLI) |
-| `planning/reviews/008-review-internal.md` | Internal code-reviewer: 6 HIGH-confidence Python/JS issues |
-| `planning/reviews/009-holistic-audit-triangulated.md` | Whole-repo audit synthesis: code quality + docs + plugin surface + Codex adversarial. Tier 0-3 **fully implemented in v0.5.4**. Headline insight: "markdown control plane" risk — A1/A2/A3 deferred to specs (trust enforcement, policy module, profile sync) |
-| `planning/reviews/009-audit-code-quality.md` | Internal code-reviewer whole-repo pass: 2 critical, 8 HIGH, 10 MEDIUM (error contracts, dead code, idempotency) |
-| `planning/reviews/009-audit-documentation.md` | Documentation coherence pass: 5 HIGH, 6 MEDIUM (skill drift, fictional Mustache template, hardware-audit schema mismatch) |
-| `planning/reviews/009-audit-plugin-surface.md` | Plugin wiring integrity pass: 3 runtime bugs (session-reflect dead, /carrel-research nonexistent, cloud_consent display) + drift |
-| `planning/reviews/009-audit-adversarial.md` | Codex 12-month-on-call lens: trust enforcement gap, sensitivity routing gap, narrative shadow state, 3 predicted bug classes |
-| `planning/specs/008-trust-enforcement.md` | v0.6.0 spec: `carrel trust check` CLI gates writes by trust level — **fully implemented in v0.6.0** (closes 009 A1 / Codex §4) |
-| `planning/specs/010-policy-module.md` | v0.7.0 spec: `src/carrel/policy/sensitivity.py` owns sensitivity routing with 16-row matrix; `--explain` rationale flag — **fully implemented in v0.7.0** (closes 009 A2 / Codex §2) |
-| `planning/specs/011-profile-sync-architecture.md` | v0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` via HTML-comment markers — **fully implemented in v0.7.0** (closes 009 A3 / Codex §3,§6) |
-| `planning/reviews/012-pre-pilot-windows-sweep.md` | Pre-pilot adversarial sweep on Windows-specific code paths (Codex + manual fallback). Four HIGH/MEDIUM fixes shipped before push to origin: Windows Obsidian/Zotero detection paths, cross-platform `disk_free` via `shutil.disk_usage`, `install.ps1` `$LASTEXITCODE` checks, CRLF-tolerant frontmatter regex in `check-environment.js`. |
+Full work log — every spec, review, report, research artifact with one-line summary — lives in [`planning/README.md`](planning/README.md). Don't duplicate it here.
