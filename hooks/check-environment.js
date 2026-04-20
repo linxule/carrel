@@ -100,31 +100,26 @@ function shouldRunDaily(lastCheckedAt, now) {
   return now.getTime() - lastChecked.getTime() >= 24 * 60 * 60 * 1000;
 }
 
-function checkProfileSync(projectRoot) {
-  const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
-  if (!fs.existsSync(claudeMdPath)) {
-    return;
-  }
-
+function checkEnvironmentDrift(projectRoot) {
   const statePath = path.join(projectRoot, '.carrel', 'plugin-state.json');
   const pluginState = readJsonFile(statePath) || {};
   const now = new Date();
-  if (!shouldRunDaily(pluginState.last_checked_at, now)) {
+  if (!shouldRunDaily(pluginState.last_validated_at, now)) {
     return;
   }
 
-  const stampCheckedAt = () => {
+  const stampValidatedAt = () => {
     try {
       const latestState = readJsonFile(statePath) || {};
-      latestState.last_checked_at = now.toISOString();
+      latestState.last_validated_at = now.toISOString();
       safeWriteJson(statePath, latestState);
     } catch (error) {
-      logHookError('plugin-state last_checked_at write', error);
+      logHookError('plugin-state last_validated_at write', error);
     }
   };
 
   try {
-    const child = spawn('carrel', ['vault', 'check-sync', '--vault', projectRoot], {
+    const child = spawn('carrel', ['env', 'validate', '--vault', projectRoot, '--format', 'json'], {
       cwd: projectRoot,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -134,24 +129,32 @@ function checkProfileSync(projectRoot) {
       stderr += chunk.toString();
     });
 
+    const timeout = setTimeout(() => {
+      child.kill();
+    }, 1000);
+
     child.on('error', error => {
-      logHookError('check-sync spawn', error);
-      stampCheckedAt();
+      clearTimeout(timeout);
+      logHookError('env validate spawn', error);
+      stampValidatedAt();
     });
 
     child.on('close', code => {
+      clearTimeout(timeout);
       const errorText = stderr.trim();
-      if (errorText) {
-        console.error('carrel-hook:', errorText);
+      if (code === 2) {
+        console.log('⚠ Environment drift detected — run /carrel-fix for details.');
       } else if (code === 1) {
-        console.log('⚠ Profile drift detected in CLAUDE.md — run `carrel vault check-sync` for details.');
+        console.log('⚠ environment.json is invalid — run /carrel-setup to regenerate or /carrel-fix for guided recovery.');
+      } else if (errorText) {
+        console.error('carrel-hook:', errorText);
       } else if (code !== 0) {
-        console.error('carrel-hook:', `check-sync exited with code ${code}`);
+        console.error('carrel-hook:', `env validate exited with code ${code}`);
       }
-      stampCheckedAt();
+      stampValidatedAt();
     });
   } catch (error) {
-    logHookError('check-sync start', error);
+    logHookError('env validate start', error);
   }
 }
 
@@ -429,7 +432,7 @@ function main() {
       console.log('Note: No CLAUDE.md found in vault. Consider running /carrel-setup to generate one.');
     }
 
-    checkProfileSync(projectRoot);
+    checkEnvironmentDrift(projectRoot);
 
     // Check for plugin version changes
     const versionResult = checkVersion(projectRoot);
