@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 62 tests
+uv run pytest                                    # 105 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -142,6 +142,10 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
 - Windows support is partial. v0.5.3 added stopgap cross-platform guidance for `/carrel-setup` (OS-branched Obsidian install in Phase 6; `install_command_for(tool, platform)` helper in `env/install.py`; platform note at top of `decision-tree.md`). README now has a Platform Support matrix. But `env/audit.py` still uses macOS `mdfind` and most install constants remain brew-only — full fix is `planning/specs/007-cross-platform-support.md` (pre-implementation; locked-blocked on liteparse Windows + gws Windows research).
 - Setup-state changes go through `carrel setup-state` (added v0.5.3) — never edit `.carrel/setup-state.json` by hand. The CLI is the validation boundary.
+- Sensitivity gate (v0.5.4): `Sensitivity.HIGH` blocks ALL cloud tools (mineru, groq, gemini, gws) regardless of `cloud_consent`. Implemented in `consent.py:resolve_cloud_consent`. Stopgap until policy module (spec 010) lands. `gws` is treated as cloud since it's a Google API call.
+- Vault writes go through `safe_path.safe_vault_join` (v0.5.4) — resolves the path and rejects anything escaping the vault root. Used by all filers + scaffold + google export.
+- Trust enforcement is currently markdown-only (Advisory/Consultative/Delegated/Partnership are documentation contracts read by Claude, not code-gated). Spec 008-trust-enforcement.md tracks the future code boundary. Until that lands, treat trust level as informational, not enforcement.
+- Profile data is asked to live in 5 surfaces (`environment.json`, vault `CLAUDE.md`, `_meta/my-environment.md`, `_meta/cheat_sheet.md`, sometimes `_meta/automation-prompt.md`). Only `_meta/cheat_sheet.md` has a deterministic generator. Spec 011-profile-sync-architecture.md tracks the deterministic-sync future.
 
 ## Capability Absorption
 
@@ -177,3 +181,8 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/008-review-kimi.md` | Kimi rounds 1+2: schema drift findings + post-fix re-review |
 | `planning/reviews/008-review-codex.md` | Codex fresh adversarial pass: 2 BLOCKERS + #1 recommendation (deterministic state-transition CLI) |
 | `planning/reviews/008-review-internal.md` | Internal code-reviewer: 6 HIGH-confidence Python/JS issues |
+| `planning/reviews/009-holistic-audit-triangulated.md` | Whole-repo audit synthesis: code quality + docs + plugin surface + Codex adversarial. Tier 0-3 **fully implemented in v0.5.4**. Headline insight: "markdown control plane" risk — A1/A2/A3 deferred to specs (trust enforcement, policy module, profile sync) |
+| `planning/reviews/009-audit-code-quality.md` | Internal code-reviewer whole-repo pass: 2 critical, 8 HIGH, 10 MEDIUM (error contracts, dead code, idempotency) |
+| `planning/reviews/009-audit-documentation.md` | Documentation coherence pass: 5 HIGH, 6 MEDIUM (skill drift, fictional Mustache template, hardware-audit schema mismatch) |
+| `planning/reviews/009-audit-plugin-surface.md` | Plugin wiring integrity pass: 3 runtime bugs (session-reflect dead, /carrel-research nonexistent, cloud_consent display) + drift |
+| `planning/reviews/009-audit-adversarial.md` | Codex 12-month-on-call lens: trust enforcement gap, sensitivity routing gap, narrative shadow state, 3 predicted bug classes |

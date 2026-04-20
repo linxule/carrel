@@ -41,6 +41,13 @@
       "file": "0.5.2-to-0.5.3.md",
       "breaking": false,
       "summary": "carrel setup-state CLI (deterministic phase transitions); tightened SetupState model with mutual-implication invariant; hook input validation; install.ps1 verification step + bun URL fix; cross-platform /carrel-setup guidance; cheatsheet beefed up; spec 006/007 corrections"
+    },
+    {
+      "from": "0.5.3",
+      "to": "0.5.4",
+      "file": "0.5.3-to-0.5.4.md",
+      "breaking": false,
+      "summary": "009 holistic audit fixes: pilot blockers (render_cheat_sheet, session-reflect, read_profile error wrap); sensitivity HIGH blocks cloud; path containment + slug validation; ISO date validators on AutomationConfig + wiki_proposal_deferred_until; parametric ghosts deleted; cheatsheet/hardware-audit doc rewrites; cross-platform skill propagation; behavioral hygiene (transcript idempotency, --speakers threading, JSON guards, typed exceptions); refactor (single YouTube parser, single source-hash helper, twin templates removed); 105 tests pass"
     }
   ]
 }
