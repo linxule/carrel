@@ -17,6 +17,15 @@ function Write-Step($num, $total, $msg) { Write-Host "`n[$num/$total] $msg" -For
 function Write-Ok($msg) { Write-Host "  ✓ $msg" -ForegroundColor Green }
 function Write-Info($msg) { Write-Host "  → $msg" -ForegroundColor Yellow }
 function Write-Fail($msg) { Write-Host "  ✗ $msg" -ForegroundColor Red }
+function Refresh-UserPath {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+function Assert-Tool($tool, $installName) {
+    if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+        Write-Fail "$installName did not appear on PATH. Open a new PowerShell window and re-run install.ps1."
+        exit 1
+    }
+}
 
 $Total = 8
 
@@ -43,7 +52,8 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 } else {
     Write-Info "Installing git..."
     winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    Refresh-UserPath
+    Assert-Tool git "git"
     Write-Ok "git installed"
 }
 
@@ -62,7 +72,8 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 } else {
     Write-Info "Installing Node.js..."
     winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    Refresh-UserPath
+    Assert-Tool node "Node.js"
     Write-Ok "Installed"
 }
 
@@ -79,7 +90,8 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
         Write-Info "winget install failed — trying official installer..."
         irm https://bun.sh/install.ps1 | iex
     }
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    Refresh-UserPath
+    Assert-Tool bun "bun"
     Write-Ok "Installed"
 }
 
@@ -91,6 +103,8 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 } else {
     Write-Info "Installing uv..."
     irm https://astral.sh/uv/install.ps1 | iex
+    Refresh-UserPath
+    Assert-Tool uv "uv"
     Write-Ok "Installed"
 }
 
@@ -102,7 +116,8 @@ if (Get-Command gh -ErrorAction SilentlyContinue) {
 } else {
     Write-Info "Installing GitHub CLI..."
     winget install --id GitHub.cli -e --accept-package-agreements --accept-source-agreements
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    Refresh-UserPath
+    Assert-Tool gh "GitHub CLI"
     Write-Ok "Installed"
 }
 
@@ -132,6 +147,8 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
         Write-Info "winget install failed — trying npm..."
         npm install -g @anthropic-ai/claude-code
     }
+    Refresh-UserPath
+    Assert-Tool claude "Claude Code"
     Write-Ok "Installed"
 }
 

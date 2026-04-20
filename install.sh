@@ -51,16 +51,19 @@ install_package() {
   local name="$1"
   local brew_name="${2:-$1}"
   local apt_name="${3:-$1}"
+  local dnf_name="${4:-$apt_name}"
 
   case "$OS" in
     Darwin)
       brew install "$brew_name"
       ;;
     Linux)
-      if command -v apt-get &>/dev/null; then
+      if command -v brew &>/dev/null; then
+        brew install "$brew_name"
+      elif command -v apt-get &>/dev/null; then
         sudo apt-get update -qq && sudo apt-get install -y -qq "$apt_name"
       elif command -v dnf &>/dev/null; then
-        sudo dnf install -y -q "$apt_name"
+        sudo dnf install -y -q "$dnf_name"
       elif command -v pacman &>/dev/null; then
         sudo pacman -S --noconfirm "$apt_name"
       else
@@ -148,10 +151,14 @@ else
       brew install node
       ;;
     Linux)
-      # Use NodeSource for a recent version
-      if command -v apt-get &>/dev/null; then
+      if command -v brew &>/dev/null; then
+        brew install node
+      elif command -v apt-get &>/dev/null; then
+        # Use NodeSource for a recent version
         curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
         sudo apt-get install -y -qq nodejs
+      elif command -v dnf &>/dev/null; then
+        install_package node nodejs nodejs nodejs
       else
         install_package nodejs nodejs nodejs
       fi
@@ -167,7 +174,11 @@ if command -v bun &>/dev/null; then
   ok "Already installed ($(bun --version))"
 else
   info "Installing bun..."
-  curl -fsSL https://bun.sh/install | bash
+  if [[ "$OS" == "Darwin" ]] || command -v brew &>/dev/null; then
+    brew install bun
+  else
+    curl -fsSL https://bun.sh/install | bash
+  fi
   # Add to current PATH
   export BUN_INSTALL="$HOME/.bun"
   export PATH="$BUN_INSTALL/bin:$PATH"
@@ -181,7 +192,11 @@ if command -v uv &>/dev/null; then
   ok "Already installed ($(uv --version 2>/dev/null | head -1))"
 else
   info "Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  if [[ "$OS" == "Darwin" ]] || command -v brew &>/dev/null; then
+    brew install uv
+  else
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
   # Add to current session
   export PATH="$HOME/.local/bin:$PATH"
   ok "Installed"
@@ -199,7 +214,9 @@ else
       brew install gh
       ;;
     Linux)
-      if command -v apt-get &>/dev/null; then
+      if command -v brew &>/dev/null; then
+        brew install gh
+      elif command -v apt-get &>/dev/null; then
         # Official GitHub CLI apt repo
         curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null

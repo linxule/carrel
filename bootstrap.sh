@@ -3,7 +3,7 @@ set -e
 
 # Carrel Bootstrap — legacy macOS-only setup
 #
-# DEPRECATED. Use the cross-platform installers instead:
+# DEPRECATED. Use install.sh on macOS/Linux or install.ps1 on Windows:
 #   macOS / Linux:  curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
 #   Windows:        irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
 #
@@ -36,7 +36,7 @@ ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
 info() { echo -e "  ${YELLOW}→${NC} $1"; }
 
 main() {
-  info "[DEPRECATED] bootstrap.sh is legacy. Use install.sh instead. See README.md."
+  info "[DEPRECATED] bootstrap.sh is legacy. Use install.sh on macOS/Linux or install.ps1 on Windows."
   sleep 3
 
   echo ""
