@@ -1,23 +1,12 @@
 from __future__ import annotations
-
-import hashlib
 from datetime import date
 from pathlib import Path
-from urllib.parse import urlparse
 
 from carrel.convert.frontmatter import load_frontmatter, render_frontmatter
 from carrel.models import FileResult, TranscribeTool
 from carrel.safe_path import safe_vault_join
+from carrel.source_hash import hash_source
 from carrel.vault.organize import transcript_filename
-
-
-def _source_hash(source: str) -> str:
-    parsed = urlparse(source)
-    if parsed.scheme and parsed.netloc:
-        payload = source.encode("utf-8")
-    else:
-        payload = Path(source).read_bytes()
-    return hashlib.sha256(payload).hexdigest()
 
 
 def file_transcript(
@@ -29,7 +18,7 @@ def file_transcript(
     kind: str = "recording",
     force: bool = False,
 ) -> FileResult:
-    source_hash = _source_hash(source)
+    source_hash = hash_source(source)
     output_path = safe_vault_join(
         vault,
         "transcripts",

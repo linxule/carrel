@@ -2,31 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from functools import partial
-from urllib.parse import parse_qs, urlparse
 
 from carrel.errors import ToolNotInstalled, TranscriptionError
 from carrel.env.install import install_command_for
-
-
-def extract_youtube_video_id(url: str) -> str:
-    parsed = urlparse(url)
-    host = parsed.netloc.lower()
-    if "youtu.be" in host:
-        parts = [part for part in parsed.path.split("/") if part]
-        if parts:
-            return parts[0]
-    if "youtube.com" in host:
-        query = parse_qs(parsed.query)
-        if query.get("v"):
-            return query["v"][0]
-        parts = [part for part in parsed.path.split("/") if part]
-        for index, part in enumerate(parts):
-            if part in {"embed", "shorts", "live"} and index + 1 < len(parts):
-                return parts[index + 1]
-    raise TranscriptionError(
-        "could not extract YouTube video id",
-        hint="Use a standard youtube.com or youtu.be URL",
-    )
+from carrel.transcribe.youtube_url import extract_video_id
 
 
 def _format_timestamp(seconds: float) -> str:
@@ -50,7 +29,12 @@ async def transcribe_with_youtube_captions(url: str) -> tuple[str, dict]:
     NoTranscriptFound = getattr(ytt_api_module, "NoTranscriptFound", type("NoTranscriptFound", (Exception,), {}))
     VideoUnavailable = getattr(ytt_api_module, "VideoUnavailable", type("VideoUnavailable", (Exception,), {}))
 
-    video_id = extract_youtube_video_id(url)
+    video_id = extract_video_id(url)
+    if video_id is None:
+        raise TranscriptionError(
+            "could not extract YouTube video id",
+            hint="Use a standard youtube.com or youtu.be URL",
+        )
     try:
         ytt_api = YouTubeTranscriptApi()
         loop = asyncio.get_running_loop()

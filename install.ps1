@@ -35,16 +35,23 @@ if (-not $hasWinget) {
     exit 1
 }
 
-# ─── 1. Git ───
+# ─── 1. System prerequisites ───
 
-Write-Step 1 $Total "Git"
+Write-Step 1 $Total "System prerequisites"
 if (Get-Command git -ErrorAction SilentlyContinue) {
-    Write-Ok "Already installed ($(git --version))"
+    Write-Ok "git already installed ($(git --version))"
 } else {
     Write-Info "Installing git..."
     winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-    Write-Ok "Installed"
+    Write-Ok "git installed"
+}
+
+if (Get-Command curl -ErrorAction SilentlyContinue) {
+    Write-Ok "curl already installed"
+} else {
+    Write-Fail "curl not found. Install curl or refresh PATH before continuing."
+    exit 1
 }
 
 # ─── 2. Node.js ───

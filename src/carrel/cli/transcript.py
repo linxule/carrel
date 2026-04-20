@@ -59,46 +59,6 @@ async def _transcribe(
     raise CarrelError(f"Unknown transcribe tool: {tool}")
 
 
-async def _run_transcribe_pipeline(
-    resolved_source: str,
-    vault_path: Path,
-    profile,
-    sensitivity: Sensitivity | None,
-    tool: TranscribeTool | None,
-    timeout: int | None,
-    speakers: int | None,
-) -> tuple[TranscribeTool, str, dict]:
-    audit_result = await audit(vault_path)
-    selected_tool = select_transcribe_tool(
-        source=resolved_source,
-        sensitivity=sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM),
-        hardware=audit_result.hardware_capability,
-        tools=audit_result.tools,
-        cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
-        explicit_tool=tool,
-    )
-    content, metadata = await _transcribe(resolved_source, selected_tool, timeout, speakers)
-    return selected_tool, content, metadata
-
-
-async def _select_transcribe_tool_only(
-    resolved_source: str,
-    vault_path: Path,
-    profile,
-    sensitivity: Sensitivity | None,
-    tool: TranscribeTool | None,
-) -> TranscribeTool:
-    audit_result = await audit(vault_path)
-    return select_transcribe_tool(
-        source=resolved_source,
-        sensitivity=sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM),
-        hardware=audit_result.hardware_capability,
-        tools=audit_result.tools,
-        cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
-        explicit_tool=tool,
-    )
-
-
 @app.command("create")
 def create_command(
     source: str = typer.Argument(...),
@@ -122,8 +82,14 @@ def create_command(
             kind=kind,
         )
         if dry_run:
-            selected_tool = asyncio.run(
-                _select_transcribe_tool_only(resolved_source, vault_path, profile, sensitivity, tool)
+            audit_result = asyncio.run(audit(vault_path))
+            selected_tool = select_transcribe_tool(
+                source=resolved_source,
+                sensitivity=sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM),
+                hardware=audit_result.hardware_capability,
+                tools=audit_result.tools,
+                cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
+                explicit_tool=tool,
             )
             result = TranscribeResult(
                 path=predicted,
@@ -138,10 +104,17 @@ def create_command(
             return
 
         started = time.perf_counter()
-        selected_tool, content, metadata = asyncio.run(
-            _run_transcribe_pipeline(
-                resolved_source, vault_path, profile, sensitivity, tool, timeout, speakers
-            )
+        audit_result = asyncio.run(audit(vault_path))
+        selected_tool = select_transcribe_tool(
+            source=resolved_source,
+            sensitivity=sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM),
+            hardware=audit_result.hardware_capability,
+            tools=audit_result.tools,
+            cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
+            explicit_tool=tool,
+        )
+        content, metadata = asyncio.run(
+            _transcribe(resolved_source, selected_tool, timeout, speakers)
         )
         filed = file_transcript(
             content=content,

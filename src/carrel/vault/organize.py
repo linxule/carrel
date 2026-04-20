@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
+
+from carrel.transcribe.youtube_url import slug_for_filename
 
 STOPWORDS = {
     "a",
@@ -71,18 +73,6 @@ def paper_dirname(
         return slugify(Path(source_filename).stem)
     return "untitled-paper"
 
-
-def _youtube_slug(source: str) -> str:
-    parsed = urlparse(source)
-    query = parse_qs(parsed.query)
-    if "v" in query and query["v"]:
-        return slugify(query["v"][0])
-    path_bits = [bit for bit in parsed.path.split("/") if bit]
-    if path_bits:
-        return slugify(path_bits[-1])
-    return "video"
-
-
 def transcript_filename(
     source: str,
     date: str,
@@ -92,7 +82,7 @@ def transcript_filename(
     parsed = urlparse(source)
     is_url = bool(parsed.scheme and parsed.netloc)
     if is_url:
-        base = slugify(title) if title else f"youtube-{_youtube_slug(source)}"
+        base = slugify(title) if title else f"youtube-{slug_for_filename(source)}"
         return f"{base}.md"
 
     source_stem = slugify(Path(source).stem)

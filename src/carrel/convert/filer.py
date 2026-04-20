@@ -1,17 +1,12 @@
 from __future__ import annotations
-
-import hashlib
 from datetime import date
 from pathlib import Path
 
 from carrel.convert.frontmatter import load_frontmatter, render_frontmatter
 from carrel.models import ConvertTool, FileResult
 from carrel.safe_path import safe_vault_join
+from carrel.source_hash import hash_source
 from carrel.vault.organize import paper_dirname
-
-
-def _source_hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def file_paper(
@@ -22,7 +17,7 @@ def file_paper(
     tool: ConvertTool,
     force: bool = False,
 ) -> FileResult:
-    source_hash = _source_hash(source_file)
+    source_hash = hash_source(source_file)
     dirname = paper_dirname(
         authors=metadata.get("authors"),
         year=str(metadata["year"]) if metadata.get("year") is not None else None,

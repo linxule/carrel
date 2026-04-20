@@ -1,18 +1,9 @@
 from __future__ import annotations
 
-from urllib.parse import urlparse
-
 from carrel.errors import CarrelError, ToolNotInstalled
 from carrel.env.install import install_command_for
 from carrel.models import HardwareCapability, Sensitivity, ToolAvailability, TranscribeTool
-
-
-def _is_youtube_url(source: str) -> bool:
-    parsed = urlparse(source)
-    if not (parsed.scheme and parsed.netloc):
-        return False
-    host = parsed.netloc.lower()
-    return "youtube.com" in host or "youtu.be" in host
+from carrel.transcribe.youtube_url import is_youtube_url
 
 
 def select_transcribe_tool(
@@ -26,7 +17,7 @@ def select_transcribe_tool(
     # Used by consent gate; see planning/specs/010-policy-module.md.
     _ = sensitivity, hardware
     if explicit_tool is not None:
-        is_yt = _is_youtube_url(source)
+        is_yt = is_youtube_url(source)
         if explicit_tool in {TranscribeTool.GEMINI, TranscribeTool.YOUTUBE_CAPTIONS} and not is_yt:
             raise CarrelError(
                 f"{explicit_tool.value} only works with YouTube URLs",
@@ -38,7 +29,7 @@ def select_transcribe_tool(
                 hint="For YouTube URLs, use --tool gemini (cloud) or omit --tool for local captions.",
             )
         return explicit_tool
-    if _is_youtube_url(source):
+    if is_youtube_url(source):
         if cloud_consent and tools.api_keys.get("gemini") and tools.api_keys["gemini"].configured:
             return TranscribeTool.GEMINI
         return TranscribeTool.YOUTUBE_CAPTIONS

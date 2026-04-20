@@ -10,39 +10,13 @@ from rich.console import Console
 from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
 from carrel.convert.filer import file_paper
-from carrel.convert.pipeline import (
-    run_convert_pipeline as run_convert_pipeline_for_file,
-)
-from carrel.convert.pipeline import (
-    select_convert_tool_only as select_convert_tool_only_for_file,
-)
+from carrel.convert.pipeline import run_convert_pipeline, select_convert_tool_only
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.models import ConvertResult, ConvertTool, Sensitivity
 
 app = typer.Typer(help="Paper conversion and listing")
 console = Console()
-
-
-async def _select_convert_tool_only(
-    file_path: Path,
-    vault_path: Path,
-    profile,
-    sensitivity: Sensitivity | None,
-    tool: ConvertTool | None,
-) -> ConvertTool:
-    return await select_convert_tool_only_for_file(file_path, vault_path, profile, sensitivity, tool)
-
-
-async def _run_convert_pipeline(
-    file_path: Path,
-    vault_path: Path,
-    profile,
-    sensitivity: Sensitivity | None,
-    tool: ConvertTool | None,
-) -> tuple[ConvertTool, str, dict]:
-    return await run_convert_pipeline_for_file(file_path, vault_path, profile, sensitivity, tool)
-
 
 @app.command("convert")
 def convert_command(
@@ -59,9 +33,7 @@ def convert_command(
         vault_path = resolve_vault(vault)
         profile = read_profile(vault_path)
         if dry_run:
-            selected_tool = asyncio.run(
-                _select_convert_tool_only(file_path, vault_path, profile, sensitivity, tool)
-            )
+            selected_tool = asyncio.run(select_convert_tool_only(file_path, vault_path, profile, sensitivity, tool))
             result = ConvertResult(
                 path=None,
                 tool=selected_tool,
@@ -81,7 +53,7 @@ def convert_command(
 
         started = time.perf_counter()
         selected_tool, content, metadata = asyncio.run(
-            _run_convert_pipeline(file_path, vault_path, profile, sensitivity, tool)
+            run_convert_pipeline(file_path, vault_path, profile, sensitivity, tool)
         )
         filed = file_paper(
             content=content,

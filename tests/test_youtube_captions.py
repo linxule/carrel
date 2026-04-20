@@ -5,16 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from carrel.transcribe.adapters.youtube_captions import (
-    extract_youtube_video_id,
-    transcribe_with_youtube_captions,
-)
-
-
-def test_extract_youtube_video_id_variants() -> None:
-    assert extract_youtube_video_id("https://www.youtube.com/watch?v=abc123") == "abc123"
-    assert extract_youtube_video_id("https://youtu.be/xyz789") == "xyz789"
-    assert extract_youtube_video_id("https://www.youtube.com/shorts/short456") == "short456"
+from carrel.transcribe.adapters.youtube_captions import transcribe_with_youtube_captions
 
 
 @pytest.mark.asyncio

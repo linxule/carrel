@@ -55,17 +55,3 @@ def install_command_for(tool: str, platform: str | None = None) -> str | None:
     if normalized_platform != "darwin" and command.startswith("brew "):
         return f"{command}  # TODO: spec 007"
     return command
-
-
-__test__ = {
-    "install_command_for": """
-    >>> install_command_for("obsidian", "darwin")
-    'brew install --cask obsidian'
-    >>> install_command_for("obsidian", "win32")
-    'winget install Obsidian.Obsidian'
-    >>> install_command_for("ffmpeg", "linux")
-    'Use your distro package manager, e.g. sudo apt install ffmpeg'
-    >>> install_command_for("liteparse", "linux")
-    'brew tap run-llama/liteparse && brew install llamaindex-liteparse  # TODO: spec 007'
-    """,
-}

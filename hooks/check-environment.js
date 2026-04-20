@@ -69,6 +69,11 @@ function safeWriteJson(filePath, data) {
   fs.renameSync(tmpPath, filePath);
 }
 
+function logHookError(context, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error('carrel-hook:', `${context}:`, message);
+}
+
 function shouldShowMigrationPrompt(pluginState, pluginVersion, now) {
   if (pluginState.last_acknowledged_version !== pluginVersion) {
     return true;
@@ -102,7 +107,9 @@ function checkAutomation(projectRoot, env) {
         .filter(f => f.endsWith('.md') && /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
         .sort()
         .reverse();
-    } catch {}
+    } catch (e) {
+      logHookError('briefs read', e);
+    }
 
     // 2. Check for new morning briefs
     try {
@@ -137,14 +144,20 @@ function checkAutomation(projectRoot, env) {
                     parts.push(`${contradictionsMatch[1]} contradiction${contradictionsMatch[1] === '1' ? '' : 's'}`);
                   }
                 }
-              } catch {}
+              } catch (e) {
+                logHookError('brief field map parse', e);
+              }
             }
             if (parts.length > 0) summary = ` — ${parts.join(', ')}`;
-          } catch {}
+          } catch (e) {
+            logHookError('brief summary read', e);
+          }
           console.log(`  Morning brief ready (${latestDate})${summary}`);
         }
       }
-    } catch {}
+    } catch (e) {
+      logHookError('morning brief check', e);
+    }
 
     // 3. Check for active plans
     try {
@@ -170,13 +183,17 @@ function checkAutomation(projectRoot, env) {
             if (fm.status === 'active') {
               activePlans.push(fm.title || file.replace('.md', ''));
             }
-          } catch {}
+          } catch (e) {
+            logHookError('active plan read', e);
+          }
         }
         for (const title of activePlans) {
           console.log(`  Active plan: '${title}'`);
         }
       }
-    } catch {}
+    } catch (e) {
+      logHookError('active plans check', e);
+    }
 
     // 4. Check for pending decisions
     try {
@@ -185,7 +202,9 @@ function checkAutomation(projectRoot, env) {
       if (count > 0) {
         console.log(`  ${count} pending decision${count === 1 ? '' : 's'} from overnight processing`);
       }
-    } catch {}
+    } catch (e) {
+      logHookError('pending decisions check', e);
+    }
 
     // 5. Check for pending approvals
     try {
@@ -194,7 +213,9 @@ function checkAutomation(projectRoot, env) {
       if (count > 0) {
         console.log(`  ${count} pending approval${count === 1 ? '' : 's'} — review with /carrel-automate or approve inline`);
       }
-    } catch {}
+    } catch (e) {
+      logHookError('pending approvals check', e);
+    }
 
     // 6. Check automation status
     try {
@@ -221,13 +242,17 @@ function checkAutomation(projectRoot, env) {
           }
         }
       }
-    } catch {}
+    } catch (e) {
+      logHookError('automation status check', e);
+    }
 
     // 7. Write last_session_start (after all output)
     try {
       pluginState.last_session_start = now.toISOString();
       safeWriteJson(statePath, pluginState);
-    } catch {}
+    } catch (e) {
+      logHookError('plugin-state write', e);
+    }
 
   } catch {}
 }
@@ -377,7 +402,9 @@ function main() {
             }
           }
         }
-      } catch {}
+      } catch (e) {
+        logHookError('wiki fallback check', e);
+      }
     }
 
     console.log('');
