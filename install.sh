@@ -15,7 +15,7 @@ set -e
 #
 # What it does:
 #   1. Detects your OS
-#   2. Installs prerequisites (git, Node.js, uv, GitHub CLI, Claude Code)
+#   2. Installs prerequisites (git, Node.js, bun, uv, GitHub CLI, Claude Code)
 #   3. Signs you in to GitHub
 #   4. Installs the Carrel plugin for Claude Code
 
@@ -31,7 +31,7 @@ fail() { echo -e "  ${RED}✗${NC} $1"; }
 
 OS="$(uname -s)"
 ARCH="$(uname -m)"
-TOTAL_STEPS=7
+TOTAL_STEPS=8
 
 step() { echo -e "\n${BLUE}[$1/$TOTAL_STEPS]${NC} $2"; }
 
@@ -160,9 +160,23 @@ else
   ok "Installed ($(node --version))"
 fi
 
-# ─── 3. uv (Python) ───
+# ─── 3. bun (JS runtime, required for coli + defuddle) ───
 
-step 3 "uv (Python package manager)"
+step 3 "bun (JS runtime — required for coli, defuddle, and other research tools)"
+if command -v bun &>/dev/null; then
+  ok "Already installed ($(bun --version))"
+else
+  info "Installing bun..."
+  curl -fsSL https://bun.sh/install | bash
+  # Add to current PATH
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  ok "Installed"
+fi
+
+# ─── 4. uv (Python) ───
+
+step 4 "uv (Python package manager)"
 if command -v uv &>/dev/null; then
   ok "Already installed ($(uv --version 2>/dev/null | head -1))"
 else
@@ -173,9 +187,9 @@ else
   ok "Installed"
 fi
 
-# ─── 4. GitHub CLI ───
+# ─── 5. GitHub CLI ───
 
-step 4 "GitHub CLI"
+step 5 "GitHub CLI"
 if command -v gh &>/dev/null; then
   ok "Already installed"
 else
@@ -215,9 +229,9 @@ else
   ok "Signed in"
 fi
 
-# ─── 5. Claude Code CLI ───
+# ─── 6. Claude Code CLI ───
 
-step 5 "Claude Code CLI"
+step 6 "Claude Code CLI"
 if command -v claude &>/dev/null; then
   ok "Already installed"
 else
@@ -237,9 +251,9 @@ else
   ok "Installed"
 fi
 
-# ─── 6. Carrel plugin ───
+# ─── 7. Carrel plugin ───
 
-step 6 "Carrel plugin"
+step 7 "Carrel plugin"
 info "Adding marketplace and installing..."
 
 if claude plugin marketplace add linxule/carrel 2>/dev/null; then
@@ -254,12 +268,13 @@ else
   info "Plugin install needs Claude Desktop — see next steps"
 fi
 
-# ─── 7. Verify ───
+# ─── 8. Verify ───
 
-step 7 "Verifying installation"
+step 8 "Verifying installation"
 MISSING=""
 command -v git    &>/dev/null || MISSING="$MISSING git"
 command -v node   &>/dev/null || MISSING="$MISSING node"
+command -v bun    &>/dev/null || MISSING="$MISSING bun"
 command -v uv     &>/dev/null || MISSING="$MISSING uv"
 command -v gh     &>/dev/null || MISSING="$MISSING gh"
 command -v claude &>/dev/null || MISSING="$MISSING claude"

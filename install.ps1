@@ -7,7 +7,7 @@
 #   .\install.ps1
 #
 # What it does:
-#   1. Installs prerequisites (git, Node.js, uv, GitHub CLI, Claude Code)
+#   1. Installs prerequisites (git, Node.js, bun, uv, GitHub CLI, Claude Code)
 #   2. Signs you in to GitHub
 #   3. Installs the Carrel plugin for Claude Code
 
@@ -18,7 +18,7 @@ function Write-Ok($msg) { Write-Host "  ✓ $msg" -ForegroundColor Green }
 function Write-Info($msg) { Write-Host "  → $msg" -ForegroundColor Yellow }
 function Write-Fail($msg) { Write-Host "  ✗ $msg" -ForegroundColor Red }
 
-$Total = 6
+$Total = 7
 
 Write-Host ""
 Write-Host "╔══════════════════════════════════════════╗"
@@ -59,9 +59,26 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     Write-Ok "Installed"
 }
 
-# ─── 3. uv ───
+# ─── 3. bun (JS runtime, required for coli + defuddle) ───
 
-Write-Step 3 $Total "uv (Python package manager)"
+Write-Step 3 $Total "bun (JS runtime — required for coli, defuddle, and other research tools)"
+if (Get-Command bun -ErrorAction SilentlyContinue) {
+    Write-Ok "Already installed ($(bun --version))"
+} else {
+    Write-Info "Installing bun..."
+    # Try winget first (cleanest), fall back to official installer
+    $wingetResult = winget install --id Oven-sh.Bun -e --accept-package-agreements --accept-source-agreements 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Info "winget install failed — trying official installer..."
+        irm bun.sh/install.ps1 | iex
+    }
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    Write-Ok "Installed"
+}
+
+# ─── 4. uv ───
+
+Write-Step 4 $Total "uv (Python package manager)"
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     Write-Ok "Already installed"
 } else {
@@ -70,9 +87,9 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     Write-Ok "Installed"
 }
 
-# ─── 4. GitHub CLI ───
+# ─── 5. GitHub CLI ───
 
-Write-Step 4 $Total "GitHub CLI"
+Write-Step 5 $Total "GitHub CLI"
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     Write-Ok "Already installed"
 } else {
@@ -95,9 +112,9 @@ if ($LASTEXITCODE -eq 0) {
     Write-Ok "Signed in"
 }
 
-# ─── 5. Claude Code CLI ───
+# ─── 6. Claude Code CLI ───
 
-Write-Step 5 $Total "Claude Code CLI"
+Write-Step 6 $Total "Claude Code CLI"
 if (Get-Command claude -ErrorAction SilentlyContinue) {
     Write-Ok "Already installed"
 } else {
@@ -111,9 +128,9 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
     Write-Ok "Installed"
 }
 
-# ─── 6. Carrel plugin ───
+# ─── 7. Carrel plugin ───
 
-Write-Step 6 $Total "Carrel plugin"
+Write-Step 7 $Total "Carrel plugin"
 Write-Info "Adding marketplace and installing..."
 
 try {

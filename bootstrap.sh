@@ -1,12 +1,17 @@
 #!/bin/bash
 set -e
 
-# Carrel Bootstrap — gets a Mac ready for AI-augmented research
+# Carrel Bootstrap — legacy macOS-only setup
 #
-# DEPRECATED: Use install.sh instead (cross-platform).
-#   curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
+# DEPRECATED. Use the cross-platform installers instead:
+#   macOS / Linux:  curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
+#   Windows:        irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
 #
-# This script is kept for backward compatibility.
+# Those installers also install `bun` (required for coli + defuddle), which
+# this bootstrap script does not. If you run this script, you'll need to
+# install bun manually before /carrel-setup can configure those tools.
+#
+# This script is kept for backward compatibility only.
 #
 # Usage (local):
 #   bash bootstrap.sh

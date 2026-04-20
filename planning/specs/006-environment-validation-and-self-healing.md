@@ -102,16 +102,19 @@ def validate_command(
 1. Find vault root (current dir or `--vault` arg)
 2. Load `.carrel/environment.json` raw
 3. Try `ResearcherProfile.model_validate(...)` — capture validation errors
-4. Drift checks (separate from Pydantic):
-   - Extra top-level keys (not in `ResearcherProfile.model_fields`)
-   - Version field mismatch with current plugin
-   - Stale `last_reviewed` against `review_cadence`
-   - tools_configured booleans vs actual install state (delegate to `audit.py`)
-5. CLAUDE.md desync checks (text-grep based, not full parse):
+4. Load `.carrel/setup-state.json` if present and validate via `SetupState.model_validate(...)` (added in v0.5.2; the canonical schema for resume tracking)
+5. Drift checks (separate from Pydantic):
+   - Extra top-level keys in `environment.json` (not in `ResearcherProfile.model_fields`)
+   - `setup-state.json` `version` field mismatch with current plugin (this is the only file that carries a version — `environment.json` does not)
+   - Stale `automation.last_reviewed` against `automation.review_cadence` (per AutomationConfig, computed against today's date)
+   - `tools_configured` booleans vs actual install state — delegated to a shared `ToolAvailability` matrix that audit.py also consumes (see Cross-Cutting below)
+6. CLAUDE.md desync checks (text-grep based, not full parse):
    - Look for "Sensitivity:" line in CLAUDE.md
    - Compare against `profile.sensitivity`
    - Report mismatch
-6. Output formatted report; set exit code
+7. Output formatted report; set exit code
+
+**Cross-cutting note (post-Kimi-review)**: `ResearcherProfile` does not carry a `version` field — only `setup-state.json` (via `SetupState.version`) does. The earlier draft of this spec proposed a "version-on-environment.json" check; that's a confusion between the two state files and would always misfire. Kept here as the single source of truth: validate `SetupState.version` against the live plugin version, leave `environment.json` versionless.
 
 **Output format (human):**
 
@@ -145,9 +148,9 @@ def fix_command(
 | Drift | Fix |
 |-------|-----|
 | `sensitivity` not in enum but matches known rename (`'prefer_local'`, `'cautious'`) | Map to canonical (`'medium'`) and set `cloud_consent=False` |
-| `version` field present and ≠ current plugin | Update to current plugin version |
+| `setup-state.json` `version` ≠ current plugin | Update `version` field; record migration in capability log |
 | Missing optional field with safe default | Add with default |
-| `tools_configured` boolean wrong (binary not actually installed) | Set to `false`, log change |
+| `tools_configured` boolean wrong per `ToolAvailability` matrix (tool not actually installed on this platform) | Set to `false`, log change |
 
 **Refuses to fix:**
 
@@ -299,6 +302,17 @@ For Advisory/Consultative trust levels: write findings to `_meta/suggestions/` o
 
 ---
 
+## Cross-Cutting With Spec 007
+
+Spec 006 (validator) and spec 007 (cross-platform) both touch `carrel env doctor`. Kimi review (2026-04-20) flagged a sequencing risk: the validator's `tools_configured` drift check assumes a definition of "is this tool installed" that becomes platform-aware in spec 007. If 006 ships first, the validator will misfire on Windows/Linux when 007 lands.
+
+**Resolution**: introduce a shared `ToolAvailability` matrix in `models.py` that BOTH `audit.py` (reporting) AND the 006 validator (drift detection) consume. The matrix is a `dict[str, dict[Platform, bool]]` populated from per-tool detection logic. Spec 007 owns its construction; spec 006 only reads it.
+
+This means:
+- Spec 007 ships first (introduces `Platform` enum, `AuditResult.platform`, and `ToolAvailability` matrix)
+- Spec 006 ships second (consumes the matrix; no platform-specific logic of its own)
+- The two specs share one source of truth for "tool X is available on platform Y"
+
 ## Open Questions
 
 1. **Where do CLAUDE.md/JSON desync checks live?** Pydantic validators can't see CLAUDE.md. Options: (a) separate `validate_consistency()` function in `env/validate.py` that text-greps CLAUDE.md, (b) defer to a new `claude_md_parser` utility. Lean toward (a) — minimal scope.
@@ -329,7 +343,8 @@ For Advisory/Consultative trust levels: write findings to `_meta/suggestions/` o
 
 To be conducted post-spec, per existing pattern:
 
-- Codex (adversarial): `planning/reviews/006-review-codex.md`
+- Codex (deep adversarial): `planning/reviews/006-review-codex.md`
+- Kimi (independent second-pair-of-eyes): `planning/reviews/006-review-kimi.md`
 - Code architect (feasibility): `planning/reviews/006-review-architect.md`
 
-Lock decisions after both reviews complete; then implement.
+Lock decisions after all three reviews complete; then implement.

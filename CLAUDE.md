@@ -153,7 +153,7 @@ Carrel is the on-ramp to ItDepends (abductive research agent). Same Python + pyd
 
 ## Spec & Review History
 
-Multi-model review process: each spec gets adversarial reviews (typically Codex + a feasibility/architect pass) before implementation; some specs go through multiple rounds. All artifacts in `planning/`.
+Multi-model review process: each spec gets adversarial reviews before implementation. The default reviewer set is **Codex (deep adversarial pass) + Kimi (independent second-pair-of-eyes) + a feasibility/architect pass**. Some specs go through multiple rounds. All artifacts in `planning/`.
 
 | File | Purpose |
 |------|---------|

@@ -87,6 +87,26 @@ Single source of truth for OS detection. All branching downstream consults this.
 
 Add to `models.py`. `carrel env doctor` populates it from `detect_platform()`. Surfaced in JSON output for the interviewer to use.
 
+#### A3. Shared `ToolAvailability` matrix (consumed by spec 006 validator too)
+
+Add to `models.py`:
+
+```python
+class ToolAvailability(BaseModel):
+    """Per-tool, per-platform availability matrix.
+    
+    Single source of truth for "is tool X available on platform Y" — consumed
+    by carrel env doctor (reporting), the 006 validator (drift detection),
+    and the decision tree (recommendation gating).
+    """
+    matrix: dict[str, dict[Platform, bool]]
+
+    def is_available(self, tool: str, platform: Platform) -> bool:
+        return self.matrix.get(tool, {}).get(platform, False)
+```
+
+Populated at startup from per-tool detection (binaries via `shutil.which()`, GUI apps via the platform-aware detection in B1). Spec 006's validator reads this matrix instead of running its own detection — eliminating the cross-cutting risk Kimi flagged.
+
 ### B. Audit fixes (`src/carrel/env/audit.py`)
 
 #### B1. Replace `mdfind` calls with platform-branched detection
@@ -255,9 +275,39 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 ---
 
+## Lock Blockers (must resolve before implementation)
+
+The following questions MUST be answered (with citations) before this spec is locked. Per Kimi review (2026-04-20): "committing a spec that admits it doesn't know whether a core tool works on Windows creates false confidence and leaves the implementation team with an unscoped research task mid-cycle."
+
+### Lock blocker A: liteparse Windows installability
+
+If liteparse has no Windows install path, Windows researchers with HIGH sensitivity have NO local PDF conversion option. They are forced to either:
+- (a) Use mineru (cloud) — violates HIGH-sensitivity local-only default
+- (b) Use WSL — adds significant setup friction and breaks the "Carrel works natively on your OS" promise
+- (c) Use markitdown for PDFs — but markitdown PDF support is poor (the whole reason liteparse was added)
+
+**Required research before lock**: investigate upstream (`run-llama/liteparse`) for:
+1. Is there a `pip install` path? (If yes, Windows works via Python/pip directly.)
+2. Is there a `bun add -g` / `npm install -g` package? (If yes, Windows works via Node.)
+3. Is the Homebrew formula a wrapper around something installable on Windows directly?
+4. If none of the above, is there a documented Windows build-from-source path?
+
+**Decision matrix for the spec lock**:
+- If liteparse works on Windows (any path) → spec proceeds as-is
+- If liteparse is genuinely Mac-only → spec MUST add an explicit "Windows + HIGH sensitivity" decision tree branch with: WSL recommendation, mineru cloud opt-in with explicit consent capture, or accept the gap and document the limitation prominently in the README
+
+### Lock blocker B: gws Windows alternative
+
+Confirmed no Windows package as of 2026-04-20. The spec's current resolution ("mark Mac-only with Web Clipper as fallback") is acceptable IF the Web Clipper workflow actually covers the Google Workspace use case. Verify before lock that:
+- Web Clipper handles Google Docs (yes — it's a documented use case)
+- Web Clipper handles Google Sheets (likely degraded; needs testing)
+- Web Clipper handles Google Slides (likely degraded; needs testing)
+
+If Sheets/Slides degrade significantly via Web Clipper, document the gap explicitly.
+
 ## Open Questions
 
-1. **Liteparse on Windows.** Is there ANY install path? `pip install`? Build from source? If not, the Windows PDF story collapses to mineru (cloud) — which means Windows researchers have a hard cloud dependency for any PDF work, which conflicts with HIGH sensitivity defaults. Critical to resolve before locking.
+1. **Liteparse on Windows.** See Lock Blocker A above. Critical to resolve before locking.
 
 2. **Gws on Windows.** Confirmed no Windows package as of 2026-04-20. Options: (a) accept the gap and document it, (b) build a thin Python wrapper around the Google Drive API directly (significant scope), (c) recommend Web Clipper as the manual fallback. Lean toward (a)+(c) — Web Clipper covers most use cases.
 
@@ -267,7 +317,7 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 5. **Linux distros.** `apt` is Debian/Ubuntu; `dnf` is Fedora; Arch uses `pacman`. Do we branch on distro within Linux, or pick one (Debian/Ubuntu) and document the others as "you know what to do"? Lean: Ubuntu/Debian as default in install constants, document others in a comment.
 
-6. **Coordination with spec 006.** Spec 006 (validator) and spec 007 (cross-platform) both touch `carrel env doctor`. Order: 007 first (platform field on AuditResult), then 006 builds on top. Or interleave. Lean toward sequential: ship 007 (v0.7.0), then 006 (v0.7.1 or v0.8.0).
+6. **Coordination with spec 006.** Spec 006 (validator) and spec 007 (cross-platform) both touch `carrel env doctor`. Per Kimi review and the resolution in spec 006's "Cross-Cutting" section: 007 ships first (introduces `Platform`, `AuditResult.platform`, and the `ToolAvailability` matrix in deliverable A3); 006 ships second and consumes the matrix. Sequential, not interleaved. Locked.
 
 ---
 
@@ -285,7 +335,8 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 To be conducted post-spec, per existing pattern:
 
-- Codex (adversarial): `planning/reviews/007-review-codex.md`
+- Codex (deep adversarial): `planning/reviews/007-review-codex.md`
+- Kimi (independent second-pair-of-eyes): `planning/reviews/007-review-kimi.md`
 - Code architect (feasibility): `planning/reviews/007-review-architect.md`
 
-Lock decisions after both reviews complete; then implement. The two open questions about liteparse and gws Windows availability MUST be answered (web research + upstream check) before lock.
+Lock decisions after all three reviews complete; then implement. The two open questions about liteparse and gws Windows availability MUST be answered (web research + upstream check) before lock.
