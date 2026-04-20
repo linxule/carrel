@@ -48,6 +48,13 @@
       "file": "0.5.3-to-0.5.4.md",
       "breaking": false,
       "summary": "009 holistic audit fixes: pilot blockers (render_cheat_sheet, session-reflect, read_profile error wrap); sensitivity HIGH blocks cloud; path containment + slug validation; ISO date validators on AutomationConfig + wiki_proposal_deferred_until; parametric ghosts deleted; cheatsheet/hardware-audit doc rewrites; cross-platform skill propagation; behavioral hygiene (transcript idempotency, --speakers threading, JSON guards, typed exceptions); refactor (single YouTube parser, single source-hash helper, twin templates removed); 105 tests pass"
+    },
+    {
+      "from": "0.5.4",
+      "to": "0.6.0",
+      "file": "0.5.4-to-0.6.0.md",
+      "breaking": false,
+      "summary": "Markdown control plane closure milestone: spec 008 trust enforcement (carrel trust check|list|show CLI gates 7 write sites; TrustLevel enum promoted from Literal); .carrel/exports/ auto-cleanup after successful conversion (privacy fix); spec 007 unblocked (liteparse + gws Windows support confirmed via upstream research); 143 tests pass"
     }
   ]
 }

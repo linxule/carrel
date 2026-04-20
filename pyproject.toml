@@ -1,6 +1,6 @@
 [project]
 name = "carrel"
-version = "0.5.4"
+version = "0.6.0"
 description = "Research environment toolkit -- convert, transcribe, organize"
 requires-python = ">=3.11"
 dependencies = [
