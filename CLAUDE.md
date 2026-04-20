@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 105 tests
+uv run pytest                                    # 143 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -17,6 +17,8 @@ uv run carrel vault cheatsheet --vault . --force # Regenerate _meta/cheat_sheet.
 uv run carrel setup-state show --vault .         # Inspect setup phase (v0.5.3+)
 uv run carrel setup-state advance --phase N      # Move to next phase atomically
 uv run carrel setup-state complete --vault .     # Mark setup complete (idempotent)
+uv run carrel trust check automation:propose --vault .  # Check if action allowed at current trust level
+uv run carrel trust list --vault .  # See what current trust unlocks
 ```
 
 ## Architecture
@@ -144,7 +146,7 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Setup-state changes go through `carrel setup-state` (added v0.5.3) — never edit `.carrel/setup-state.json` by hand. The CLI is the validation boundary.
 - Sensitivity gate (v0.5.4): `Sensitivity.HIGH` blocks ALL cloud tools (mineru, groq, gemini, gws) regardless of `cloud_consent`. Implemented in `consent.py:resolve_cloud_consent`. Stopgap until policy module (spec 010) lands. `gws` is treated as cloud since it's a Google API call.
 - Vault writes go through `safe_path.safe_vault_join` (v0.5.4) — resolves the path and rejects anything escaping the vault root. Used by all filers + scaffold + google export.
-- Trust enforcement is currently markdown-only (Advisory/Consultative/Delegated/Partnership are documentation contracts read by Claude, not code-gated). Spec 008-trust-enforcement.md tracks the future code boundary. Until that lands, treat trust level as informational, not enforcement.
+- Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it.
 - Profile data is asked to live in 5 surfaces (`environment.json`, vault `CLAUDE.md`, `_meta/my-environment.md`, `_meta/cheat_sheet.md`, sometimes `_meta/automation-prompt.md`). Only `_meta/cheat_sheet.md` has a deterministic generator. Spec 011-profile-sync-architecture.md tracks the deterministic-sync future.
 
 ## Capability Absorption
@@ -186,6 +188,6 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/009-audit-documentation.md` | Documentation coherence pass: 5 HIGH, 6 MEDIUM (skill drift, fictional Mustache template, hardware-audit schema mismatch) |
 | `planning/reviews/009-audit-plugin-surface.md` | Plugin wiring integrity pass: 3 runtime bugs (session-reflect dead, /carrel-research nonexistent, cloud_consent display) + drift |
 | `planning/reviews/009-audit-adversarial.md` | Codex 12-month-on-call lens: trust enforcement gap, sensitivity routing gap, narrative shadow state, 3 predicted bug classes |
-| `planning/specs/008-trust-enforcement.md` | v0.6.x spec: `carrel trust check` CLI gates writes by trust level (closes 009 A1 / Codex §4) |
+| `planning/specs/008-trust-enforcement.md` | v0.6.0 spec: `carrel trust check` CLI gates writes by trust level — **fully implemented in v0.6.0** (closes 009 A1 / Codex §4) |
 | `planning/specs/010-policy-module.md` | v0.6.x spec: `src/carrel/policy.py` owns sensitivity routing; `--explain` rationale flag (closes 009 A2 / Codex §2) |
 | `planning/specs/011-profile-sync-architecture.md` | v0.6.x or 0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` (closes 009 A3 / Codex §3,§6) |

@@ -53,6 +53,10 @@ Carrel's bootstrap install is cross-platform, but the setup flow is not yet full
 | `/carrel-share` | Generate a collaborator handbook for this vault |
 | `/carrel-transcribe` | Transcribe audio to text in your vault |
 
+## Trust Levels
+
+Carrel's automation trust model is now code-enforced, not just narrated in skill markdown. Advisory, Consultative, Delegated, and Partnership still define the relationship contract, but writes that cross those boundaries now go through `carrel trust check <action>` before the skill proceeds. Use `uv run carrel trust list --vault .` to see the current action matrix for a vault.
+
 ## Design Philosophy
 
 1. **The researcher never touches a terminal.** Everything is conversational.
