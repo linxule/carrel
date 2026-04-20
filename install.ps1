@@ -131,6 +131,10 @@ if ($LASTEXITCODE -eq 0) {
     Write-Info "Choose 'Login with a web browser' for the easiest option"
     Write-Host ""
     gh auth login
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "GitHub sign-in failed."
+        exit 1
+    }
     Write-Ok "Signed in"
 }
 
@@ -159,14 +163,22 @@ Write-Info "Adding marketplace and installing..."
 
 try {
     claude plugin marketplace add linxule/carrel 2>$null
-    Write-Ok "Marketplace registered"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "Marketplace registered"
+    } else {
+        Write-Info "Marketplace may already be registered, continuing..."
+    }
 } catch {
     Write-Info "Marketplace may already be registered, continuing..."
 }
 
 try {
     claude plugin install carrel@carrel --scope user 2>$null
-    Write-Ok "Plugin installed"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "Plugin installed"
+    } else {
+        Write-Info "Plugin install needs Claude Desktop — see next steps"
+    }
 } catch {
     Write-Info "Plugin install needs Claude Desktop — see next steps"
 }

@@ -71,6 +71,15 @@ def _parse_version(output: str | None) -> str | None:
     return output.splitlines()[0].strip()
 
 
+def _format_bytes(num_bytes: int) -> str:
+    gb = num_bytes / 1073741824
+    if gb >= 100:
+        return f"{gb:.0f}G"
+    if gb >= 10:
+        return f"{gb:.1f}G"
+    return f"{gb:.2f}G"
+
+
 def _classify_hardware(arch: str, ram_gb: int | None) -> HardwareCapability:
     if arch == "arm64" and ram_gb is not None and ram_gb >= 16:
         return HardwareCapability.HIGH
@@ -97,27 +106,36 @@ def _first_match_path(paths: list[Path]) -> str | None:
 
 
 def _detect_windows_obsidian_path() -> str | None:
+    candidates: list[Path] = []
     local_app_data = os.environ.get("LOCALAPPDATA")
-    if not local_app_data:
-        return None
-    return _first_match_path(
-        [
-            Path(local_app_data) / "Obsidian" / "Obsidian.exe",
-            Path(local_app_data) / "Obsidian",
-        ]
-    )
+    if local_app_data:
+        candidates.extend(
+            [
+                Path(local_app_data) / "Obsidian" / "Obsidian.exe",
+                Path(local_app_data) / "Programs" / "Obsidian" / "Obsidian.exe",
+                Path(local_app_data) / "Obsidian",
+            ]
+        )
+    program_files = os.environ.get("PROGRAMFILES")
+    if program_files:
+        candidates.append(Path(program_files) / "Obsidian" / "Obsidian.exe")
+    return _first_match_path(candidates)
 
 
 def _detect_windows_zotero_path() -> str | None:
+    candidates: list[Path] = []
     program_files = os.environ.get("PROGRAMFILES")
-    if not program_files:
-        return None
-    return _first_match_path(
-        [
-            Path(program_files) / "Zotero" / "zotero.exe",
-            Path(program_files) / "Zotero",
-        ]
-    )
+    if program_files:
+        candidates.extend(
+            [
+                Path(program_files) / "Zotero" / "zotero.exe",
+                Path(program_files) / "Zotero",
+            ]
+        )
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        candidates.append(Path(local_app_data) / "Zotero" / "zotero.exe")
+    return _first_match_path(candidates)
 
 
 def _detect_linux_obsidian_path() -> str | None:
@@ -218,11 +236,11 @@ async def audit(project_path: Path | None = None) -> AuditResult:
                 ram_gb = None
 
     df_target = resolved_project or Path.cwd()
-    df_output = await _run_command(["df", "-h", str(df_target)])
-    if df_output:
-        last_line = df_output.splitlines()[-1].split()
-        if len(last_line) >= 4:
-            disk_free = last_line[3]
+    try:
+        usage = shutil.disk_usage(df_target)
+        disk_free = _format_bytes(usage.free)
+    except (FileNotFoundError, PermissionError, OSError):
+        disk_free = None
 
     binaries: dict[str, BinaryInfo] = {}
     for name, args in TOOL_CHECKS.items():
