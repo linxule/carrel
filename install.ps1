@@ -18,7 +18,7 @@ function Write-Ok($msg) { Write-Host "  ✓ $msg" -ForegroundColor Green }
 function Write-Info($msg) { Write-Host "  → $msg" -ForegroundColor Yellow }
 function Write-Fail($msg) { Write-Host "  ✗ $msg" -ForegroundColor Red }
 
-$Total = 7
+$Total = 8
 
 Write-Host ""
 Write-Host "╔══════════════════════════════════════════╗"
@@ -70,7 +70,7 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
     $wingetResult = winget install --id Oven-sh.Bun -e --accept-package-agreements --accept-source-agreements 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Info "winget install failed — trying official installer..."
-        irm bun.sh/install.ps1 | iex
+        irm https://bun.sh/install.ps1 | iex
     }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
     Write-Ok "Installed"
@@ -145,6 +145,23 @@ try {
     Write-Ok "Plugin installed"
 } catch {
     Write-Info "Plugin install needs Claude Desktop — see next steps"
+}
+
+# ─── 8. Verify ───
+
+Write-Step 8 $Total "Verifying installation"
+$Missing = @()
+foreach ($tool in @("git", "node", "bun", "uv", "gh", "claude")) {
+    if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+        $Missing += $tool
+    }
+}
+
+if ($Missing.Count -gt 0) {
+    Write-Host "  Warning: Missing: $($Missing -join ', ')" -ForegroundColor Yellow
+    Write-Info "Open a new terminal window and try again — some tools need a PATH refresh."
+} else {
+    Write-Ok "All tools ready"
 }
 
 Write-Host ""

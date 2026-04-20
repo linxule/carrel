@@ -19,6 +19,7 @@ TOOL_CHECKS: dict[str, list[str]] = {
     "git": ["git", "--version"],
     "gh": ["gh", "--version"],
     "node": ["node", "--version"],
+    "bun": ["bun", "--version"],
     "python": ["python3", "--version"],
     "uv": ["uv", "--version"],
     "brew": ["brew", "--version"],

@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 
 from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
@@ -152,7 +153,13 @@ def cheatsheet_command(
                 "No ResearcherProfile found",
                 hint=f"Expected {profile_path}. Run `carrel vault init` first.",
             )
-        profile = ResearcherProfile.model_validate_json(profile_path.read_text(encoding="utf-8"))
+        try:
+            profile = ResearcherProfile.model_validate_json(profile_path.read_text(encoding="utf-8"))
+        except (ValidationError, json.JSONDecodeError) as error:
+            raise CarrelError(
+                f"Could not parse {profile_path}",
+                hint="The file may be corrupted. Run /carrel-setup to regenerate it.",
+            ) from error
         cheat_sheet = vault_path / "_meta" / "cheat_sheet.md"
         existed = cheat_sheet.exists()
         if existed and not force:

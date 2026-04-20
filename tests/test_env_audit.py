@@ -17,6 +17,7 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers(tmp_path, monkeypatc
             ("sysctl", "-n", "hw.memsize"): str(16 * 1073741824),
             ("df", "-h", str(tmp_path)): "Filesystem Size Used Avail Capacity Mounted on\n/dev/disk 100G 40G 60G 40% /",
             ("git", "--version"): "git version 2.44.0",
+            ("bun", "--version"): "1.2.19",
             ("uv", "--version"): "uv 0.6.3",
             ("defuddle", "--version"): "defuddle 0.7.0",
             ("gws", "--version"): "gws 0.10.0",
@@ -34,7 +35,9 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers(tmp_path, monkeypatc
     monkeypatch.setattr(
         audit_module.shutil,
         "which",
-        lambda cmd: f"/usr/bin/{cmd}" if cmd in {"git", "uv", "defuddle", "gws", "markitdown"} else None,
+        lambda cmd: f"/usr/bin/{cmd}"
+        if cmd in {"git", "bun", "uv", "defuddle", "gws", "markitdown"}
+        else None,
     )
     monkeypatch.setenv("MINERU_API_KEY", "configured")
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
@@ -47,6 +50,7 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers(tmp_path, monkeypatc
     assert result.ram_gb == 16
     assert result.hardware_capability.value == "high"
     assert result.tools.binaries["git"].installed is True
+    assert result.tools.binaries["bun"].installed is True
     assert result.tools.binaries["uv"].installed is True
     assert result.tools.binaries["defuddle"].installed is True
     assert result.tools.binaries["gws"].installed is True
