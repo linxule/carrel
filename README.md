@@ -12,6 +12,21 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 4. Say: *"I'd like to set up my research environment"*
 5. Carrel interviews you and configures everything
 
+## Platform Support
+
+Carrel's bootstrap install is cross-platform, but the setup flow is not yet fully cross-platform. Until spec 007 lands, the install scripts can get Carrel onto macOS, Linux, or Windows, while some downstream `/carrel-setup` recommendations remain macOS-only.
+
+| Tool | macOS | Linux | Windows | Notes |
+|------|:-----:|:-----:|:-------:|-------|
+| Install script | ✅ Full | ✅ Full | ✅ Full | Bootstrap only; downstream setup guidance still has platform gaps |
+| Obsidian | ✅ Full | ✅ Full | ✅ Full | Native app on all three platforms; install commands differ by OS |
+| liteparse | ✅ Full | ❌ Not supported | ❌ Not supported | Current Carrel guidance is macOS-only; use `mineru` or manual fallback until spec 007 |
+| coli | ✅ Full | ✅ Full | ✅ Full | Requires Bun and `ffmpeg` |
+| defuddle | ✅ Full | ✅ Full | ✅ Full | Bun-based CLI |
+| gws | ⚠️ Partial | ❌ Not supported | ❌ Not supported | macOS-only in current Carrel docs, plus Google Cloud/OAuth setup |
+| mineru | ✅ Full | ✅ Full | ✅ Full | Cloud service; requires `MINERU_API_KEY` |
+| markitdown | ✅ Full | ✅ Full | ✅ Full | Bundled with Carrel's Python environment |
+
 ## What's Included
 
 - **9 commands** (`/carrel-*` for setup, conversion, transcription, reflection, migration)
@@ -46,7 +61,7 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 ## Prerequisites
 
 - **Claude Desktop** (download from [claude.ai](https://claude.ai)) with Claude Code enabled (Settings → Features)
-- **macOS, Linux, or Windows** — the install script handles everything else
+- **macOS, Linux, or Windows** — the install scripts handle the bootstrap install itself, but `/carrel-setup` still has macOS-only gaps for `liteparse` (PDF conversion) and `gws` (Google Workspace). Windows users will hit those gaps during setup until spec 007 lands.
 
 New machine? Run the install script first (see Installation).
 
@@ -162,7 +177,7 @@ claude plugin marketplace add linxule/interpretive-orchestration
 claude plugin install interpretive-orchestration@interpretive-orchestration --scope user
 ```
 
-## Platform Support
+## Supported Surfaces
 
 Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Code engine.
 
