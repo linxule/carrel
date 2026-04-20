@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 143 tests
+uv run pytest                                    # ~168 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -14,6 +14,10 @@ uv run carrel transcript create rec.m4a          # Transcribe audio (coli defaul
 uv run carrel capture url https://example.com    # Web capture (defuddle)
 uv run carrel google export <google-docs-url>    # Google Docs export (gws)
 uv run carrel vault cheatsheet --vault . --force # Regenerate _meta/cheat_sheet.md
+uv run carrel vault dashboard --vault . --force  # Regenerate _meta/my-environment.md
+uv run carrel vault automation-prompt --vault . --force # Regenerate _meta/automation-prompt.md
+uv run carrel vault check-sync --vault .         # Check CLAUDE.md profile markers for drift
+uv run carrel vault add-markers --vault .        # Append profile markers to CLAUDE.md
 uv run carrel setup-state show --vault .         # Inspect setup phase (v0.5.3+)
 uv run carrel setup-state advance --phase N      # Move to next phase atomically
 uv run carrel setup-state complete --vault .     # Mark setup complete (idempotent)
@@ -142,12 +146,12 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Cheat sheet regeneration: `carrel vault cheatsheet --vault <path> --force` (added v0.5.2; the legacy `generate-cheatsheet.js` was removed). Renderer beefed up in v0.5.3 with configured-tools matrix, common workflows, and next steps sections.
 - youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
 - Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
-- Windows support is partial. v0.5.3 added stopgap cross-platform guidance for `/carrel-setup` (OS-branched Obsidian install in Phase 6; `install_command_for(tool, platform)` helper in `env/install.py`; platform note at top of `decision-tree.md`). README now has a Platform Support matrix. But `env/audit.py` still uses macOS `mdfind` and most install constants remain brew-only — full fix is `planning/specs/007-cross-platform-support.md` (pre-implementation; locked-blocked on liteparse Windows + gws Windows research).
+- Cross-platform (v0.7.0): all Tier 1 tools work on macOS, Linux, Windows. Install paths are platform-keyed in `env/install.py`; audit detects the platform in `audit.py`; decision-tree and cheatsheet render OS-aware.
 - Setup-state changes go through `carrel setup-state` (added v0.5.3) — never edit `.carrel/setup-state.json` by hand. The CLI is the validation boundary.
 - Sensitivity gate (v0.5.4): `Sensitivity.HIGH` blocks ALL cloud tools (mineru, groq, gemini, gws) regardless of `cloud_consent`. Implemented in `consent.py:resolve_cloud_consent`. Stopgap until policy module (spec 010) lands. `gws` is treated as cloud since it's a Google API call.
 - Vault writes go through `safe_path.safe_vault_join` (v0.5.4) — resolves the path and rejects anything escaping the vault root. Used by all filers + scaffold + google export.
 - Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it.
-- Profile data is asked to live in 5 surfaces (`environment.json`, vault `CLAUDE.md`, `_meta/my-environment.md`, `_meta/cheat_sheet.md`, sometimes `_meta/automation-prompt.md`). Only `_meta/cheat_sheet.md` has a deterministic generator. Spec 011-profile-sync-architecture.md tracks the deterministic-sync future.
+- Profile sync (v0.7.0): `_meta/my-environment.md` and `_meta/automation-prompt.md` are now deterministic (regenerate via `carrel vault dashboard|automation-prompt --force`). Vault `CLAUDE.md` uses HTML-comment markers (`<!-- carrel:field -->value<!-- /carrel:field -->`); `carrel vault check-sync` surfaces drift. Hook runs check-sync once per 24h.
 
 ## Capability Absorption
 
@@ -178,7 +182,7 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
 | `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
 | `planning/specs/006-environment-validation-and-self-healing.md` | v0.7 spec: schema validation, lint, doctor agent; consumes spec 007's PlatformToolMatrix (pre-implementation, sequenced after 007) |
-| `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree. **Locked 2026-04-20** (upstream blockers resolved — liteparse + gws both ship Windows support). Ready for implementation. |
+| `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree. **Fully implemented in v0.7.0** after the 2026-04-20 blocker resolution. |
 | `planning/research/007-windows-tools-research.md` | Research that unblocked spec 007 (liteparse + gws Windows install paths; Web Clipper rejection; native Google Docs Markdown export tip) |
 | `planning/reviews/008-deployment-readiness-triangulated.md` | Synthesis of Kimi + Codex + internal code-reviewer findings on the v0.5.0→v0.5.2 sprint; tiered fix plan — **fully implemented in v0.5.3** (B1, B2, A1-A7, S1-S3, H1-H3) |
 | `planning/reviews/008-review-kimi.md` | Kimi rounds 1+2: schema drift findings + post-fix re-review |
@@ -191,4 +195,4 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/009-audit-adversarial.md` | Codex 12-month-on-call lens: trust enforcement gap, sensitivity routing gap, narrative shadow state, 3 predicted bug classes |
 | `planning/specs/008-trust-enforcement.md` | v0.6.0 spec: `carrel trust check` CLI gates writes by trust level — **fully implemented in v0.6.0** (closes 009 A1 / Codex §4) |
 | `planning/specs/010-policy-module.md` | v0.6.x spec: `src/carrel/policy.py` owns sensitivity routing; `--explain` rationale flag (closes 009 A2 / Codex §2) |
-| `planning/specs/011-profile-sync-architecture.md` | v0.6.x or 0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` (closes 009 A3 / Codex §3,§6) |
+| `planning/specs/011-profile-sync-architecture.md` | v0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` (closes 009 A3 / Codex §3,§6) — implemented |
