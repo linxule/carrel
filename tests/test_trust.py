@@ -4,7 +4,7 @@ import pytest
 
 from carrel.errors import CarrelError
 from carrel.models import TrustLevel
-from carrel.trust import ACTIONS, TRUST_HIERARCHY, is_allowed, list_actions, required_trust
+from carrel.policy.trust import ACTIONS, TRUST_HIERARCHY, is_allowed, list_actions, required_trust
 
 
 @pytest.mark.parametrize("action,required", ACTIONS.items())

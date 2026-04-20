@@ -12,7 +12,7 @@ from carrel.cli import emit_carrel_error, resolve_vault
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.models import TrustLevel
-from carrel.trust import is_allowed, list_actions, required_trust
+from carrel.policy.trust import is_allowed, list_actions, required_trust
 
 app = typer.Typer(help="Inspect and enforce vault trust permissions")
 console = Console()
