@@ -24,14 +24,14 @@ def _init_vault(path: Path) -> None:
     (path / "transcripts").mkdir(parents=True)
 
 
-def _audit_result(*, gemini_key: bool = False) -> AuditResult:
+def _audit_result(*, coli_installed: bool = False, gemini_key: bool = False) -> AuditResult:
     return AuditResult(
         os="macOS",
         platform=Platform.MACOS,
         arch="arm64",
         hardware_capability=HardwareCapability.HIGH,
         tools=ToolAvailability(
-            binaries={"coli": BinaryInfo(installed=False)},
+            binaries={"coli": BinaryInfo(installed=coli_installed)},
             api_keys={
                 "groq": ApiKeyStatus(configured=False, env_var="GROQ_API_KEY"),
                 "gemini": ApiKeyStatus(configured=gemini_key, env_var="GEMINI_API_KEY"),
@@ -120,7 +120,7 @@ def test_transcript_create_threads_speakers_to_coli(tmp_path, monkeypatch) -> No
     source.write_bytes(b"audio")
 
     async def fake_audit(project_path: Path | None = None) -> AuditResult:  # noqa: ARG001
-        return _audit_result(gemini_key=False)
+        return _audit_result(coli_installed=True, gemini_key=False)
 
     async def fake_coli(
         file: Path,

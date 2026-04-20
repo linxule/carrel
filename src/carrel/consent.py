@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from carrel.models import ConvertTool, ResearcherProfile, Sensitivity, TranscribeTool
 
+# Deprecated compatibility wrapper: spec 010 moved routing decisions into
+# carrel.policy.sensitivity.select_tool. Keep this boolean helper for callers
+# that still need a coarse cloud gate during the transition.
 CLOUD_TOOLS = {
     ConvertTool.MINERU.value,
     TranscribeTool.GROQ.value,

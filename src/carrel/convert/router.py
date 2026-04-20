@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from carrel.errors import CarrelError, ToolNotInstalled
+from carrel.errors import CarrelError
 from carrel.env.install import install_command_for
 from carrel.models import ConvertTool, HardwareCapability, Sensitivity, ToolAvailability
+from carrel.policy.sensitivity import select_tool
 
 
 def select_convert_tool(
@@ -15,7 +16,6 @@ def select_convert_tool(
     cloud_consent: bool = False,
     explicit_tool: ConvertTool | None = None,
 ) -> ConvertTool:
-    # Used by consent gate; see planning/specs/010-policy-module.md.
     _ = sensitivity, hardware
     if explicit_tool is not None:
         if explicit_tool == ConvertTool.DEFUDDLE:
@@ -23,11 +23,32 @@ def select_convert_tool(
                 "defuddle is for web capture, not file conversion",
                 hint="Use 'carrel capture url <URL>' for web pages, or omit --tool for auto-detection.",
             )
-        return explicit_tool
+
+    available_tools: list[ConvertTool] = []
     if file.suffix.lower() != ".pdf":
-        return ConvertTool.MARKDOWNIFY
-    if tools.binaries.get("lit") and tools.binaries["lit"].installed:
-        return ConvertTool.LITEPARSE
-    if cloud_consent and tools.api_keys.get("mineru") and tools.api_keys["mineru"].configured:
-        return ConvertTool.MINERU
-    raise ToolNotInstalled("liteparse", install_command_for("liteparse") or "install liteparse")
+        available_tools.append(ConvertTool.MARKDOWNIFY)
+    else:
+        if explicit_tool == ConvertTool.MARKDOWNIFY:
+            available_tools.append(ConvertTool.MARKDOWNIFY)
+        if tools.binaries.get("lit") and tools.binaries["lit"].installed:
+            available_tools.append(ConvertTool.LITEPARSE)
+        if tools.api_keys.get("mineru") and tools.api_keys["mineru"].configured:
+            available_tools.append(ConvertTool.MINERU)
+
+    decision = select_tool(
+        requested_tool=explicit_tool,
+        available_tools=available_tools,
+        sensitivity=sensitivity,
+        cloud_consent=cloud_consent,
+        tool_class="convert",
+    )
+    if decision.selected_tool is not None:
+        return decision.selected_tool
+
+    raise CarrelError(
+        decision.rationale,
+        hint=(
+            "Install it: "
+            f"{install_command_for('liteparse') or 'install liteparse'}"
+        ),
+    )

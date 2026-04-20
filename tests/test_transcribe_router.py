@@ -1,6 +1,6 @@
 import pytest
 
-from carrel.errors import CarrelError, ToolNotInstalled
+from carrel.errors import CarrelError
 from carrel.models import (
     ApiKeyStatus,
     BinaryInfo,
@@ -34,7 +34,7 @@ def test_transcribe_router_respects_explicit_tool() -> None:
     assert tool == TranscribeTool.GROQ
 
 
-def test_transcribe_router_uses_gemini_for_youtube_with_cloud_consent() -> None:
+def test_transcribe_router_prefers_youtube_captions_over_gemini_by_default() -> None:
     tool = select_transcribe_tool(
         source="https://www.youtube.com/watch?v=abc123",
         sensitivity=Sensitivity.MEDIUM,
@@ -42,7 +42,7 @@ def test_transcribe_router_uses_gemini_for_youtube_with_cloud_consent() -> None:
         tools=make_tools(gemini_key=True),
         cloud_consent=True,
     )
-    assert tool == TranscribeTool.GEMINI
+    assert tool == TranscribeTool.YOUTUBE_CAPTIONS
 
 
 def test_transcribe_router_falls_back_to_local_youtube_captions() -> None:
@@ -65,10 +65,10 @@ def test_transcribe_router_prefers_coli_for_audio_files() -> None:
     assert tool == TranscribeTool.COLI
 
 
-def test_transcribe_router_uses_groq_when_coli_missing_and_cloud_allowed() -> None:
+def test_transcribe_router_uses_groq_when_low_sensitivity_allows_cloud_fallback() -> None:
     tool = select_transcribe_tool(
         source="recording.m4a",
-        sensitivity=Sensitivity.MEDIUM,
+        sensitivity=Sensitivity.LOW,
         hardware=HardwareCapability.LOW,
         tools=make_tools(groq_key=True),
         cloud_consent=True,
@@ -76,14 +76,16 @@ def test_transcribe_router_uses_groq_when_coli_missing_and_cloud_allowed() -> No
     assert tool == TranscribeTool.GROQ
 
 
-def test_transcribe_router_errors_without_audio_tools() -> None:
-    with pytest.raises(ToolNotInstalled) as exc:
+def test_transcribe_router_errors_for_medium_sensitivity_without_explicit_cloud_override() -> None:
+    with pytest.raises(CarrelError) as exc:
         select_transcribe_tool(
             source="recording.m4a",
             sensitivity=Sensitivity.MEDIUM,
             hardware=HardwareCapability.MEDIUM,
-            tools=make_tools(),
+            tools=make_tools(groq_key=True),
+            cloud_consent=True,
         )
+    assert exc.value.message == "Local tool missing; to use cloud, run with `--tool <cloud>`"
     assert exc.value.hint is not None
 
 

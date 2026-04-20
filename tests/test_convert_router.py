@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from carrel.convert.router import select_convert_tool
-from carrel.errors import CarrelError, ToolNotInstalled
+from carrel.errors import CarrelError
 from carrel.models import (
     ApiKeyStatus,
     BinaryInfo,
@@ -53,10 +53,10 @@ def test_convert_router_prefers_liteparse_for_pdf() -> None:
     assert tool == ConvertTool.LITEPARSE
 
 
-def test_convert_router_uses_mineru_when_local_missing_and_cloud_allowed() -> None:
+def test_convert_router_uses_mineru_when_low_sensitivity_allows_cloud_fallback() -> None:
     tool = select_convert_tool(
         file=Path("paper.pdf"),
-        sensitivity=Sensitivity.MEDIUM,
+        sensitivity=Sensitivity.LOW,
         hardware=HardwareCapability.MEDIUM,
         tools=make_tools(mineru_key=True),
         cloud_consent=True,
@@ -64,14 +64,16 @@ def test_convert_router_uses_mineru_when_local_missing_and_cloud_allowed() -> No
     assert tool == ConvertTool.MINERU
 
 
-def test_convert_router_errors_when_no_pdf_tool_available() -> None:
-    with pytest.raises(ToolNotInstalled) as exc:
+def test_convert_router_errors_when_medium_sensitivity_needs_explicit_cloud_override() -> None:
+    with pytest.raises(CarrelError) as exc:
         select_convert_tool(
             file=Path("paper.pdf"),
             sensitivity=Sensitivity.MEDIUM,
             hardware=HardwareCapability.MEDIUM,
-            tools=make_tools(),
+            tools=make_tools(mineru_key=True),
+            cloud_consent=True,
         )
+    assert exc.value.message == "Local tool missing; to use cloud, run with `--tool <cloud>`"
     assert exc.value.hint is not None
 
 
