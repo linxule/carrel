@@ -1,24 +1,54 @@
 import pytest
 
-from carrel.env.install import install_command_for
+from carrel.env.install import INSTALLS, install_command, install_command_for
+from carrel.env.platform import Platform
 
 
 @pytest.mark.parametrize(
-    ("tool", "platform", "expected"),
+    ("platform", "tool", "expected"),
     [
-        ("obsidian", "darwin", "brew install --cask obsidian"),
-        ("obsidian", "win32", "winget install Obsidian.Obsidian"),
-        ("ffmpeg", "linux", "Use your distro package manager, e.g. sudo apt install ffmpeg"),
-        ("bun", "windows", "winget install Oven-sh.Bun"),
+        (Platform.MACOS, "liteparse", "bun add -g @llamaindex/liteparse"),
+        (Platform.LINUX, "liteparse", "bun add -g @llamaindex/liteparse"),
+        (Platform.WINDOWS, "liteparse", "bun add -g @llamaindex/liteparse"),
+        (Platform.MACOS, "gws", "npm install -g @googleworkspace/cli"),
+        (Platform.LINUX, "gws", "npm install -g @googleworkspace/cli"),
+        (Platform.WINDOWS, "gws", "npm install -g @googleworkspace/cli"),
+        (Platform.MACOS, "obsidian", "brew install --cask obsidian"),
+        (Platform.LINUX, "obsidian", "Download AppImage from https://obsidian.md"),
+        (Platform.WINDOWS, "obsidian", "winget install Obsidian.Obsidian"),
+        (Platform.MACOS, "ffmpeg", "brew install ffmpeg"),
+        (Platform.LINUX, "ffmpeg", "apt install -y ffmpeg  # or dnf install ffmpeg on Fedora"),
+        (Platform.WINDOWS, "ffmpeg", "winget install Gyan.FFmpeg"),
+        (Platform.MACOS, "coli", "bun add -g @marswave/coli"),
+        (Platform.LINUX, "coli", "bun add -g @marswave/coli"),
+        (Platform.WINDOWS, "coli", "bun add -g @marswave/coli"),
+        (Platform.MACOS, "defuddle", "bun add -g defuddle"),
+        (Platform.LINUX, "defuddle", "bun add -g defuddle"),
+        (Platform.WINDOWS, "defuddle", "bun add -g defuddle"),
+        (Platform.MACOS, "bun", "curl -fsSL https://bun.sh/install | bash"),
+        (Platform.LINUX, "bun", "curl -fsSL https://bun.sh/install | bash"),
+        (Platform.WINDOWS, "bun", 'powershell -c "irm https://bun.sh/install.ps1 | iex"'),
+        (Platform.MACOS, "zotero", "brew install --cask zotero"),
+        (Platform.LINUX, "zotero", "Download from https://www.zotero.org/download/"),
+        (Platform.WINDOWS, "zotero", "winget install Zotero.Zotero"),
     ],
 )
-def test_install_command_for_platform_specific_tools(tool: str, platform: str, expected: str) -> None:
+def test_install_command_matrix(tool: str, platform: Platform, expected: str) -> None:
+    assert install_command(tool, platform) == expected
     assert install_command_for(tool, platform) == expected
 
 
-@pytest.mark.parametrize("platform", ["linux", "win32"])
-def test_install_command_for_adds_brew_fallback_for_non_darwin_platforms(platform: str) -> None:
-    assert (
-        install_command_for("liteparse", platform)
-        == "brew tap run-llama/liteparse && brew install llamaindex-liteparse  # TODO: spec 007"
-    )
+def test_install_command_for_accepts_legacy_platform_strings() -> None:
+    assert install_command_for("obsidian", "darwin") == "brew install --cask obsidian"
+    assert install_command_for("obsidian", "linux") == "Download AppImage from https://obsidian.md"
+    assert install_command_for("obsidian", "win32") == "winget install Obsidian.Obsidian"
+
+
+def test_install_command_unknown_tool_returns_none() -> None:
+    assert install_command("missing", Platform.MACOS) is None
+    assert install_command_for("missing", "linux") is None
+
+
+def test_install_table_is_platform_keyed_for_every_tool() -> None:
+    for platform_commands in INSTALLS.values():
+        assert set(platform_commands) == {Platform.MACOS, Platform.LINUX, Platform.WINDOWS}

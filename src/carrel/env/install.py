@@ -1,57 +1,87 @@
-import sys
+from __future__ import annotations
+
+from carrel.env.platform import Platform, detect_platform
 
 
-INSTALL_COMMANDS = {
-    "liteparse": "brew tap run-llama/liteparse && brew install llamaindex-liteparse",
-    "coli": "bun add -g @marswave/coli",
-    "defuddle": "bun add -g defuddle",
-    "gws": "brew install googleworkspace-cli",
-    "markitdown": "uv add markitdown",
-    "youtube-transcript-api": "uv add youtube-transcript-api",
-    "ffmpeg": "brew install ffmpeg",
-    "pandoc": "brew install pandoc",
-}
-
-PLATFORM_INSTALL_COMMANDS = {
+INSTALLS: dict[str, dict[Platform, str | None]] = {
+    "liteparse": {
+        Platform.MACOS: "bun add -g @llamaindex/liteparse",
+        Platform.LINUX: "bun add -g @llamaindex/liteparse",
+        Platform.WINDOWS: "bun add -g @llamaindex/liteparse",
+    },
+    "gws": {
+        Platform.MACOS: "npm install -g @googleworkspace/cli",
+        Platform.LINUX: "npm install -g @googleworkspace/cli",
+        Platform.WINDOWS: "npm install -g @googleworkspace/cli",
+    },
     "obsidian": {
-        "darwin": "brew install --cask obsidian",
-        "linux": "Download AppImage from https://obsidian.md/download",
-        "win32": "winget install Obsidian.Obsidian",
+        Platform.MACOS: "brew install --cask obsidian",
+        Platform.LINUX: "Download AppImage from https://obsidian.md",
+        Platform.WINDOWS: "winget install Obsidian.Obsidian",
     },
     "ffmpeg": {
-        "darwin": "brew install ffmpeg",
-        "linux": "Use your distro package manager, e.g. sudo apt install ffmpeg",
-        "win32": "winget install Gyan.FFmpeg",
+        Platform.MACOS: "brew install ffmpeg",
+        Platform.LINUX: "apt install -y ffmpeg  # or dnf install ffmpeg on Fedora",
+        Platform.WINDOWS: "winget install Gyan.FFmpeg",
+    },
+    "coli": {
+        Platform.MACOS: "bun add -g @marswave/coli",
+        Platform.LINUX: "bun add -g @marswave/coli",
+        Platform.WINDOWS: "bun add -g @marswave/coli",
+    },
+    "defuddle": {
+        Platform.MACOS: "bun add -g defuddle",
+        Platform.LINUX: "bun add -g defuddle",
+        Platform.WINDOWS: "bun add -g defuddle",
     },
     "bun": {
-        "darwin": "brew install bun",
-        "linux": "curl -fsSL https://bun.com/install | bash",
-        "win32": "winget install Oven-sh.Bun",
+        Platform.MACOS: "curl -fsSL https://bun.sh/install | bash",
+        Platform.LINUX: "curl -fsSL https://bun.sh/install | bash",
+        Platform.WINDOWS: 'powershell -c "irm https://bun.sh/install.ps1 | iex"',
+    },
+    "zotero": {
+        Platform.MACOS: "brew install --cask zotero",
+        Platform.LINUX: "Download from https://www.zotero.org/download/",
+        Platform.WINDOWS: "winget install Zotero.Zotero",
+    },
+    "markitdown": {
+        Platform.MACOS: "uv add markitdown",
+        Platform.LINUX: "uv add markitdown",
+        Platform.WINDOWS: "uv add markitdown",
+    },
+    "youtube-transcript-api": {
+        Platform.MACOS: "uv add youtube-transcript-api",
+        Platform.LINUX: "uv add youtube-transcript-api",
+        Platform.WINDOWS: "uv add youtube-transcript-api",
+    },
+    "pandoc": {
+        Platform.MACOS: "brew install pandoc",
+        Platform.LINUX: "apt install -y pandoc  # or dnf install pandoc on Fedora",
+        Platform.WINDOWS: "winget install JohnMacFarlane.Pandoc",
     },
 }
 
 
-def _normalize_platform(platform: str | None) -> str:
-    value = (platform or sys.platform).lower()
+def _coerce_platform(platform: Platform | str | None) -> Platform:
+    if platform is None:
+        return detect_platform()
+    if isinstance(platform, Platform):
+        return platform
+
+    value = platform.lower()
     if value in {"darwin", "macos", "mac", "osx"}:
-        return "darwin"
-    if value.startswith("win") or value == "windows":
-        return "win32"
+        return Platform.MACOS
+    if value.startswith("win") or value in {"windows", "cygwin"}:
+        return Platform.WINDOWS
     if value.startswith("linux"):
-        return "linux"
-    return value
+        return Platform.LINUX
+    return Platform.UNKNOWN
 
 
-def install_command_for(tool: str, platform: str | None = None) -> str | None:
-    normalized_platform = _normalize_platform(platform)
-    platform_commands = PLATFORM_INSTALL_COMMANDS.get(tool)
-    if platform_commands:
-        return platform_commands.get(normalized_platform)
+def install_command(tool: str, platform: Platform | None = None) -> str | None:
+    resolved_platform = detect_platform() if platform is None else platform
+    return INSTALLS.get(tool, {}).get(resolved_platform)
 
-    command = INSTALL_COMMANDS.get(tool)
-    if command is None:
-        return None
 
-    if normalized_platform != "darwin" and command.startswith("brew "):
-        return f"{command}  # TODO: spec 007"
-    return command
+def install_command_for(tool: str, platform: Platform | str | None = None) -> str | None:
+    return install_command(tool, _coerce_platform(platform))
