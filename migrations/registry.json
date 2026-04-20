@@ -55,6 +55,13 @@
       "file": "0.5.4-to-0.6.0.md",
       "breaking": false,
       "summary": "Markdown control plane closure milestone: spec 008 trust enforcement (carrel trust check|list|show CLI gates 7 write sites; TrustLevel enum promoted from Literal); .carrel/exports/ auto-cleanup after successful conversion (privacy fix); spec 007 unblocked (liteparse + gws Windows support confirmed via upstream research); 143 tests pass"
+    },
+    {
+      "from": "0.6.0",
+      "to": "0.7.0",
+      "file": "0.6.0-to-0.7.0.md",
+      "breaking": false,
+      "summary": "Four specs ship together: 007 (first-class Windows + Linux support via Platform enum, per-tool install dicts, OS-aware decision tree, cheatsheet platform param), 010 (policy/sensitivity.py with 16-row routing matrix and --explain flag; routers consume policy; trust.py moved to policy/trust.py), 011 (carrel vault dashboard|automation-prompt|check-sync|add-markers; HTML-comment markers in CLAUDE.md; hook once-per-24h sync check), 006 (carrel env validate + fix --safe + /carrel-fix + env-doctor skill; tools_configured re-sync via PlatformToolMatrix). 228 tests pass. Imperial PC + Mac researchers at parity."
     }
   ]
 }
