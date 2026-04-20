@@ -65,6 +65,7 @@ Summarize and confirm:
 ## Output
 
 After the interview, structure the profile as JSON (see `skills/environment-setup/references/interview-protocol.md` for the schema) and save to `.carrel/environment.json`.
+The automation block written here is minimal -- `/carrel-automate` will populate the rest if the researcher opts in.
 
 Then hand off to the setup flow (Step 4 onwards in the environment-setup skill).
 

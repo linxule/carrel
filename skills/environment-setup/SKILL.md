@@ -6,6 +6,7 @@ description: "This skill should be used when a researcher wants to set up their 
 # environment-setup
 
 Orchestrates researcher onboarding: interview, hardware audit, tool configuration, Obsidian vault scaffolding, and cheat sheet generation. Detects whether this is a first-time setup, a returning user, or a troubleshooting request.
+Steps in this skill correspond to Phases in `commands/carrel-setup.md` (Skill Step N = Command Phase N-1 after Step 4).
 
 ## When to Use
 
@@ -222,7 +223,7 @@ All deterministic operations live in the Python CLI (canonical source of truth):
 - `carrel vault init <path>` — vault scaffold (Step 4)
 - `carrel vault cheatsheet --vault <path> --force` — regenerate `_meta/cheat_sheet.md` (Step 8)
 
-The legacy Node scripts (`check-environment.js`, `create-vault.js`, `generate-cheatsheet.js`) were removed in v0.5.2 — they were superseded by the Python CLI in v0.3 and had drifted to write invalid Pydantic data.
+The legacy `skills/environment-setup/scripts/` Node scripts (`create-vault.js`, `generate-cheatsheet.js`, plus a `check-environment.js` distinct from the current hook) were removed in v0.5.2 because the Python CLI had already replaced them and the old scripts had drifted to write invalid Pydantic data.
 
 ## Related
 

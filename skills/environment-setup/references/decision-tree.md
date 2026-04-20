@@ -6,7 +6,7 @@ Maps interview answers + hardware audit → configuration plan.
 
 ## Prerequisites (Bootstrap)
 
-The bootstrap script (`bootstrap.sh`) handles machine-level prerequisites before the plugin runs. If a researcher hasn't run it, check for missing tools during the hardware audit and install what's needed:
+The canonical installers are `install.sh` on macOS/Linux and `install.ps1` on Windows. If a researcher has not run the appropriate installer yet, check for missing tools during the hardware audit and install what's needed:
 
 | Tool | Purpose | Install |
 |------|---------|---------|
@@ -17,7 +17,7 @@ The bootstrap script (`bootstrap.sh`) handles machine-level prerequisites before
 | uv | Python tools | `brew install uv` |
 | gh | GitHub | `brew install gh` |
 
-See `references/toolchain-guide.md` for the full toolchain policy.
+See `references/toolchain-guide.md` for the full toolchain policy and `references/obsidian-setup.md` for the Obsidian handoff details after install.
 
 ## Core (Always Install)
 
@@ -26,7 +26,7 @@ These are set up for every researcher regardless of answers:
 | Component | Method | Notes |
 |-----------|--------|-------|
 | Vault folder structure | `carrel vault init` | Customized based on field |
-| `.obsidian/` config | `carrel vault init` | Core plugins, templates |
+| `.obsidian/` config | `carrel vault init` | Core plugins, templates; see `references/obsidian-setup.md` |
 | `CLAUDE.md` | Generated | Researcher profile + guidelines |
 | Cheat sheet | `carrel vault init` writes initial; `carrel vault cheatsheet --force` regenerates | Reference card in `_meta/` |
 | liteparse | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` | Local PDF conversion — always install |

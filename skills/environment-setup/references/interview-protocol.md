@@ -117,6 +117,13 @@ The schema your output must match:
   },
   "automation": {
     "enabled": false,
+    "inbox_processing": true,
+    "vault_health": true,
+    "cross_linking_suggestions": true,
+    "gap_analysis": false,
+    "draft_feedback": false,
+    "reflection_synthesis": true,
+    "wiki_maintenance": false,
     "trust_level": "advisory",
     "model": "sonnet",
     "schedule": "daily",

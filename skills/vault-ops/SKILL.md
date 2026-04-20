@@ -30,7 +30,9 @@ vault/
 ├── drafts/         # Writing in progress
 ├── talks/          # Presentation prep
 ├── admin/          # Committee work, letters, admin tasks
-├── _meta/          # Cheat sheet, reflections, friction log
+├── _meta/          # Cheat sheet, local scratch, reflections, friction log
+│   ├── local/      # Local-only working files and exports
+│   └── reflections/ # Structured reflection notes
 └── _templates/     # Note templates (meeting, reflection, daily, paper-notes)
 ```
 

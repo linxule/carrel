@@ -36,7 +36,7 @@ Review the researcher's current Carrel setup, check for plugin updates, and make
 7. **Update the version marker**: Write `.carrel/plugin-state.json`:
    ```json
    {
-     "version": "<current plugin version>",
+     "plugin_version": "<current plugin version>",
      "last_migrated": "<today's date>",
      "install_source": "marketplace"
    }

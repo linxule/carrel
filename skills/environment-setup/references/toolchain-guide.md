@@ -39,7 +39,7 @@ brew install ffmpeg
 bun add -g @marswave/coli
 ```
 
-Both are required together — `coli` handles transcription, `ffmpeg` handles audio decoding. Check `environment.json` — if `data_types` includes audio, install both.
+Both are required together — `coli` handles transcription, `ffmpeg` handles audio decoding. Install both when the interview or current profile says the researcher records interviews, meetings, or lectures.
 
 ## Document Tools
 

@@ -82,6 +82,8 @@ Claude will:
 Claude will tell you to install Obsidian — it's the app you'll use to browse your research vault.
 
 - **Mac**: Claude may offer to install it for you, or download from [obsidian.md](https://obsidian.md)
+- **Windows**: Install with `winget install Obsidian.Obsidian`, or download from [obsidian.md](https://obsidian.md)
+- **Linux**: Download the AppImage from [obsidian.md](https://obsidian.md/download)
 
 After installing:
 1. Open Obsidian

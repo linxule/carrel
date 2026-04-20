@@ -78,7 +78,7 @@ Offer: "Want me to also save this as `_meta/lab-handbook.md` — your canonical 
 
 **Interactive** (default): brief exchange in Step 1, conversational refinement in Step 5.
 
-**Quick** (`--quick`): skip the brief, use defaults (new lab member, general access), save the dated handbook, skip the canonical copy. Useful for refreshing periodically.
+**Quick mode (when researcher says just generate one)**: skip the brief, use defaults (new lab member, general access), save the dated handbook, skip the canonical copy. This is a behavioral shortcut, not a CLI flag.
 
 ## Guidelines
 
