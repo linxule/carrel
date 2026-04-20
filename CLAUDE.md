@@ -186,3 +186,6 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/009-audit-documentation.md` | Documentation coherence pass: 5 HIGH, 6 MEDIUM (skill drift, fictional Mustache template, hardware-audit schema mismatch) |
 | `planning/reviews/009-audit-plugin-surface.md` | Plugin wiring integrity pass: 3 runtime bugs (session-reflect dead, /carrel-research nonexistent, cloud_consent display) + drift |
 | `planning/reviews/009-audit-adversarial.md` | Codex 12-month-on-call lens: trust enforcement gap, sensitivity routing gap, narrative shadow state, 3 predicted bug classes |
+| `planning/specs/008-trust-enforcement.md` | v0.6.x spec: `carrel trust check` CLI gates writes by trust level (closes 009 A1 / Codex §4) |
+| `planning/specs/010-policy-module.md` | v0.6.x spec: `src/carrel/policy.py` owns sensitivity routing; `--explain` rationale flag (closes 009 A2 / Codex §2) |
+| `planning/specs/011-profile-sync-architecture.md` | v0.6.x or 0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` (closes 009 A3 / Codex §3,§6) |
