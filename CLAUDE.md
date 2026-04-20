@@ -195,5 +195,5 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/009-audit-plugin-surface.md` | Plugin wiring integrity pass: 3 runtime bugs (session-reflect dead, /carrel-research nonexistent, cloud_consent display) + drift |
 | `planning/reviews/009-audit-adversarial.md` | Codex 12-month-on-call lens: trust enforcement gap, sensitivity routing gap, narrative shadow state, 3 predicted bug classes |
 | `planning/specs/008-trust-enforcement.md` | v0.6.0 spec: `carrel trust check` CLI gates writes by trust level — **fully implemented in v0.6.0** (closes 009 A1 / Codex §4) |
-| `planning/specs/010-policy-module.md` | v0.6.x spec: `src/carrel/policy.py` owns sensitivity routing; `--explain` rationale flag (closes 009 A2 / Codex §2) |
-| `planning/specs/011-profile-sync-architecture.md` | v0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` (closes 009 A3 / Codex §3,§6) — implemented |
+| `planning/specs/010-policy-module.md` | v0.7.0 spec: `src/carrel/policy/sensitivity.py` owns sensitivity routing with 16-row matrix; `--explain` rationale flag — **fully implemented in v0.7.0** (closes 009 A2 / Codex §2) |
+| `planning/specs/011-profile-sync-architecture.md` | v0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` via HTML-comment markers — **fully implemented in v0.7.0** (closes 009 A3 / Codex §3,§6) |
