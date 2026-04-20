@@ -26,7 +26,10 @@ function findCarrelRoot(startPath) {
 function readJsonFile(filePath) {
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch {
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      console.error(`Note: Could not parse ${filePath}: ${error.message}`);
+    }
     return null;
   }
 }
@@ -243,18 +246,25 @@ function main() {
   // stopped between phases (last_completed_phase < 9 and not marked complete).
   const setupStatePath = path.join(projectRoot, '.carrel', 'setup-state.json');
   const setupState = readJsonFile(setupStatePath);
-  if (setupState && setupState.completed_at == null && typeof setupState.last_completed_phase === 'number' && setupState.last_completed_phase < 9) {
+  if (setupState != null) {
     const phase = setupState.last_completed_phase;
-    const phaseLabel = {
-      4: 'after the vault was scaffolded',
-      5: 'after optional MCPs',
-      6: 'after the human steps',
-      7: 'after the cheat sheet',
-      8: 'after the automation step',
-    }[phase] || `at phase ${phase}`;
-    console.log('');
-    console.log(`Setup paused ${phaseLabel}. Run /carrel-setup to resume from here.`);
-    console.log('');
+    if (!Number.isInteger(phase) || phase < 4 || phase > 9) {
+      console.log('');
+      console.log('Note: .carrel/setup-state.json is malformed — run `carrel setup-state show` to inspect.');
+      console.log('');
+    } else if (phase < 9 || setupState.completed_at == null) {
+      const phaseLabel = {
+        4: 'after the vault was scaffolded',
+        5: 'after optional MCPs',
+        6: 'after the human steps',
+        7: 'after the cheat sheet',
+        8: 'after the automation step',
+        9: 'during the final handoff',
+      }[phase] || `at phase ${phase}`;
+      console.log('');
+      console.log(`Setup paused ${phaseLabel}. Run /carrel-setup to resume from here.`);
+      console.log('');
+    }
   }
 
   try {
