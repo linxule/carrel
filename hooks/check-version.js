@@ -29,7 +29,7 @@ function getLastSeenVersion(carrelRoot) {
   try {
     const statePath = path.join(carrelRoot, '.carrel', 'plugin-state.json');
     const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-    return state.plugin_version || state.version || null;
+    return state.plugin_version || null;
   } catch {
     return null;
   }

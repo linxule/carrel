@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import frontmatter
+import pytest
 from typer.testing import CliRunner
 
 from carrel.cli.main import app
-from carrel.errors import ToolNotInstalled
-from carrel.google.export import export_target_for, parse_google_workspace_url
+from carrel.errors import ConversionError, ToolNotInstalled
+from carrel.google.export import ensure_gws_authenticated, export_target_for, parse_google_workspace_url
 from carrel.models import ConvertTool
 
 runner = CliRunner()
@@ -108,3 +109,17 @@ def test_google_export_without_gws_shows_install_hint(tmp_path, monkeypatch) -> 
 
     assert result.exit_code == 1
     assert "brew install googleworkspace-cli && gws auth login -s drive" in result.output
+
+
+@pytest.mark.asyncio
+async def test_ensure_gws_authenticated_raises_conversion_error_for_auth_failure(monkeypatch) -> None:
+    async def fake_run_gws(args: list[str], timeout: int) -> tuple[bytes, bytes, int]:  # noqa: ARG001
+        return b"", b"login required", 1
+
+    monkeypatch.setattr("carrel.google.export._run_gws", fake_run_gws)
+
+    with pytest.raises(ConversionError) as exc:
+        await ensure_gws_authenticated()
+
+    assert exc.value.message == "gws not authenticated"
+    assert exc.value.hint == "login required"

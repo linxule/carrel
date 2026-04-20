@@ -30,10 +30,17 @@ def _is_url(source: str) -> bool:
     return source.startswith("http://") or source.startswith("https://")
 
 
-async def _transcribe(source: str, tool: TranscribeTool, timeout: int | None) -> tuple[str, dict]:
-    effective_timeout = timeout or (300 if tool in {TranscribeTool.COLI, TranscribeTool.GEMINI} else 120)
+async def _transcribe(
+    source: str,
+    tool: TranscribeTool,
+    timeout: int | None,
+    speakers: int | None,
+) -> tuple[str, dict]:
+    effective_timeout = timeout or (
+        300 if tool in {TranscribeTool.COLI, TranscribeTool.GROQ, TranscribeTool.GEMINI} else 120
+    )
     if tool == TranscribeTool.COLI:
-        text = await transcribe_with_coli(Path(source), timeout=effective_timeout)
+        text = await transcribe_with_coli(Path(source), speakers=speakers, timeout=effective_timeout)
         return text, {}
     if tool == TranscribeTool.GROQ:
         api_key = os.environ.get("GROQ_API_KEY")
@@ -49,7 +56,7 @@ async def _transcribe(source: str, tool: TranscribeTool, timeout: int | None) ->
         return text, {}
     if tool == TranscribeTool.YOUTUBE_CAPTIONS:
         return await transcribe_with_youtube_captions(source)
-    raise ToolNotConfigured("gemini", "GEMINI_API_KEY (required for YouTube transcription)")
+    raise CarrelError(f"Unknown transcribe tool: {tool}")
 
 
 async def _run_transcribe_pipeline(
@@ -59,6 +66,7 @@ async def _run_transcribe_pipeline(
     sensitivity: Sensitivity | None,
     tool: TranscribeTool | None,
     timeout: int | None,
+    speakers: int | None,
 ) -> tuple[TranscribeTool, str, dict]:
     audit_result = await audit(vault_path)
     selected_tool = select_transcribe_tool(
@@ -69,7 +77,7 @@ async def _run_transcribe_pipeline(
         cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
         explicit_tool=tool,
     )
-    content, metadata = await _transcribe(resolved_source, selected_tool, timeout)
+    content, metadata = await _transcribe(resolved_source, selected_tool, timeout, speakers)
     return selected_tool, content, metadata
 
 
@@ -105,7 +113,6 @@ def create_command(
     fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
 ) -> None:
     try:
-        _ = speakers
         resolved_source = source if _is_url(source) else str(normalize_path(Path(source)))
         vault_path = resolve_vault(vault)
         profile = read_profile(vault_path)
@@ -133,7 +140,7 @@ def create_command(
         started = time.perf_counter()
         selected_tool, content, metadata = asyncio.run(
             _run_transcribe_pipeline(
-                resolved_source, vault_path, profile, sensitivity, tool, timeout
+                resolved_source, vault_path, profile, sensitivity, tool, timeout, speakers
             )
         )
         filed = file_transcript(

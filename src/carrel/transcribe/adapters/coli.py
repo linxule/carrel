@@ -11,11 +11,14 @@ async def transcribe_with_coli(
     file: Path,
     model: str = "sensevoice",
     json_output: bool = False,
+    speakers: int | None = None,
     timeout: int = 300,
 ) -> str:
     args = ["coli", "asr", str(file), "--model", model]
     if json_output:
         args.append("--json")
+    if speakers is not None:
+        args.extend(["--speakers", str(speakers)])
 
     try:
         proc = await asyncio.create_subprocess_exec(

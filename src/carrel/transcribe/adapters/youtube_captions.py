@@ -38,18 +38,38 @@ def _format_timestamp(seconds: float) -> str:
 
 async def transcribe_with_youtube_captions(url: str) -> tuple[str, dict]:
     try:
-        from youtube_transcript_api import YouTubeTranscriptApi
+        import youtube_transcript_api as ytt_api_module
     except ModuleNotFoundError as exc:
         raise ToolNotInstalled(
             "youtube-transcript-api",
             install_command_for("youtube-transcript-api") or "install youtube-transcript-api",
         ) from exc
 
+    YouTubeTranscriptApi = ytt_api_module.YouTubeTranscriptApi
+    TranscriptsDisabled = getattr(ytt_api_module, "TranscriptsDisabled", type("TranscriptsDisabled", (Exception,), {}))
+    NoTranscriptFound = getattr(ytt_api_module, "NoTranscriptFound", type("NoTranscriptFound", (Exception,), {}))
+    VideoUnavailable = getattr(ytt_api_module, "VideoUnavailable", type("VideoUnavailable", (Exception,), {}))
+
     video_id = extract_youtube_video_id(url)
     try:
         ytt_api = YouTubeTranscriptApi()
         loop = asyncio.get_running_loop()
         fetched = await loop.run_in_executor(None, partial(ytt_api.fetch, video_id))
+    except TranscriptsDisabled as exc:
+        raise TranscriptionError(
+            "youtube captions are disabled",
+            hint="This video has captions disabled. Use --tool gemini if cloud transcription is allowed.",
+        ) from exc
+    except NoTranscriptFound as exc:
+        raise TranscriptionError(
+            "youtube captions unavailable",
+            hint="No transcript was found for this video. Try --tool gemini if cloud transcription is allowed.",
+        ) from exc
+    except VideoUnavailable as exc:
+        raise TranscriptionError(
+            "youtube video unavailable",
+            hint="Check that the YouTube URL is correct and the video is publicly accessible.",
+        ) from exc
     except Exception as exc:  # pragma: no cover - library exception classes vary by version
         raise TranscriptionError(
             "youtube captions unavailable",

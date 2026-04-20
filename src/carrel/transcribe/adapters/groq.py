@@ -23,5 +23,11 @@ async def transcribe_with_groq(file: Path, api_key: str, timeout: int = 120) -> 
             "groq request failed",
             hint=f"Groq returned HTTP {response.status_code}. Check GROQ_API_KEY and file format.",
         )
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise TranscriptionError(
+            "groq returned invalid JSON",
+            hint="may be rate-limited or returning an HTML error page; try again or check API status",
+        ) from exc
     return payload.get("text") or ""

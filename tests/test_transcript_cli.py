@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 import frontmatter
@@ -59,9 +58,10 @@ def test_transcript_create_falls_back_to_youtube_captions(tmp_path, monkeypatch)
     )
 
     assert result.exit_code == 0
-    stored = frontmatter.load(vault / "transcripts" / f"video-title-{date.today().isoformat()}.md")
+    stored = frontmatter.load(vault / "transcripts" / "video-title.md")
     assert stored["transcriber"] == "youtube_captions"
     assert stored["source_file"] == "https://www.youtube.com/watch?v=abc123"
+    assert stored["date"]
     assert "[00:00:00] Hello" in stored.content
 
 
@@ -98,6 +98,87 @@ def test_transcript_create_with_explicit_gemini_uses_gemini_adapter(tmp_path, mo
 
     assert result.exit_code == 0
     assert calls == ["https://www.youtube.com/watch?v=abc123"]
-    stored = frontmatter.load(vault / "transcripts" / f"youtube-abc123-{date.today().isoformat()}.md")
+    stored = frontmatter.load(vault / "transcripts" / "youtube-abc123.md")
     assert stored["transcriber"] == "gemini"
     assert "Gemini transcript" in stored.content
+
+
+def test_transcript_create_threads_speakers_to_coli(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    source = tmp_path / "meeting.m4a"
+    _init_vault(vault)
+    source.write_bytes(b"audio")
+
+    async def fake_audit(project_path: Path | None = None) -> AuditResult:  # noqa: ARG001
+        return _audit_result(gemini_key=False)
+
+    async def fake_coli(
+        file: Path,
+        model: str = "sensevoice",
+        json_output: bool = False,
+        speakers: int | None = None,
+        timeout: int = 300,
+    ) -> str:
+        assert file == source.resolve()
+        assert model == "sensevoice"
+        assert json_output is False
+        assert speakers == 3
+        assert timeout == 300
+        return "[00:00:00] Coli transcript"
+
+    monkeypatch.setattr("carrel.cli.transcript.audit", fake_audit)
+    monkeypatch.setattr("carrel.cli.transcript.transcribe_with_coli", fake_coli)
+
+    result = runner.invoke(
+        app,
+        [
+            "transcript",
+            "create",
+            str(source),
+            "--vault",
+            str(vault),
+            "--tool",
+            "coli",
+            "--speakers",
+            "3",
+        ],
+    )
+
+    assert result.exit_code == 0
+    stored = frontmatter.load(vault / "transcripts" / "recording-meeting.md")
+    assert stored["transcriber"] == "coli"
+
+
+def test_transcript_create_uses_300_second_default_for_groq(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    source = tmp_path / "lecture.wav"
+    _init_vault(vault)
+    source.write_bytes(b"audio")
+
+    async def fake_audit(project_path: Path | None = None) -> AuditResult:  # noqa: ARG001
+        return _audit_result(gemini_key=False)
+
+    async def fake_groq(file: Path, api_key: str, timeout: int = 120) -> str:
+        assert file == source.resolve()
+        assert api_key == "configured"
+        assert timeout == 300
+        return "[00:00:00] Groq transcript"
+
+    monkeypatch.setattr("carrel.cli.transcript.audit", fake_audit)
+    monkeypatch.setattr("carrel.cli.transcript.transcribe_with_groq", fake_groq)
+    monkeypatch.setenv("GROQ_API_KEY", "configured")
+
+    result = runner.invoke(
+        app,
+        [
+            "transcript",
+            "create",
+            str(source),
+            "--vault",
+            str(vault),
+            "--tool",
+            "groq",
+        ],
+    )
+
+    assert result.exit_code == 0

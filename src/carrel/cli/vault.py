@@ -122,6 +122,7 @@ def status_command(
             "inbox": len(list((vault_path / "inbox").glob("*"))),
         }
         if fmt == OutputFormat.QUIET:
+            typer.echo(str(vault_path))
             return
         if fmt == OutputFormat.JSON:
             console.print(json.dumps({"vault": str(vault_path), **counts}))

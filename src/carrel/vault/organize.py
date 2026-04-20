@@ -93,7 +93,7 @@ def transcript_filename(
     is_url = bool(parsed.scheme and parsed.netloc)
     if is_url:
         base = slugify(title) if title else f"youtube-{_youtube_slug(source)}"
-        return f"{base}-{date}.md"
+        return f"{base}.md"
 
     source_stem = slugify(Path(source).stem)
     base = slugify(title) if title else source_stem
@@ -101,12 +101,12 @@ def transcript_filename(
 
     if prefix == "recording":
         if base.startswith("recording-"):
-            return f"{base}-{date}.md"
-        return f"recording-{base}-{date}.md"
+            return f"{base}.md"
+        return f"recording-{base}.md"
 
     if base == prefix or base.startswith(f"{prefix}-"):
-        return f"{base}-{date}.md"
-    return f"{prefix}-{base}-{date}.md"
+        return f"{base}.md"
+    return f"{prefix}-{base}.md"
 
 
 def sort_inbox(vault: Path) -> list[dict]:

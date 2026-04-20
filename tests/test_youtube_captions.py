@@ -40,3 +40,51 @@ async def test_transcribe_with_youtube_captions_formats_timestamps(monkeypatch) 
 
     assert text == "[00:00:00] Hello world\n[00:01:05] Second line"
     assert metadata == {"video_id": "abc123"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exception_name", "message", "hint"),
+    [
+        (
+            "TranscriptsDisabled",
+            "youtube captions are disabled",
+            "This video has captions disabled. Use --tool gemini if cloud transcription is allowed.",
+        ),
+        (
+            "NoTranscriptFound",
+            "youtube captions unavailable",
+            "No transcript was found for this video. Try --tool gemini if cloud transcription is allowed.",
+        ),
+        (
+            "VideoUnavailable",
+            "youtube video unavailable",
+            "Check that the YouTube URL is correct and the video is publicly accessible.",
+        ),
+    ],
+)
+async def test_transcribe_with_youtube_captions_uses_specific_hints(
+    monkeypatch,
+    exception_name: str,
+    message: str,
+    hint: str,
+) -> None:
+    class FakeApi:
+        def fetch(self, video_id: str):
+            raise getattr(sys.modules["youtube_transcript_api"], exception_name)("boom")
+
+    module = SimpleNamespace(
+        YouTubeTranscriptApi=FakeApi,
+        TranscriptsDisabled=type("TranscriptsDisabled", (Exception,), {}),
+        NoTranscriptFound=type("NoTranscriptFound", (Exception,), {}),
+        VideoUnavailable=type("VideoUnavailable", (Exception,), {}),
+    )
+    monkeypatch.setitem(sys.modules, "youtube_transcript_api", module)
+
+    from carrel.errors import TranscriptionError
+
+    with pytest.raises(TranscriptionError) as exc:
+        await transcribe_with_youtube_captions("https://www.youtube.com/watch?v=abc123")
+
+    assert exc.value.message == message
+    assert exc.value.hint == hint

@@ -17,5 +17,11 @@ async def convert_with_mineru(file: Path, api_key: str, timeout: int = 120) -> t
             "mineru request failed",
             hint=f"Mineru returned HTTP {response.status_code}. Check MINERU_API_KEY and file contents.",
         )
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise ConversionError(
+            "mineru returned invalid JSON",
+            hint="may be rate-limited or returning an HTML error page; try again or check API status",
+        ) from exc
     return payload.get("markdown") or payload.get("text") or "", payload

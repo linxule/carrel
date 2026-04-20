@@ -9,15 +9,15 @@ def test_paper_dirname_fallbacks() -> None:
 
 
 def test_transcript_filename_fallbacks() -> None:
-    assert transcript_filename("interview-P001.m4a", "2026-03-26", kind="interview") == "interview-p001-2026-03-26.md"
-    assert transcript_filename("meeting.m4a", "2026-03-26", kind="meeting") == "meeting-2026-03-26.md"
-    assert transcript_filename("random.wav", "2026-03-26") == "recording-random-2026-03-26.md"
-    assert transcript_filename("https://youtube.com/watch?v=abc123", "2026-03-26") == "youtube-abc123-2026-03-26.md"
+    assert transcript_filename("interview-P001.m4a", "2026-03-26", kind="interview") == "interview-p001.md"
+    assert transcript_filename("meeting.m4a", "2026-03-26", kind="meeting") == "meeting.md"
+    assert transcript_filename("random.wav", "2026-03-26") == "recording-random.md"
+    assert transcript_filename("https://youtube.com/watch?v=abc123", "2026-03-26") == "youtube-abc123.md"
     assert transcript_filename(
         "https://youtube.com/watch?v=abc123",
         "2026-03-26",
         title="Video Title Slug",
-    ) == "video-title-slug-2026-03-26.md"
+    ) == "video-title-slug.md"
 
 
 def test_sort_inbox_suggests_destinations(tmp_path) -> None:
@@ -32,6 +32,6 @@ def test_sort_inbox_suggests_destinations(tmp_path) -> None:
     by_source = {suggestion["source"].split("/")[-1]: suggestion for suggestion in suggestions}
 
     assert len(suggestions) == 3
-    assert by_source["meeting.m4a"]["destination"].endswith("transcripts/recording-meeting-YYYY-MM-DD.md")
+    assert by_source["meeting.m4a"]["destination"].endswith("transcripts/recording-meeting.md")
     assert by_source["paper.pdf"]["destination"].endswith("papers/paper/paper.md")
     assert by_source["idea.md"]["destination"].endswith("notes/idea.md")

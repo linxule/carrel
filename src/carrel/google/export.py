@@ -114,9 +114,9 @@ async def ensure_gws_authenticated(timeout: int = 20) -> None:
         timeout=timeout,
     )
     if returncode != 0:
-        raise ToolNotInstalled(
-            "gws",
-            "brew install googleworkspace-cli && gws auth login -s drive",
+        raise ConversionError(
+            "gws not authenticated",
+            hint=stderr.decode().strip() or "Run: gws auth login -s drive",
         )
 
 

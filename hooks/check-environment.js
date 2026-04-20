@@ -69,6 +69,20 @@ function safeWriteJson(filePath, data) {
   fs.renameSync(tmpPath, filePath);
 }
 
+function shouldShowMigrationPrompt(pluginState, pluginVersion, now) {
+  if (pluginState.last_acknowledged_version !== pluginVersion) {
+    return true;
+  }
+  if (!pluginState.last_acknowledged_at) {
+    return true;
+  }
+  const lastAcknowledged = new Date(pluginState.last_acknowledged_at);
+  if (Number.isNaN(lastAcknowledged.getTime())) {
+    return true;
+  }
+  return now.getTime() - lastAcknowledged.getTime() >= 24 * 60 * 60 * 1000;
+}
+
 function checkAutomation(projectRoot, env) {
   const briefsDir = path.join(projectRoot, '_meta', 'briefs');
   if (!fs.existsSync(briefsDir)) return;
@@ -283,7 +297,10 @@ function main() {
     const rawName = env.name || env.interview?.researcher?.name || null;
     const name = rawName ? ` ${rawName.split(' ')[0]}` : '';
     const sensitivity = env.sensitivity || env.interview?.data?.sensitivity || 'medium';
-    const cloudConsent = env.cloud_consent ?? env.interview?.preferences?.cloud_comfort ?? 'prefer_local';
+    const cloudConsentValue = env.cloud_consent ?? env.interview?.preferences?.cloud_comfort ?? false;
+    const cloudConsent = cloudConsentValue === true || cloudConsentValue === 'cloud_ok'
+      ? 'cloud OK'
+      : 'prefer local';
     const toolsConfigured = env.tools_configured || {};
 
     console.log('');
@@ -323,8 +340,16 @@ function main() {
     // Check for plugin version changes
     const versionResult = checkVersion(projectRoot);
     if (versionResult.needsMigration) {
-      console.log('');
-      console.log(`  Carrel updated: ${versionResult.from} → ${versionResult.to}. Run /carrel-migrate to see what's new.`);
+      const statePath = path.join(projectRoot, '.carrel', 'plugin-state.json');
+      const pluginState = readJsonFile(statePath) || {};
+      const now = new Date();
+      if (shouldShowMigrationPrompt(pluginState, versionResult.to, now)) {
+        console.log('');
+        console.log(`  Carrel updated: ${versionResult.from} → ${versionResult.to}. Run /carrel-migrate to see what's new.`);
+        pluginState.last_acknowledged_version = versionResult.to;
+        pluginState.last_acknowledged_at = now.toISOString();
+        safeWriteJson(statePath, pluginState);
+      }
     }
 
     // Automation checks (gated on _meta/briefs/ existence)

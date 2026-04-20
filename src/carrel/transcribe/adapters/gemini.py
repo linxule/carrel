@@ -32,7 +32,13 @@ async def transcribe_with_gemini(
             "gemini request failed",
             hint=f"Gemini returned HTTP {response.status_code}. Check GEMINI_API_KEY and URL access.",
         )
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise TranscriptionError(
+            "gemini returned invalid JSON",
+            hint="may be rate-limited or returning an HTML error page; try again or check API status",
+        ) from exc
     try:
         return payload["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError) as exc:

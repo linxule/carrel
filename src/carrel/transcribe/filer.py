@@ -42,7 +42,7 @@ def file_transcript(
     )
     payload = {
         "title": metadata.get("title"),
-        "date": metadata.get("date"),
+        "date": metadata.get("date") or date.today().isoformat(),
         "duration": metadata.get("duration"),
         "participants": metadata.get("participants"),
         "project": metadata.get("project"),
