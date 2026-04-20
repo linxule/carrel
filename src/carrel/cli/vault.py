@@ -22,6 +22,11 @@ console = Console()
 
 
 def _safe_slug(name: str) -> str:
+    if ".." in name or "/" in name or "\\" in name:
+        raise CarrelError(
+            "Invalid note name",
+            hint="Path traversal is not allowed. Use a note name, not a path.",
+        )
     normalized = (
         name.lower().replace(" ", "_").replace("/", "").replace("\\", "").replace(".", "")
     )
