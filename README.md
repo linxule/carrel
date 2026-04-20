@@ -14,16 +14,16 @@ Carrel is a Claude Code plugin that onboards researchers into an AI-augmented re
 
 ## Platform Support
 
-Carrel's bootstrap install is cross-platform, but the setup flow is not yet fully cross-platform. Until spec 007 lands, the install scripts can get Carrel onto macOS, Linux, or Windows, while some downstream `/carrel-setup` recommendations remain macOS-only.
+Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux, and Windows. The environment audit records `audit.platform`, install commands are platform-keyed, and the setup docs render OS-aware guidance.
 
 | Tool | macOS | Linux | Windows | Notes |
 |------|:-----:|:-----:|:-------:|-------|
-| Install script | ✅ Full | ✅ Full | ✅ Full | Bootstrap only; downstream setup guidance still has platform gaps |
+| Install script | ✅ Full | ✅ Full | ✅ Full | `install.sh` on macOS/Linux, `install.ps1` on Windows |
 | Obsidian | ✅ Full | ✅ Full | ✅ Full | Native app on all three platforms; install commands differ by OS |
-| liteparse | ✅ Full | ❌ Not supported | ❌ Not supported | Current Carrel guidance is macOS-only; use `mineru` or manual fallback until spec 007 |
+| liteparse | ✅ Full | ✅ Full | ✅ Full | `bun add -g @llamaindex/liteparse` on all three platforms |
 | coli | ✅ Full | ✅ Full | ✅ Full | Requires Bun and `ffmpeg` |
 | defuddle | ✅ Full | ✅ Full | ✅ Full | Bun-based CLI |
-| gws | ⚠️ Partial | ❌ Not supported | ❌ Not supported | macOS-only in current Carrel docs, plus Google Cloud/OAuth setup |
+| gws | ✅ Full | ✅ Full | ✅ Full | `npm install -g @googleworkspace/cli`; Windows OAuth has a documented workaround |
 | mineru | ✅ Full | ✅ Full | ✅ Full | Cloud service; requires `MINERU_API_KEY` |
 | markitdown | ✅ Full | ✅ Full | ✅ Full | Bundled with Carrel's Python environment |
 
@@ -69,7 +69,7 @@ Carrel's automation trust model is now code-enforced, not just narrated in skill
 ## Prerequisites
 
 - **Claude Desktop** (download from [claude.ai](https://claude.ai)) with Claude Code enabled (Settings → Features)
-- **macOS, Linux, or Windows** — the install scripts handle the bootstrap install itself, but `/carrel-setup` still has macOS-only gaps for `liteparse` (PDF conversion) and `gws` (Google Workspace). Windows users will hit those gaps during setup until spec 007 lands.
+- **macOS, Linux, or Windows** — Carrel's install scripts and setup guidance support all three.
 
 New machine? Run the install script first (see Installation).
 
@@ -81,23 +81,22 @@ There are two paths. **Path A is recommended** — it's more reliable because Cl
 
 Best for fresh machines or when a facilitator is helping set up.
 
-**macOS / Linux** — open Terminal and run:
-```bash
-curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
-```
+| Platform | Command |
+|----------|---------|
+| macOS | `curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh \| bash` |
+| Linux | `curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh \| bash` |
+| Windows | `irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 \| iex` |
 
-**Windows** — open PowerShell as Administrator and run:
-```powershell
-irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
-```
+Open Terminal on macOS/Linux or PowerShell as Administrator on Windows, then run the matching command above.
 
 This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, and installs the Carrel plugin. Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
 
 If you have the script locally (e.g., via AirDrop):
-```bash
-bash install.sh          # macOS/Linux
-.\install.ps1            # Windows PowerShell
-```
+| Platform | Command |
+|----------|---------|
+| macOS | `bash install.sh` |
+| Linux | `bash install.sh` |
+| Windows | `.\install.ps1` |
 
 **If the plugin didn't install** (the script will tell you), open a new terminal and run:
 ```bash

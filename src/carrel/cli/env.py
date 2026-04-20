@@ -36,6 +36,8 @@ def doctor_command(
         if fmt == OutputFormat.JSON:
             console.print(result.model_dump_json())
         elif fmt == OutputFormat.HUMAN:
+            console.print(f"Platform: {result.os}")
+            console.print("")
             for name, info in result.tools.binaries.items():
                 status = "OK" if info.installed else "X"
                 detail = info.version or info.path or "missing"
