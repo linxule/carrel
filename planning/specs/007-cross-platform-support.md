@@ -1,42 +1,33 @@
 # 007: Cross-Platform Support (Windows + Linux)
 
-**Status**: Spec (pre-review)
+**Status**: Locked, ready for implementation (blockers resolved 2026-04-20)
 **Version target**: v0.7.0
 **Date**: 2026-04-20
+**Research**: `planning/research/007-windows-tools-research.md`
 
 ---
 
-## LOCK BLOCKERS — DO NOT IMPLEMENT UNTIL RESOLVED
+## LOCK BLOCKERS — RESOLVED 2026-04-20
 
-> Implementation must not start until the blockers below are resolved and the spec is re-locked.
+> Both previously open upstream-research questions resolved via direct verification against upstream releases (2026-03-28 liteparse PyPI wheel, 2026-03-31 gws v0.22.5 Windows binary). Full citations in `planning/research/007-windows-tools-research.md`.
 
-The following questions MUST be answered (with citations) before this spec is locked. Per Kimi review (2026-04-20): "committing a spec that admits it doesn't know whether a core tool works on Windows creates false confidence and leaves the implementation team with an unscoped research task mid-cycle."
+### Lock Blocker A (liteparse Windows): RESOLVED
 
-### Lock blocker A: liteparse Windows installability
+Liteparse supports Windows via `bun add -g @llamaindex/liteparse` (matching Carrel's existing pattern for coli/defuddle). PyPI v1.2.1 (2026-03-28) provides a universal wheel as a Python wrapper around the npm CLI. Upstream README explicitly lists Windows as supported. Tesseract.js is bundled — no system Tesseract needed. LibreOffice and ImageMagick are optional and only needed for non-PDF Office docs, not for PDF parsing (which is Carrel's primary use).
 
-If liteparse has no Windows install path, Windows researchers with HIGH sensitivity have NO local PDF conversion option. They are forced to either:
-- (a) Use mineru (cloud) — violates HIGH-sensitivity local-only default
-- (b) Use WSL — adds significant setup friction and breaks the "Carrel works natively on your OS" promise
-- (c) Use markitdown for PDFs — but markitdown PDF support is poor (the whole reason liteparse was added)
+**Net**: `bun add -g @llamaindex/liteparse` works on all three platforms. No fallback needed. Mineru (cloud, with explicit consent) remains the cloud opt-in on all platforms.
 
-**Required research before lock**: investigate upstream (`run-llama/liteparse`) for:
-1. Is there a `pip install` path? (If yes, Windows works via Python/pip directly.)
-2. Is there a `bun add -g` / `npm install -g` package? (If yes, Windows works via Node.)
-3. Is the Homebrew formula a wrapper around something installable on Windows directly?
-4. If none of the above, is there a documented Windows build-from-source path?
+### Lock Blocker B (gws Windows): RESOLVED
 
-**Decision matrix for the spec lock**:
-- If liteparse works on Windows (any path) → spec proceeds as-is
-- If liteparse is genuinely Mac-only → spec MUST add an explicit "Windows + HIGH sensitivity" decision tree branch with: WSL recommendation, mineru cloud opt-in with explicit consent capture, or accept the gap and document the limitation prominently in the README
+gws v0.22.5 (released 2026-03-31) ships a first-class Windows binary. Install via `npm install -g @googleworkspace/cli` (auto-downloads the platform-native binary). The spec's prior assertion "no Windows package" was outdated — upstream has since shipped multi-platform releases.
 
-### Lock blocker B: gws Windows alternative
+**Caveat**: `gws auth setup` on Windows cannot find `gcloud.cmd` due to Rust binary .cmd resolution. Documented workaround: create the OAuth Desktop app manually at console.cloud.google.com/apis/credentials (one-time setup friction, similar to the existing macOS onboarding effort). Document this in `references/gws-setup-guide.md`.
 
-Confirmed no Windows package as of 2026-04-20. The spec's current resolution ("mark Mac-only with Web Clipper as fallback") is acceptable IF the Web Clipper workflow actually covers the Google Workspace use case. Verify before lock that:
-- Web Clipper handles Google Docs (yes — it's a documented use case)
-- Web Clipper handles Google Sheets (likely degraded; needs testing)
-- Web Clipper handles Google Slides (likely degraded; needs testing)
+**Net**: gws is cross-platform. No need for a Web Clipper fallback — that approach is not a fit for the Google Docs editor canvas (Mozilla Readability is for article HTML, not JS-heavy SPAs). Web Clipper is dropped from this spec.
 
-If Sheets/Slides degrade significantly via Web Clipper, document the gap explicitly.
+### Bonus finding: native Google Docs Markdown export
+
+Google Docs has had a built-in `File > Download > Markdown (.md)` option since 2024-07. For occasional Docs exports on any OS (including Windows researchers who haven't installed gws yet), this is the simplest path. Use gws when bulk export, automation, or Sheets/Slides coverage is needed — `.xlsx`/`.pptx` downloads then route through markitdown (cross-platform).
 
 ---
 
@@ -80,19 +71,19 @@ The audit fix is fundamentally about answering, for each tool, "what's the insta
 
 | Tool | Used For | macOS install | Windows install | Linux install | Decision |
 |------|----------|---------------|-----------------|---------------|----------|
-| **liteparse** | PDF conversion | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` | **TBD** — no documented Windows path | likely `pip install` from PyPI? | Investigate; if no Windows path, mark Mac-only and route to `mineru` (cloud) for Windows |
-| **coli** | Audio transcription | `bun add -g @marswave/coli` | `bun add -g @marswave/coli` (works ✓) | same | Already cross-platform |
-| **defuddle** | Web capture | `bun add -g defuddle` | `bun add -g defuddle` (works ✓) | same | Already cross-platform |
-| **markitdown** | Office docs | bundled with carrel via pip | bundled (works ✓) | bundled | Already cross-platform |
+| **liteparse** | PDF conversion | `bun add -g @llamaindex/liteparse` (preferred, cross-platform) or `brew tap run-llama/liteparse && brew install llamaindex-liteparse` (legacy) | `bun add -g @llamaindex/liteparse` | `bun add -g @llamaindex/liteparse` | **Cross-platform via npm/bun**. Standardize on this path for all platforms; Homebrew stays documented as alternative. |
+| **coli** | Audio transcription | `bun add -g @marswave/coli` | `bun add -g @marswave/coli` | `bun add -g @marswave/coli` | Already cross-platform |
+| **defuddle** | Web capture | `bun add -g defuddle` | `bun add -g defuddle` | `bun add -g defuddle` | Already cross-platform |
+| **markitdown** | Office docs | bundled with carrel via pip | bundled | bundled | Already cross-platform |
 | **ffmpeg** | Audio dependency | `brew install ffmpeg` | `winget install Gyan.FFmpeg` OR `choco install ffmpeg` OR download from gyan.dev | `apt install ffmpeg` / `dnf install ffmpeg` | Branch in install.py |
 | **pandoc** | (currently unused?) | `brew install pandoc` | `winget install JohnMacFarlane.Pandoc` | `apt install pandoc` | Branch (low priority) |
 | **obsidian** | Researcher GUI | `brew install --cask obsidian` | `winget install Obsidian.Obsidian` OR download from obsidian.md | AppImage from obsidian.md | Branch in SKILL guidance + install.py |
-| **gws** | Google Workspace | `brew install googleworkspace-cli` | **No Windows package** | likely build from source | Mark Mac-only; surface in decision tree |
+| **gws** | Google Workspace | `npm install -g @googleworkspace/cli` (preferred, cross-platform) or `brew install googleworkspace-cli` (legacy) | `npm install -g @googleworkspace/cli` or PowerShell installer from GitHub Releases | `npm install -g @googleworkspace/cli` or build from source | **Cross-platform via npm**. Document the Windows OAuth workaround (manual gcloud project creation) in `references/gws-setup-guide.md`. |
 | **zotero** | Reference manager | `brew install --cask zotero` (also direct download) | `winget install Zotero.Zotero` OR direct download | direct download from zotero.org | Branch |
 | **mineru** | Cloud PDF service | API key + Python lib | API key + Python lib | same | Already cross-platform (cloud) |
 | **groq** | Cloud transcription | API key only | API key only | same | Already cross-platform (cloud) |
 
-**Net**: most "Tier 1 blockers" turn into branches over a small set of canonical commands. The hard cases are `liteparse` and `gws` — both need a real answer ("does it exist on Windows?") before the spec is locked.
+**Net**: all Tier 1 tools are cross-platform. No "Mac-only" tags remain. Windows researchers get parity with macOS for both local (liteparse) and cloud-adjacent (gws Google Workspace) workflows, modulo a one-time OAuth setup wrinkle for gws that's documented with workaround.
 
 ---
 
@@ -179,9 +170,14 @@ INSTALLS = {
         Platform.WINDOWS: "winget install Obsidian.Obsidian",
     },
     "gws": {
-        Platform.MACOS: "brew install googleworkspace-cli",
-        Platform.LINUX: "Build from source: https://github.com/...",
-        Platform.WINDOWS: None,  # explicitly unavailable
+        Platform.MACOS: "npm install -g @googleworkspace/cli",
+        Platform.LINUX: "npm install -g @googleworkspace/cli",
+        Platform.WINDOWS: "npm install -g @googleworkspace/cli",
+    },
+    "liteparse": {
+        Platform.MACOS: "bun add -g @llamaindex/liteparse",
+        Platform.LINUX: "bun add -g @llamaindex/liteparse",
+        Platform.WINDOWS: "bun add -g @llamaindex/liteparse",
     },
     # ...
 }
@@ -190,7 +186,7 @@ def install_command(tool: str, platform: Platform) -> str | None:
     """Return install command for tool on platform, or None if unavailable."""
 ```
 
-`None` is the truth-telling escape hatch — surfaces "this tool isn't available on your OS" cleanly.
+`None` is the truth-telling escape hatch — surfaces "this tool isn't available on your OS" cleanly. As of the lock-blocker research (2026-04-20), no Tier 1 tool requires `None` — all have a cross-platform install path.
 
 ### D. Decision tree (`skills/environment-setup/references/decision-tree.md`)
 
@@ -202,11 +198,15 @@ Each tool's "Install" entry becomes platform-aware. Either:
 
 Lean toward (b) — keeps the prose readable and concentrates branching in one place.
 
-#### D2. Mark Mac-only tools
+#### D2. Document platform-specific install notes
 
-Liteparse and gws (if they remain Mac-only) get an explicit "**macOS only**" tag with the alternative recommendation:
-- liteparse on Windows → recommend `mineru` (cloud) as the primary PDF tool
-- gws on Windows → "Google Workspace integration unavailable on Windows; use Web Clipper to manually save Google Docs"
+No Tier 1 tool is Mac-only after the 2026-04-20 research. Document platform-specific install paths per the table above. For gws specifically, include the Windows OAuth workaround in `references/gws-setup-guide.md`:
+
+> On Windows, `gws auth setup` cannot find `gcloud.cmd` due to how Rust binaries resolve `.cmd` wrappers. Skip that command and create the OAuth Desktop credentials manually at https://console.cloud.google.com/apis/credentials — same one-time setup friction as macOS.
+
+Also document the native Google Docs Markdown export path as a zero-install alternative for occasional Docs use on any OS:
+
+> **Tip for quick Google Docs exports**: Google Docs has a built-in `File > Download > Markdown (.md)` option (since 2024-07). Use this for occasional exports; use gws for bulk, automation, or Sheets/Slides coverage.
 
 ### E. Interviewer (`agents/setup-interviewer.md`)
 
@@ -294,7 +294,7 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 ## Implementation Order
 
-1. **Investigate liteparse + gws Windows availability** — answer the open questions before locking the spec
+1. ~~Investigate liteparse + gws Windows availability~~ — DONE 2026-04-20; blockers resolved.
 2. `src/carrel/env/platform.py` (new module: enum + detection)
 3. `AuditResult.platform` field on `models.py`
 4. `audit.py` Windows/Linux detection paths for Obsidian/Zotero
@@ -313,9 +313,9 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 ## Open Questions
 
-1. **Liteparse on Windows.** See Lock Blocker A above. Critical to resolve before locking.
+1. ~~Liteparse on Windows.~~ RESOLVED 2026-04-20 — see Lock Blockers section.
 
-2. **Gws on Windows.** Confirmed no Windows package as of 2026-04-20. Options: (a) accept the gap and document it, (b) build a thin Python wrapper around the Google Drive API directly (significant scope), (c) recommend Web Clipper as the manual fallback. Lean toward (a)+(c) — Web Clipper covers most use cases.
+2. ~~Gws on Windows.~~ RESOLVED 2026-04-20 — see Lock Blockers section.
 
 3. **Scope of the install.py refactor.** Today the constants are flat; the per-tool dict adds a layer of indirection. Worth it for the platform-aware case, but does it complicate other use cases? Lean: yes worth it; the indirection is small and gives us a single source of truth.
 
@@ -331,9 +331,10 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 - Choco-only environments without winget (rare, niche)
 - WSL detection and routing (researchers using WSL get Linux paths — fine)
-- Native Windows build of liteparse (upstream project's call)
+- Native Windows build of liteparse from source (upstream covers this with `npm run build:windows`; researchers rarely need it)
 - ARM Linux specifically (most distros work; not testing)
 - Mobile platforms (iOS, Android) — Carrel is desktop-only
+- Obsidian Web Clipper as a Google Workspace fallback — not a fit for the Docs editor canvas (Mozilla Readability engine is for article HTML); dropped from recommendations based on 2026-04-20 research
 
 ---
 
