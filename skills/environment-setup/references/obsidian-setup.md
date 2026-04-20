@@ -149,16 +149,24 @@ These are nice-to-have, not required. Don't overwhelm the researcher during setu
 
 Claude cannot install GUI apps directly. Options:
 
-1. **Homebrew** (if available): `brew install obsidian`
+1. **macOS (Homebrew, if available)**: `brew install --cask obsidian`
    - Claude CAN run this if the researcher approves the command
    - Installs to /Applications/Obsidian.app
 
-2. **Manual download**: Direct the researcher to obsidian.md
+2. **Windows (winget)**: `winget install Obsidian.Obsidian`
+   - Claude can suggest this command, but the researcher may still need to approve the installer flow
+
+3. **Linux (AppImage)**: Download the AppImage from https://obsidian.md/download
+   - Mark it executable: `chmod +x Obsidian-*.AppImage`
+   - Launch it directly, then optionally move it somewhere stable for reuse
+
+4. **Manual download**: Direct the researcher to obsidian.md
    - Download the installer
    - Drag to Applications (macOS)
    - Run installer (Windows)
 
-3. **Already installed**: Check with `mdfind "kMDItemCFBundleIdentifier == 'md.obsidian'"` on macOS
+5. **Already installed**: Check with `mdfind "kMDItemCFBundleIdentifier == 'md.obsidian'"` on macOS
+   - `mdfind` is macOS-only. On Windows and Linux, use `carrel env doctor` / `src/carrel/env/audit.py` as the canonical existence-check surface across platforms.
 
 After installation, the researcher needs to:
 1. Open Obsidian

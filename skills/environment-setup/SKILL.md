@@ -147,7 +147,10 @@ If the decision tree indicates mineru, zotero, or gws:
 ### Step 7: Human Steps
 
 Tell the researcher what THEY need to do (Claude can't install GUI apps):
-- Install Obsidian: "Download from obsidian.md, or I can try `brew install obsidian` if you'd like"
+- Install Obsidian:
+  macOS: `brew install --cask obsidian`
+  Windows: `winget install Obsidian.Obsidian`
+  Linux: Download AppImage from https://obsidian.md/download
 - Open Obsidian → "Open folder as vault" → select this project folder
 - Install Web Clipper for their browser (Chrome/Firefox/Safari extension store)
 

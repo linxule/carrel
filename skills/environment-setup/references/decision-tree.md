@@ -412,8 +412,10 @@ Hardware audit: "Is Obsidian installed?"
   - Check for useful existing plugins
 
 → NO:
-  - Offer: "brew install obsidian" (if brew available)
-  - Or: "Download from obsidian.md"
+  - Offer:
+    macOS: `brew install --cask obsidian`
+    Windows: `winget install Obsidian.Obsidian`
+    Linux: Download AppImage from https://obsidian.md/download
   - This is a human step — Claude can't click through the installer
 ```
 
