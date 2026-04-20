@@ -27,6 +27,13 @@
       "file": "0.5.0-to-0.5.1.md",
       "breaking": false,
       "summary": "Onboarding adds Claude Code familiarity + collaborators screening; /carrel-setup Phase 9 surfaces /powerup and /team-onboarding conditionally"
+    },
+    {
+      "from": "0.5.1",
+      "to": "0.5.2",
+      "file": "0.5.1-to-0.5.2.md",
+      "breaking": false,
+      "summary": "Resumable setup via .carrel/setup-state.json + pause points; carrel vault cheatsheet CLI; legacy .js scaffolders removed"
     }
   ]
 }

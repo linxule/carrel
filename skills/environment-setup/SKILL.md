@@ -16,14 +16,15 @@ Orchestrates researcher onboarding: interview, hardware audit, tool configuratio
 
 ## Mode Detection
 
-Check for `.carrel/environment.json` in the project root:
+Check for `.carrel/environment.json` in the project root, and (if present) `.carrel/setup-state.json`:
 
-- **Not found** → First-time setup (full interview + scaffold)
-- **Found** → Returning user. Read the file and offer:
+- **No `.carrel/environment.json`** → First-time setup (full interview + scaffold)
+- **environment.json present, setup-state.json absent or `last_completed_phase >= 9` with `completed_at` set** → Returning user. Read environment.json and offer:
   - Status check (what's working, what's missing)
   - Add new capabilities (e.g., "I want to add Zotero")
   - Troubleshoot issues
   - Jump straight into work
+- **environment.json present, setup-state.json shows `last_completed_phase < 9` and `completed_at: null`** → Setup paused. Recap what was completed, confirm the stopping point, and resume from `last_completed_phase + 1`. Do NOT re-interview — the profile already exists in environment.json.
 
 ## First-Time Setup Flow
 

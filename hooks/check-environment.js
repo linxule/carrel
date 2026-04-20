@@ -239,6 +239,24 @@ function main() {
     process.exit(0);
   }
 
+  // Setup pause detection — surface a resume prompt if the researcher
+  // stopped between phases (last_completed_phase < 9 and not marked complete).
+  const setupStatePath = path.join(projectRoot, '.carrel', 'setup-state.json');
+  const setupState = readJsonFile(setupStatePath);
+  if (setupState && setupState.completed_at == null && typeof setupState.last_completed_phase === 'number' && setupState.last_completed_phase < 9) {
+    const phase = setupState.last_completed_phase;
+    const phaseLabel = {
+      4: 'after the vault was scaffolded',
+      5: 'after optional MCPs',
+      6: 'after the human steps',
+      7: 'after the cheat sheet',
+      8: 'after the automation step',
+    }[phase] || `at phase ${phase}`;
+    console.log('');
+    console.log(`Setup paused ${phaseLabel}. Run /carrel-setup to resume from here.`);
+    console.log('');
+  }
+
   try {
     const env = JSON.parse(fs.readFileSync(envPath, 'utf8'));
 
