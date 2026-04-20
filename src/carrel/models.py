@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Sensitivity(str, Enum):
@@ -143,7 +144,15 @@ class AutomationConfig(BaseModel):
     model: AutomationModel = AutomationModel.SONNET
     schedule: AutomationSchedule = AutomationSchedule.DAILY
     review_cadence: Literal["monthly", "quarterly", "biannual"] = "quarterly"
-    last_reviewed: str | None = None
+    last_reviewed: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+    @field_validator("last_reviewed")
+    @classmethod
+    def validate_last_reviewed(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        date.fromisoformat(value)
+        return value
 
 
 class SetupState(BaseModel):
@@ -177,10 +186,21 @@ class ResearcherProfile(BaseModel):
     comfort_level: str = "beginner"
     wiki_enabled: bool = False
     wiki_preference: str | None = None
-    wiki_proposal_deferred_until: str | None = None
+    wiki_proposal_deferred_until: str | None = Field(
+        default=None,
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
     tools_configured: dict[str, bool] = Field(default_factory=dict)
     preferences: dict[str, Any] = Field(default_factory=dict)
     automation: AutomationConfig = Field(default_factory=AutomationConfig)
     claude_code_familiarity: Literal["new", "some", "experienced"] | None = None
     collaborators: bool | None = None
     team_context: str | None = None
+
+    @field_validator("wiki_proposal_deferred_until")
+    @classmethod
+    def validate_wiki_proposal_deferred_until(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        date.fromisoformat(value)
+        return value

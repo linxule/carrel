@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from carrel.consent import resolve_cloud_consent
-from carrel.models import ResearcherProfile, Sensitivity, SetupState
+from carrel.models import AutomationConfig, ResearcherProfile, Sensitivity, SetupState
 
 
 def test_setup_state_accepts_incomplete_phase_four() -> None:
@@ -62,3 +62,41 @@ def test_resolve_cloud_consent_blocks_without_consent_regardless_of_sensitivity(
     profile = ResearcherProfile(sensitivity=Sensitivity.LOW, cloud_consent=False)
 
     assert resolve_cloud_consent("mineru", profile) is False
+
+
+def test_automation_config_last_reviewed_accepts_iso_date() -> None:
+    config = AutomationConfig(last_reviewed="2026-04-20")
+
+    assert config.last_reviewed == "2026-04-20"
+
+
+@pytest.mark.parametrize("value", ["yesterday", "2026/04/20", "2026-13-99"])
+def test_automation_config_last_reviewed_rejects_invalid_dates(value: str) -> None:
+    with pytest.raises(ValidationError):
+        AutomationConfig(last_reviewed=value)
+
+
+def test_automation_config_last_reviewed_accepts_none() -> None:
+    config = AutomationConfig(last_reviewed=None)
+
+    assert config.last_reviewed is None
+
+
+def test_researcher_profile_wiki_proposal_deferred_until_accepts_iso_date() -> None:
+    profile = ResearcherProfile(wiki_proposal_deferred_until="2026-04-20")
+
+    assert profile.wiki_proposal_deferred_until == "2026-04-20"
+
+
+@pytest.mark.parametrize("value", ["yesterday", "2026/04/20", "2026-13-99"])
+def test_researcher_profile_wiki_proposal_deferred_until_rejects_invalid_dates(
+    value: str,
+) -> None:
+    with pytest.raises(ValidationError):
+        ResearcherProfile(wiki_proposal_deferred_until=value)
+
+
+def test_researcher_profile_wiki_proposal_deferred_until_accepts_none() -> None:
+    profile = ResearcherProfile(wiki_proposal_deferred_until=None)
+
+    assert profile.wiki_proposal_deferred_until is None
