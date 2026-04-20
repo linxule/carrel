@@ -13,6 +13,7 @@ from carrel.models import (
     AuditResult,
     BinaryInfo,
     HardwareCapability,
+    PlatformToolMatrix,
     ToolAvailability,
 )
 
@@ -97,6 +98,17 @@ def _read_mcp_servers(project_path: Path | None) -> list[str]:
     return sorted((data.get("mcpServers") or {}).keys())
 
 
+def _build_platform_tool_matrix(
+    current_platform,
+    binaries: dict[str, BinaryInfo],
+) -> PlatformToolMatrix:
+    matrix: dict[str, dict] = {}
+    for tool, info in binaries.items():
+        matrix[tool] = {platform: False for platform in current_platform.__class__}
+        matrix[tool][current_platform] = info.installed
+    return PlatformToolMatrix(matrix=matrix)
+
+
 async def audit(project_path: Path | None = None) -> AuditResult:
     """Detect OS, hardware, installed tools, API keys, MCP configs."""
 
@@ -169,6 +181,7 @@ async def audit(project_path: Path | None = None) -> AuditResult:
     tool_info = ToolAvailability(
         binaries=binaries, api_keys=api_keys, mcp_servers=_read_mcp_servers(resolved_project)
     )
+    tool_matrix = _build_platform_tool_matrix(detected_platform, binaries)
     return AuditResult(
         os=os_name,
         platform=detected_platform,
@@ -178,4 +191,5 @@ async def audit(project_path: Path | None = None) -> AuditResult:
         disk_free=disk_free,
         hardware_capability=hardware,
         tools=tool_info,
+        tool_matrix=tool_matrix,
     )

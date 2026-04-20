@@ -70,6 +70,14 @@ class ToolAvailability(BaseModel):
     api_keys: dict[str, ApiKeyStatus]
     mcp_servers: list[str]
 
+
+class PlatformToolMatrix(BaseModel):
+    matrix: dict[str, dict[Platform, bool]]
+
+    def is_available(self, tool: str, platform: Platform) -> bool:
+        return self.matrix.get(tool, {}).get(platform, False)
+
+
 class ConvertResult(BaseModel):
     path: Path | None
     tool: ConvertTool
@@ -109,6 +117,7 @@ class AuditResult(BaseModel):
     disk_free: str | None = None
     hardware_capability: HardwareCapability
     tools: ToolAvailability
+    tool_matrix: PlatformToolMatrix
 
 
 class AutomationConfig(BaseModel):

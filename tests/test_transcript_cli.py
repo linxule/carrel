@@ -7,7 +7,14 @@ from typer.testing import CliRunner
 
 from carrel.cli.main import app
 from carrel.env.platform import Platform
-from carrel.models import ApiKeyStatus, AuditResult, BinaryInfo, HardwareCapability, ToolAvailability
+from carrel.models import (
+    ApiKeyStatus,
+    AuditResult,
+    BinaryInfo,
+    HardwareCapability,
+    PlatformToolMatrix,
+    ToolAvailability,
+)
 
 runner = CliRunner()
 
@@ -31,6 +38,7 @@ def _audit_result(*, gemini_key: bool = False) -> AuditResult:
             },
             mcp_servers=[],
         ),
+        tool_matrix=PlatformToolMatrix(matrix={"coli": {Platform.MACOS: False}}),
     )
 
 

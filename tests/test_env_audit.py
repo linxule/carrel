@@ -61,3 +61,5 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers(tmp_path, monkeypatc
     assert result.tools.api_keys["mineru"].configured is True
     assert result.tools.api_keys["groq"].configured is False
     assert result.tools.mcp_servers == ["markdownify", "vox"]
+    assert result.tool_matrix.is_available("git", Platform.MACOS) is True
+    assert result.tool_matrix.is_available("git", Platform.WINDOWS) is False
