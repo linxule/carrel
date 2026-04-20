@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from carrel.models import SetupState
+from carrel.consent import resolve_cloud_consent
+from carrel.models import ResearcherProfile, Sensitivity, SetupState
 
 
 def test_setup_state_accepts_incomplete_phase_four() -> None:
@@ -43,3 +44,21 @@ def test_setup_state_rejects_phase_nine_without_completed_at() -> None:
 def test_setup_state_rejects_completed_at_before_phase_nine() -> None:
     with pytest.raises(ValidationError):
         SetupState(last_completed_phase=8, version="0.5.2", completed_at="2026-04-20")
+
+
+def test_resolve_cloud_consent_blocks_cloud_tools_for_high_sensitivity() -> None:
+    profile = ResearcherProfile(sensitivity=Sensitivity.HIGH, cloud_consent=True)
+
+    assert resolve_cloud_consent("mineru", profile) is False
+
+
+def test_resolve_cloud_consent_allows_cloud_tools_with_lower_sensitivity_and_consent() -> None:
+    profile = ResearcherProfile(sensitivity=Sensitivity.MEDIUM, cloud_consent=True)
+
+    assert resolve_cloud_consent("mineru", profile) is True
+
+
+def test_resolve_cloud_consent_blocks_without_consent_regardless_of_sensitivity() -> None:
+    profile = ResearcherProfile(sensitivity=Sensitivity.LOW, cloud_consent=False)
+
+    assert resolve_cloud_consent("mineru", profile) is False
