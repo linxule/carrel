@@ -19,9 +19,10 @@ from carrel.errors import CarrelError
 from carrel.models import FileResult
 from carrel.vault.automation_prompt import render_automation_prompt
 from carrel.vault.dashboard import collect_activity_stats, render_dashboard
-from carrel.vault.markers import MARKER_FIELDS, ensure_markers, parse_markers
+from carrel.vault.markers import ensure_markers, parse_markers
 from carrel.vault.organize import sort_inbox
 from carrel.vault.scaffold import scaffold_vault
+from carrel.vault.sync import compare_markers, marker_values
 from carrel.vault.templates import read_template, render_cheat_sheet
 
 app = typer.Typer(help="Vault setup and management")
@@ -68,21 +69,6 @@ def _atomic_write(path: Path, content: str) -> None:
     tmp_path = path.parent / f"{path.name}.tmp"
     tmp_path.write_text(content, encoding="utf-8")
     tmp_path.replace(path)
-
-
-def _enabled_tools(profile) -> str:
-    tools = sorted(tool for tool, enabled in profile.tools_configured.items() if enabled)
-    return ",".join(tools)
-
-
-def _marker_values(profile) -> dict[str, str]:
-    return {
-        "sensitivity": profile.sensitivity.value,
-        "cloud_consent": str(profile.cloud_consent).lower(),
-        "trust_level": profile.automation.trust_level.value,
-        "tools_configured": _enabled_tools(profile),
-        "wiki_enabled": str(profile.wiki_enabled).lower(),
-    }
 
 
 def _render_drift_table(drifts: list[dict[str, str]]) -> None:
@@ -340,16 +326,7 @@ def check_sync_command(
                 )
             raise typer.Exit(code=0)
 
-        expected = _marker_values(profile)
-        drifts = [
-            {
-                "field": field,
-                "marker": markers.get(field, ""),
-                "profile": expected[field],
-            }
-            for field in MARKER_FIELDS
-            if markers.get(field) is not None and markers.get(field) != expected[field]
-        ]
+        drifts = compare_markers(profile, markers)
 
         if fmt == OutputFormat.JSON:
             console.print(json.dumps({"drift": drifts, "ok": not drifts}))
@@ -381,7 +358,7 @@ def add_markers_command(
             )
 
         original = claude_path.read_text(encoding="utf-8")
-        updated = ensure_markers(original, _marker_values(profile))
+        updated = ensure_markers(original, marker_values(profile))
         action = "updated" if updated != original else "skipped"
         if updated != original:
             _atomic_write(claude_path, updated)

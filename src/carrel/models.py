@@ -168,6 +168,10 @@ class SetupState(BaseModel):
 
 
 class ResearcherProfile(BaseModel):
+    version: str | None = Field(
+        default=None,
+        pattern=r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$",
+    )
     name: str | None = None
     field: str | None = None
     sensitivity: Sensitivity = Sensitivity.MEDIUM
