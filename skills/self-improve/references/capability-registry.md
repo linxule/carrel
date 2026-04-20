@@ -10,6 +10,7 @@ Tracks what Carrel has absorbed, where it came from, and when to check for updat
 | Research databases (Obsidian Bases) | kepano/obsidian-skills/obsidian-bases @ v1.0.1 | `vault-ops/references/research-databases.md` | `paper-tracker.base`, `interview-tracker.base`, `reading-progress.base`, `writing-tracker.base` | 2026-04-03 | 2026-07-01 |
 | Concept mapping (JSON Canvas) | kepano/obsidian-skills/json-canvas @ v1.0.1 | `research-partner/references/concept-mapping.md` | — | 2026-04-03 | 2026-07-01 |
 | Knowledge wiki (compiled synthesis) | karpathy/LLM-wiki gist + NousResearch/hermes-agent/skills/research/llm-wiki @ v2.0.0 | `knowledge-wiki/references/wiki-protocol.md` | — | 2026-04-07 | 2026-07-07 |
+| Collaborator handbook (vault legibility for others) | Claude Code `/team-onboarding` (v2.1.101) — design pattern only, not the command itself | `collaborator-onboarding/SKILL.md` + `references/handbook-template.md` | — | 2026-04-20 | 2026-07-20 |
 
 ## Evaluated and Skipped
 
@@ -17,6 +18,7 @@ Tracks what Carrel has absorbed, where it came from, and when to check for updat
 |------------|--------|---------------|------|
 | Obsidian CLI integration | kepano/obsidian-skills/obsidian-cli | Carrel writes files directly; CLI adds no research value | 2026-04-03 |
 | Defuddle (web extraction) | kepano/obsidian-skills/defuddle | Full overlap with Carrel's web-capture skill + CLI adapter | 2026-04-03 |
+| Direct reference to `/team-onboarding` | Claude Code v2.1.101 | Generic Claude Code usage tips don't carry vault-specific conventions (sensitivity, wiki schema, custom trackers, active threads). Absorbed the design pattern into `/carrel-share` instead, which reads vault content directly. | 2026-04-20 |
 
 ## Promotion Candidates
 

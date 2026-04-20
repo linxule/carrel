@@ -86,7 +86,7 @@ Carrel can run overnight via Desktop App local scheduled tasks. The `automation`
 - **Generated prompt**: `_meta/automation-prompt.md` — per-researcher, uses vault detection (no absolute path)
 - **Two-track sync**: `environment.json` + vault `CLAUDE.md` must both reflect automation preferences
 
-Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (configure), `/carrel-mirror` (research self-portrait)
+Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (configure), `/carrel-mirror` (research self-portrait), `/carrel-share` (collaborator handbook from vault context)
 
 ## Knowledge Wiki
 

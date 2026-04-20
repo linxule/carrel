@@ -39,6 +39,8 @@ Cover these areas naturally:
 - Sensitivity of data (IRB, unpublished work)
 - Existing tools (Zotero, Google Drive, note-taking)
 - Comfort level with AI and technology
+- Experience with Claude Code specifically (`claude_code_familiarity`: new/some/experienced) — drives whether `/powerup` is offered at handoff
+- Collaborators (`collaborators` + `team_context`) — drives whether `/carrel-share` is offered at handoff
 
 Output: structured answers for environment.json.
 
@@ -118,6 +120,12 @@ Write CLAUDE.md with these sections:
 [Comfort level, explanation preferences, proactiveness level — from interview]
 - [beginner]: Explain what you're doing in plain language. Don't assume they know markdown or git.
 - [advanced]: Be concise. They know the tools.
+
+## Claude Code Context
+- Familiarity: [new / some / experienced — from interview]
+- Collaborators: [yes / no, plus team_context if provided]
+- [If new]: When natural, mention `/powerup` (if available in their install) as a way to learn Claude Code itself.
+- [If has collaborators]: When the researcher mentions sharing the vault or onboarding a teammate, suggest `/carrel-share` to generate a vault-specific handbook.
 
 ## Session Notes
 [Leave empty — Claude can append notes here across sessions about what's working, what the researcher prefers, patterns noticed]

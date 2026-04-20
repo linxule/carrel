@@ -158,3 +158,6 @@ class ResearcherProfile(BaseModel):
     tools_configured: dict[str, bool] = Field(default_factory=dict)
     preferences: dict[str, Any] = Field(default_factory=dict)
     automation: AutomationConfig = Field(default_factory=AutomationConfig)
+    claude_code_familiarity: Literal["new", "some", "experienced"] | None = None
+    collaborators: bool | None = None
+    team_context: str | None = None
