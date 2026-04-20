@@ -5,3 +5,11 @@ node_modules/
 # Test artifacts
 .carrel/
 _meta/
+
+# Python build artifacts
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
