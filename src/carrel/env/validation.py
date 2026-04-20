@@ -30,6 +30,21 @@ class EnvironmentValidationReport(BaseModel):
     drift: list[DriftIssue]
 
 
+def environment_field_names() -> set[str]:
+    names: set[str] = set()
+    for name, field in ResearcherProfile.model_fields.items():
+        names.add(name)
+        if field.alias:
+            names.add(field.alias)
+        if field.serialization_alias:
+            names.add(field.serialization_alias)
+    return names
+
+
+def unknown_environment_keys(raw_data: dict[str, Any]) -> list[str]:
+    return sorted(set(raw_data) - environment_field_names())
+
+
 def load_environment_payload(path: Path) -> tuple[dict[str, Any] | None, list[ValidationIssue]]:
     try:
         raw_data = json.loads(path.read_text(encoding="utf-8"))
@@ -83,7 +98,7 @@ def detect_environment_drift(
 ) -> list[DriftIssue]:
     drift: list[DriftIssue] = []
 
-    unknown_keys = sorted(set(raw_data) - set(ResearcherProfile.model_fields))
+    unknown_keys = unknown_environment_keys(raw_data)
     if unknown_keys:
         drift.append(
             DriftIssue(
@@ -141,3 +156,49 @@ def report_status(errors: list[ValidationIssue], drift: list[DriftIssue]) -> str
     if drift:
         return "drift"
     return "valid"
+
+
+def raw_marker_values(raw_data: dict[str, Any]) -> dict[str, str]:
+    automation = raw_data.get("automation") if isinstance(raw_data.get("automation"), dict) else {}
+    tools = raw_data.get("tools_configured") if isinstance(raw_data.get("tools_configured"), dict) else {}
+    enabled_tools = sorted(tool for tool, enabled in tools.items() if enabled is True)
+
+    values: dict[str, str] = {}
+    if isinstance(raw_data.get("sensitivity"), str):
+        values["sensitivity"] = raw_data["sensitivity"].strip().lower()
+    if isinstance(raw_data.get("cloud_consent"), bool):
+        values["cloud_consent"] = str(raw_data["cloud_consent"]).lower()
+    if isinstance(automation.get("trust_level"), str):
+        values["trust_level"] = automation["trust_level"].strip().lower()
+    values["tools_configured"] = ",".join(enabled_tools)
+    if isinstance(raw_data.get("wiki_enabled"), bool):
+        values["wiki_enabled"] = str(raw_data["wiki_enabled"]).lower()
+    return values
+
+
+def detect_raw_marker_conflicts(
+    raw_data: dict[str, Any],
+    claude_text: str,
+) -> list[DriftIssue]:
+    markers = parse_markers(claude_text)
+    if not markers:
+        return []
+
+    raw_values = raw_marker_values(raw_data)
+    conflicts: list[DriftIssue] = []
+    for field, marker_value in markers.items():
+        raw_value = raw_values.get(field)
+        if raw_value is None:
+            continue
+        if raw_value != marker_value:
+            conflicts.append(
+                DriftIssue(
+                    check="markers",
+                    field=field,
+                    message=(
+                        f"CLAUDE.md marker {field}={marker_value} does not match "
+                        f"environment.json {raw_value}"
+                    ),
+                )
+            )
+    return conflicts

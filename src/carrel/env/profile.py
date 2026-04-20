@@ -33,5 +33,5 @@ def write_profile(vault: Path, profile: ResearcherProfile) -> Path:
 
     path = _profile_path(vault)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(profile.model_dump_json(indent=2), encoding="utf-8")
+    path.write_text(profile.model_dump_json(indent=2, by_alias=True), encoding="utf-8")
     return path

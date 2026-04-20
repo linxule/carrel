@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from carrel.env.platform import Platform
 
@@ -168,6 +168,8 @@ class SetupState(BaseModel):
 
 
 class ResearcherProfile(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     version: str | None = Field(
         default=None,
         pattern=r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$",
@@ -189,6 +191,11 @@ class ResearcherProfile(BaseModel):
     claude_code_familiarity: Literal["new", "some", "experienced"] | None = None
     collaborators: bool | None = None
     team_context: str | None = None
+    unknown_keys: dict[str, Any] = Field(
+        default_factory=dict,
+        alias="_unknown_keys",
+        serialization_alias="_unknown_keys",
+    )
 
     @field_validator("wiki_proposal_deferred_until")
     @classmethod

@@ -10,6 +10,7 @@ from rich.console import Console
 from carrel.cli import emit_carrel_error, resolve_vault
 from carrel.cli.output import OutputFormat
 from carrel.env.audit import audit
+from carrel.env.healing import EnvironmentFixReport, apply_safe_environment_fixes
 from carrel.env.validation import (
     EnvironmentValidationReport,
     detect_environment_drift,
@@ -53,6 +54,24 @@ def _render_validation_report(
     console.print(f"CLAUDE.md markers: {marker_status}")
     for issue in marker_drift:
         console.print(f"  - {issue.message}")
+
+
+def _render_fix_report(report: EnvironmentFixReport) -> None:
+    if report.fixed:
+        console.print("Fixed:")
+        for item in report.fixed:
+            console.print(f"  - {item}")
+    if report.deferred:
+        console.print("Deferred:")
+        for item in report.deferred:
+            console.print(f"  - {item}")
+    if report.left_alone:
+        console.print("Left alone:")
+        for item in report.left_alone:
+            console.print(f"  - {item}")
+    console.print(
+        f"Fixed {len(report.fixed)}; deferred {len(report.deferred)}; left {len(report.left_alone)} alone."
+    )
 
 
 @app.command("doctor")
@@ -125,6 +144,76 @@ def validate_command(
             _render_validation_report(report, environment_path)
 
         exit_code = 1 if report.errors else 2 if report.drift else 0
+        raise typer.Exit(code=exit_code)
+    except CarrelError as error:
+        emit_carrel_error(error)
+
+
+@app.command("fix")
+def fix_command(
+    vault: Path | None = typer.Option(None, "--vault"),
+    safe: bool = typer.Option(True, "--safe/--unsafe"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
+    preserve_unknown: bool = typer.Option(
+        True,
+        "--preserve-unknown/--no-preserve-unknown",
+    ),
+) -> None:
+    try:
+        if not safe:
+            raise CarrelError(
+                "Only --safe mode is supported",
+                hint="Pass --safe or omit the flag.",
+            )
+
+        vault_path = resolve_vault(vault)
+        environment_path = _environment_path(vault_path)
+        if not environment_path.exists():
+            raise CarrelError(
+                "No ResearcherProfile found",
+                hint=f"Expected {environment_path}. Run `carrel vault init` first.",
+            )
+
+        raw_data, payload_errors = load_environment_payload(environment_path)
+        if raw_data is None:
+            report = EnvironmentFixReport(
+                status="invalid",
+                fixed=[],
+                deferred=[issue.message for issue in payload_errors],
+                left_alone=[],
+                dry_run=dry_run,
+            )
+            if fmt == OutputFormat.JSON:
+                typer.echo(report.model_dump_json())
+            elif fmt == OutputFormat.HUMAN:
+                _render_fix_report(report)
+            raise typer.Exit(code=1)
+
+        audit_result = asyncio.run(audit(vault_path))
+        report, profile = apply_safe_environment_fixes(
+            raw_data,
+            audit_result,
+            vault_path,
+            preserve_unknown=preserve_unknown,
+            dry_run=dry_run,
+        )
+
+        if profile is not None and report.status == "fixed" and not dry_run:
+            backup_path = environment_path.with_name("environment.json.bak")
+            backup_path.write_text(environment_path.read_text(encoding="utf-8"), encoding="utf-8")
+            environment_path.write_text(
+                profile.model_dump_json(indent=2, by_alias=True),
+                encoding="utf-8",
+            )
+            report.backup_path = str(backup_path)
+
+        if fmt == OutputFormat.JSON:
+            typer.echo(report.model_dump_json())
+        elif fmt == OutputFormat.HUMAN:
+            _render_fix_report(report)
+
+        exit_code = 1 if report.status == "invalid" else 2 if report.deferred else 0
         raise typer.Exit(code=exit_code)
     except CarrelError as error:
         emit_carrel_error(error)
