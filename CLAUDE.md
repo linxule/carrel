@@ -168,3 +168,4 @@ Multi-model review process: each spec gets adversarial reviews (typically Codex 
 | `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
 | `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
 | `planning/specs/006-environment-validation-and-self-healing.md` | v0.6 spec: schema validation, lint, doctor agent (pre-review) |
+| `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree (pre-review) |
