@@ -152,13 +152,17 @@ Tell the researcher what THEY need to do (Claude can't install GUI apps):
 
 ### Step 8: Verify, Cheat Sheet & Environment Dashboard
 
-Run the cheat sheet generator to create a customized reference card at `_meta/cheat_sheet.md`. The template is in `references/cheatsheet-template.md`.
+Regenerate the cheat sheet so it reflects the personalized profile and any tools added in Steps 5-7:
 
 ```bash
-bun run skills/environment-setup/scripts/generate-cheatsheet.js
+carrel vault cheatsheet --vault <path> --force
 ```
 
-Create the researcher's environment dashboard from `templates/my-environment.md` → save to `_meta/my-environment.md`. Fill in:
+The CLI reads `.carrel/environment.json` via Pydantic and writes `_meta/cheat_sheet.md`. The vault scaffold in Step 4 wrote a starter version with default values; this regenerates against the real profile.
+
+After regeneration, read the cheat sheet and edit it directly to add researcher-specific touches (workflow examples, named projects, custom shortcuts).
+
+Update the researcher's environment dashboard at `_meta/my-environment.md` (the scaffold wrote a starter version). Fill in:
 - Tool statuses (from the audit in Step 2)
 - Which trackers were installed (from Step 4)
 - Which cloud services are configured vs. available-but-not-configured (from the interview)
@@ -206,14 +210,15 @@ Examples:
 
 The key principle: **environment.json is the structured truth, CLAUDE.md is the narrative truth.** Keep them in sync. When in doubt, read environment.json and verify CLAUDE.md matches.
 
-## Scripts
+## Tooling
 
-### generate-cheatsheet.js
-Creates customized cheat sheet from environment.json. This is a Node.js script not yet ported to the Python CLI.
+All deterministic operations live in the Python CLI (canonical source of truth):
 
-Reads `.carrel/environment.json`, writes `_meta/cheat_sheet.md`.
+- `carrel env doctor` — hardware + installed-tools audit (Step 2)
+- `carrel vault init <path>` — vault scaffold (Step 4)
+- `carrel vault cheatsheet --vault <path> --force` — regenerate `_meta/cheat_sheet.md` (Step 8)
 
-Run with: `bun run skills/environment-setup/scripts/generate-cheatsheet.js`
+The legacy Node scripts (`check-environment.js`, `create-vault.js`, `generate-cheatsheet.js`) were removed in v0.5.2 — they were superseded by the Python CLI in v0.3 and had drifted to write invalid Pydantic data.
 
 ## Related
 

@@ -22,7 +22,7 @@ Cover: research area, file types, data sensitivity, existing tools, comfort leve
 
 ### Phase 2: Silent Audit (~30 sec)
 
-Run `skills/environment-setup/scripts/check-environment.js` to detect hardware, installed tools, and existing configurations. Summarize findings in plain language — never show raw output.
+Run `carrel env doctor --format json` to detect hardware, installed tools, and existing configurations. Summarize findings in plain language — never show raw output.
 
 ### Phase 3: The Plan (~2 min)
 
@@ -30,12 +30,14 @@ Consult `skills/environment-setup/references/decision-tree.md` to map answers + 
 
 ### Phase 4: Scaffold (~2 min)
 
-Run `skills/environment-setup/scripts/create-vault.js` to create:
-- Vault folder structure
+Run `carrel vault init <path>` to create:
+- Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration
-- `.carrel/environment.json`
-- Note templates
-- Friction log
+- `.carrel/environment.json` (writes a default `ResearcherProfile`; replace with the interview profile below)
+- Note templates + research-database `.base` files (selected from `preferences.*`)
+- `_meta/cheat_sheet.md`, `_meta/my-environment.md`, `_meta/capability-log.md`, `_meta/friction_log.md`
+
+After scaffolding, overwrite `.carrel/environment.json` with the researcher's profile from the interview (Claude does this directly — write the full `ResearcherProfile` JSON).
 
 Then generate `CLAUDE.md` at project root with researcher profile, tool inventory, and behavioral guidelines. This file auto-loads in all future sessions.
 
@@ -52,7 +54,13 @@ Tell the researcher what THEY need to do:
 
 ### Phase 7: Cheat Sheet & Verification
 
-Run `skills/environment-setup/scripts/generate-cheatsheet.js` to create a customized reference card at `_meta/cheat_sheet.md`.
+The vault scaffold (Phase 4) wrote a starter `_meta/cheat_sheet.md`. Regenerate it to reflect the personalized profile and any tools configured in Phases 5-6:
+
+```bash
+carrel vault cheatsheet --vault <path> --force
+```
+
+Then read the cheat sheet and edit it directly to add researcher-specific touches (workflow examples, named projects, custom shortcuts).
 
 Test one operation: "Drop a PDF or Word file and I'll convert it to show you how it works."
 

@@ -14,9 +14,9 @@ Recreate the cheat sheet at `_meta/cheat_sheet.md` based on current configuratio
 
 ## What Happens
 
-1. Read `.carrel/environment.json` for current state
-2. Run `skills/environment-setup/scripts/generate-cheatsheet.js`
-3. Write updated cheat sheet to `_meta/cheat_sheet.md`
+1. Run `carrel vault cheatsheet --vault <path> --force` (the CLI reads `.carrel/environment.json` via Pydantic and writes `_meta/cheat_sheet.md`)
+2. Read the regenerated cheat sheet
+3. Optionally edit directly to add researcher-specific touches (workflow examples, named projects, custom shortcuts)
 4. Confirm: "Your cheat sheet has been updated with your current setup."
 
 ## Related

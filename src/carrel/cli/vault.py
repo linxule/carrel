@@ -10,10 +10,10 @@ from rich.console import Console
 from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
 from carrel.errors import CarrelError
-from carrel.models import FileResult
+from carrel.models import FileResult, ResearcherProfile
 from carrel.vault.organize import sort_inbox
 from carrel.vault.scaffold import scaffold_vault
-from carrel.vault.templates import read_template
+from carrel.vault.templates import read_template, render_cheat_sheet
 
 app = typer.Typer(help="Vault setup and management")
 console = Console()
@@ -133,5 +133,38 @@ def organize_command(
                 console.print(suggestion["destination"])
             else:
                 console.print(f'{suggestion["source"]} -> {suggestion["destination"]}')
+    except CarrelError as error:
+        emit_carrel_error(error)
+
+
+@app.command("cheatsheet")
+def cheatsheet_command(
+    vault: Path | None = typer.Option(None, "--vault"),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing cheat sheet"),
+    fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
+) -> None:
+    """Regenerate _meta/cheat_sheet.md from the current ResearcherProfile."""
+    try:
+        vault_path = resolve_vault(vault)
+        profile_path = vault_path / ".carrel" / "environment.json"
+        if not profile_path.exists():
+            raise CarrelError(
+                "No ResearcherProfile found",
+                hint=f"Expected {profile_path}. Run `carrel vault init` first.",
+            )
+        profile = ResearcherProfile.model_validate_json(profile_path.read_text(encoding="utf-8"))
+        cheat_sheet = vault_path / "_meta" / "cheat_sheet.md"
+        existed = cheat_sheet.exists()
+        if existed and not force:
+            result = FileResult(
+                path=cheat_sheet,
+                action="skipped",
+                reason="cheat sheet already exists; pass --force to overwrite",
+            )
+        else:
+            cheat_sheet.parent.mkdir(parents=True, exist_ok=True)
+            cheat_sheet.write_text(render_cheat_sheet(vault_path, profile), encoding="utf-8")
+            result = FileResult(path=cheat_sheet, action="updated" if existed else "created")
+        print_result(result, fmt)
     except CarrelError as error:
         emit_carrel_error(error)
