@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 from carrel.convert.frontmatter import load_frontmatter, render_frontmatter
 from carrel.models import FileResult, TranscribeTool
+from carrel.safe_path import safe_vault_join
 from carrel.vault.organize import transcript_filename
 
 
@@ -29,11 +30,15 @@ def file_transcript(
     force: bool = False,
 ) -> FileResult:
     source_hash = _source_hash(source)
-    output_path = vault / "transcripts" / transcript_filename(
-        source=source,
-        date=date.today().isoformat(),
-        kind=kind,
-        title=metadata.get("title"),
+    output_path = safe_vault_join(
+        vault,
+        "transcripts",
+        transcript_filename(
+            source=source,
+            date=date.today().isoformat(),
+            kind=kind,
+            title=metadata.get("title"),
+        ),
     )
     payload = {
         "title": metadata.get("title"),

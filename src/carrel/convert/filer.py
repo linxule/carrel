@@ -6,6 +6,7 @@ from pathlib import Path
 
 from carrel.convert.frontmatter import load_frontmatter, render_frontmatter
 from carrel.models import ConvertTool, FileResult
+from carrel.safe_path import safe_vault_join
 from carrel.vault.organize import paper_dirname
 
 
@@ -28,7 +29,7 @@ def file_paper(
         title=metadata.get("title"),
         source_filename=source_file.name,
     )
-    output_path = vault / "papers" / dirname / "paper.md"
+    output_path = safe_vault_join(vault, "papers", dirname, "paper.md")
     payload = {
         "title": metadata.get("title") or source_file.stem,
         "authors": metadata.get("authors"),

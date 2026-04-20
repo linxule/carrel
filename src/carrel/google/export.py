@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 from carrel.errors import ConversionError, ToolNotInstalled
 from carrel.env.install import install_command_for
+from carrel.safe_path import safe_vault_join
 
 GOOGLE_WORKSPACE_EXPORTS: dict[str, dict[str, tuple[str, str]]] = {
     "document": {
@@ -72,9 +73,9 @@ def export_target_for(url: str, export_format: str, workspace: Path) -> tuple[st
             hint=f"{kind} files do not support --export-format {export_format}",
         ) from exc
 
-    export_root = workspace.expanduser().resolve() / ".carrel" / "exports"
+    export_root = safe_vault_join(workspace, ".carrel", "exports")
     export_root.mkdir(parents=True, exist_ok=True)
-    output_path = export_root / f"{file_id}{suffix}"
+    output_path = safe_vault_join(workspace, ".carrel", "exports", f"{file_id}{suffix}")
     return file_id, mime_type, output_path
 
 

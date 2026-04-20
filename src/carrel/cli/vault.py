@@ -1,23 +1,38 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date
 from pathlib import Path
 
 import typer
-from pydantic import ValidationError
 from rich.console import Console
 
 from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
+from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
-from carrel.models import FileResult, ResearcherProfile
+from carrel.models import FileResult
 from carrel.vault.organize import sort_inbox
 from carrel.vault.scaffold import scaffold_vault
 from carrel.vault.templates import read_template, render_cheat_sheet
 
 app = typer.Typer(help="Vault setup and management")
 console = Console()
+
+
+def _safe_slug(name: str) -> str:
+    normalized = (
+        name.lower().replace(" ", "_").replace("/", "").replace("\\", "").replace(".", "")
+    )
+    normalized = normalized.strip("_")
+    normalized = re.sub(r"_+", "_", normalized)
+    if not normalized:
+        raise CarrelError(
+            "Invalid note name",
+            hint="Use letters, numbers, or spaces so Carrel can create a safe filename.",
+        )
+    return normalized
 
 
 @app.command("init")
@@ -56,7 +71,7 @@ def new_command(
         template_name = f"{template}.md"
         body = read_template(template_name).replace("{{date}}", date.today().isoformat())
         target_dir = mapping.get(template, vault_path / "notes")
-        target = target_dir / f"{name}.md"
+        target = target_dir / f"{_safe_slug(name)}.md"
         if target.exists():
             result = FileResult(path=target, action="skipped", reason="already exists")
         else:
@@ -153,13 +168,12 @@ def cheatsheet_command(
                 "No ResearcherProfile found",
                 hint=f"Expected {profile_path}. Run `carrel vault init` first.",
             )
-        try:
-            profile = ResearcherProfile.model_validate_json(profile_path.read_text(encoding="utf-8"))
-        except (ValidationError, json.JSONDecodeError) as error:
+        profile = read_profile(vault_path)
+        if profile is None:
             raise CarrelError(
-                f"Could not parse {profile_path}",
-                hint="The file may be corrupted. Run /carrel-setup to regenerate it.",
-            ) from error
+                "No ResearcherProfile found",
+                hint=f"Expected {profile_path}. Run `carrel vault init` first.",
+            )
         cheat_sheet = vault_path / "_meta" / "cheat_sheet.md"
         existed = cheat_sheet.exists()
         if existed and not force:
