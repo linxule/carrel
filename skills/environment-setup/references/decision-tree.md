@@ -1,4 +1,4 @@
-> **Platform note:** Recommendations below are macOS-first. On Windows, prefer `winget install ...` for system tools. On Linux, use the distro package manager. Spec 007 will fully platform-branch this document. Claude should adapt brew commands by reading the audit platform signal (`AuditResult.os` today; spec 007 proposes `audit.platform`).
+> **Platform source:** Read `audit.platform` from `carrel env doctor --format json` and treat it as the canonical OS signal for this entire document. Use that value for every install recommendation below. Do not infer the OS from narrative text or from `AuditResult.os`.
 
 # Decision Tree
 
@@ -13,11 +13,56 @@ The canonical installers are `install.sh` on macOS/Linux and `install.ps1` on Wi
 | Xcode CLI tools | git, compilers | `xcode-select --install` |
 | Homebrew | package manager | Official installer |
 | Node.js | runtime for some tools | `brew install node` |
-| bun | fast JS runtime (required for coli, defuddle) | `brew install bun` |
+| bun | fast JS runtime (required for coli, defuddle) | Use the platform table below |
 | uv | Python tools | `brew install uv` |
 | gh | GitHub | `brew install gh` |
 
 See `references/toolchain-guide.md` for the full toolchain policy and `references/obsidian-setup.md` for the Obsidian handoff details after install.
+
+### Installing Obsidian
+| Platform | Command |
+|----------|---------|
+| macOS | `brew install --cask obsidian` |
+| Windows | `winget install Obsidian.Obsidian` |
+| Linux | Download AppImage from https://obsidian.md |
+
+Claude should read `audit.platform` and use the matching row.
+
+### Installing ffmpeg
+| Platform | Command |
+|----------|---------|
+| macOS | `brew install ffmpeg` |
+| Windows | `winget install Gyan.FFmpeg` |
+| Linux | `apt install -y ffmpeg  # or dnf install ffmpeg on Fedora` |
+
+Claude should read `audit.platform` and use the matching row.
+
+### Installing Zotero
+| Platform | Command |
+|----------|---------|
+| macOS | `brew install --cask zotero` |
+| Windows | `winget install Zotero.Zotero` |
+| Linux | Download from https://www.zotero.org/download/ |
+
+Claude should read `audit.platform` and use the matching row.
+
+### Installing bun
+| Platform | Command |
+|----------|---------|
+| macOS | `curl -fsSL https://bun.sh/install | bash` |
+| Windows | `powershell -c "irm https://bun.sh/install.ps1 | iex"` |
+| Linux | `curl -fsSL https://bun.sh/install | bash` |
+
+Claude should read `audit.platform` and use the matching row.
+
+### Installing gws
+| Platform | Command |
+|----------|---------|
+| macOS | `npm install -g @googleworkspace/cli` |
+| Windows | `npm install -g @googleworkspace/cli` |
+| Linux | `npm install -g @googleworkspace/cli` |
+
+Claude should read `audit.platform` and use the matching row.
 
 ## Core (Always Install)
 
@@ -29,7 +74,7 @@ These are set up for every researcher regardless of answers:
 | `.obsidian/` config | `carrel vault init` | Core plugins, templates; see `references/obsidian-setup.md` |
 | `CLAUDE.md` | Generated | Researcher profile + guidelines |
 | Cheat sheet | `carrel vault init` writes initial; `carrel vault cheatsheet --force` regenerates | Reference card in `_meta/` |
-| liteparse | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` | Local PDF conversion — always install |
+| liteparse | `bun add -g @llamaindex/liteparse` | Local PDF conversion — always install |
 | markitdown | Auto-installed with carrel | Office docs (Word, PowerPoint, Excel), EPUB, Jupyter |
 
 ## Sensitivity Assessment
@@ -65,6 +110,7 @@ Interview: "Do you use a reference manager?"
 
 → ZOTERO:
   - Check if Zotero app is installed (hardware audit)
+  - If not installed, use the "Installing Zotero" table above and choose the row from `audit.platform`
   - Add zotero to project configuration
   - Need: ZOTERO_API_KEY, ZOTERO_LIBRARY_ID
   - Guide through key setup (see API Key Storage section below)
@@ -90,13 +136,13 @@ Interview: "Do you record meetings or interviews?"
     - MUST use local transcription only
     - Install coli (works on all Macs, local, free):
         bun add -g @marswave/coli
-    - Install ffmpeg if not present: brew install ffmpeg
+    - Install ffmpeg if not present: use the "Installing ffmpeg" table above and choose the row from `audit.platform`
     - Note: coli runs entirely on your machine — nothing leaves it
 
   → NOT SENSITIVE:
     - Install coli for local transcription (default):
         bun add -g @marswave/coli
-        brew install ffmpeg
+        plus the matching ffmpeg command from the "Installing ffmpeg" table above
     - Offer groq as a cloud option for large batches or faster turnaround:
         "There's also a fast cloud service (Groq) — useful if you have a lot of
         recordings. It adds timestamps. Needs a free account."
@@ -160,12 +206,12 @@ After the interview, install additional tools based on what the researcher needs
 Interview results → Install silently:
 
 → Works with PDFs (almost every researcher):
-  - brew tap run-llama/liteparse && brew install llamaindex-liteparse
+  - bun add -g @llamaindex/liteparse
   - Local, free, no account. Always install this.
 
 → Records audio (interviews, meetings):
-  - brew install ffmpeg (if not present)
-  - bun add -g @marswave/coli (local transcription — works on all Macs)
+  - Use the matching ffmpeg command from the "Installing ffmpeg" table above
+  - bun add -g @marswave/coli (local transcription — works on all supported platforms)
 
 → Saves web pages or articles:
   - bun add -g defuddle
@@ -186,7 +232,7 @@ Interview: "What kinds of files do you work with most?"
 + Hardware audit + Sensitivity check
 
 → ALWAYS install liteparse (local, free, no account):
-  brew tap run-llama/liteparse && brew install llamaindex-liteparse
+  bun add -g @llamaindex/liteparse
   Handles most academic papers well. Fast (~500 pages/2 sec). Sensitive-data safe.
 
 → COMPLEX PDFs (scanned, tables, multi-column, figures, formulas):
@@ -221,7 +267,7 @@ Interview: "Do you work in Google Docs or Google Sheets?"
   but I'd suggest waiting until after we have everything else working."
 
   If researcher wants it now:
-  - Install gws: brew install googleworkspace-cli
+  - Install gws using the "Installing gws" table above and choose the row from `audit.platform`
   - Guide through: Google Cloud Console → create project → enable Drive API →
     OAuth consent screen → download credentials → gws auth login
   - Point to: references/gws-setup-guide.md for step-by-step
@@ -412,10 +458,7 @@ Hardware audit: "Is Obsidian installed?"
   - Check for useful existing plugins
 
 → NO:
-  - Offer:
-    macOS: `brew install --cask obsidian`
-    Windows: `winget install Obsidian.Obsidian`
-    Linux: Download AppImage from https://obsidian.md/download
+  - Offer the matching command from the "Installing Obsidian" table above
   - This is a human step — Claude can't click through the installer
 ```
 
