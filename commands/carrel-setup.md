@@ -69,7 +69,7 @@ Point to the cheat sheet in Obsidian. Confirm everything is working. "Next time 
 Then offer next steps based on the researcher's profile (read from `.carrel/environment.json`):
 
 - **Always**: "Run `/carrel-status` anytime to verify the setup."
-- **If `claude_code_familiarity == "new"`**: "If you're new to Claude Code as a tool, try `/powerup` (if your install has it) for a guided tour of the assistant itself — separate from Carrel."
+- **If `claude_code_familiarity == "new"`**: "If you're new to Claude Code as a tool, run `/powerup` for a guided tour of the assistant itself — interactive lessons with animated demos, separate from Carrel."
 - **If `collaborators == true`**: "When you're ready to bring a collaborator into this vault, run `/carrel-share` — it generates a vault-specific handbook tailored to whoever is joining."
 
 Skip the conditional pointers when the corresponding fields are missing or don't match — don't guess.

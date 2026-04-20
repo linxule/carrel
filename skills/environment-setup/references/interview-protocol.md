@@ -50,7 +50,7 @@ Open with genuine curiosity about their research:
 - Would you prefer everything stays on your computer, or are you comfortable with some cloud processing?
 - Would you find it useful to get perspectives from different AI models? (e.g., "Check this with Gemini" or "What does GPT think about this argument?")
 
-**Listen for:** Privacy stance (determines sensitivity level), AI experience (determines how much to explain), trust level (determines how proactive to be). Claude Code familiarity specifically — if new, mention `/powerup` at handoff (if available in their install). If they mention using other AI tools (ChatGPT, Gemini), they may already have API keys — ask. If they express interest in multiple perspectives, vox-mcp is a good fit.
+**Listen for:** Privacy stance (determines sensitivity level), AI experience (determines how much to explain), trust level (determines how proactive to be). Claude Code familiarity specifically — if new, surface `/powerup` at handoff (interactive lessons that teach Claude Code itself). If they mention using other AI tools (ChatGPT, Gemini), they may already have API keys — ask. If they express interest in multiple perspectives, vox-mcp is a good fit.
 
 ### About Their Collaborators (~1 min)
 

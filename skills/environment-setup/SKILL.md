@@ -124,7 +124,7 @@ Write CLAUDE.md with these sections:
 ## Claude Code Context
 - Familiarity: [new / some / experienced — from interview]
 - Collaborators: [yes / no, plus team_context if provided]
-- [If new]: When natural, mention `/powerup` (if available in their install) as a way to learn Claude Code itself.
+- [If new]: When natural, mention `/powerup` as a way to learn Claude Code itself (interactive lessons with animated demos).
 - [If has collaborators]: When the researcher mentions sharing the vault or onboarding a teammate, suggest `/carrel-share` to generate a vault-specific handbook.
 
 ## Session Notes
