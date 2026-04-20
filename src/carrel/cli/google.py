@@ -25,6 +25,11 @@ def export_command(
     url: str = typer.Argument(...),
     vault: Path | None = typer.Option(None, "--vault"),
     export_format: str = typer.Option("docx", "--export-format", help="docx|pdf|txt|html"),
+    keep_export: bool = typer.Option(
+        False,
+        "--keep-export",
+        help="Keep the raw exported file in .carrel/exports/ after conversion",
+    ),
     tool: ConvertTool | None = typer.Option(None, "--tool"),
     sensitivity: Sensitivity | None = typer.Option(None, "--sensitivity"),
     force: bool = typer.Option(False, "--force"),
@@ -65,6 +70,10 @@ def export_command(
                 **metadata,
             },
         )
+        if not keep_export:
+            exported.unlink()
+            if fmt == OutputFormat.HUMAN:
+                console.print(f"Cleaned up raw export: {exported}")
         if fmt == OutputFormat.HUMAN:
             if filed.action == "skipped":
                 console.print(f"-> skipped: {filed.path} ({filed.reason})")

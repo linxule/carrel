@@ -49,12 +49,13 @@ def test_export_target_for_creates_vault_local_export_path(tmp_path) -> None:
 def test_google_export_converts_exported_file(tmp_path, monkeypatch) -> None:
     vault = tmp_path / "vault"
     _init_vault(vault)
+    exported_path = vault / ".carrel" / "exports" / "doc123.docx"
 
     async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:
         assert url == "https://docs.google.com/document/d/doc123/edit"
         assert workspace == vault.resolve()
         assert export_format == "docx"
-        exported = workspace / ".carrel" / "exports" / "doc123.docx"
+        exported = exported_path
         exported.parent.mkdir(parents=True, exist_ok=True)
         exported.write_bytes(b"docx-bytes")
         return exported
@@ -91,6 +92,96 @@ def test_google_export_converts_exported_file(tmp_path, monkeypatch) -> None:
     assert stored["converter"] == "markdownify"
     assert stored["source_file"] == "doc123.docx"
     assert "Converted body." in stored.content
+    assert not exported_path.exists()
+
+
+def test_google_export_keep_export_preserves_raw_file(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+    exported_path = vault / ".carrel" / "exports" / "doc123.docx"
+
+    async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:
+        assert url == "https://docs.google.com/document/d/doc123/edit"
+        assert workspace == vault.resolve()
+        assert export_format == "docx"
+        exported_path.parent.mkdir(parents=True, exist_ok=True)
+        exported_path.write_bytes(b"docx-bytes")
+        return exported_path
+
+    async def fake_convert(
+        file_path: Path,
+        vault_path: Path,
+        profile,
+        sensitivity,
+        tool,
+    ) -> tuple[ConvertTool, str, dict]:
+        assert file_path == exported_path
+        assert vault_path == vault.resolve()
+        assert profile is None
+        assert sensitivity is None
+        assert tool is None
+        return (
+            ConvertTool.MARKDOWNIFY,
+            "# Shared Draft\n\nConverted body.",
+            {"title": "Shared Draft", "authors": "Ada Lovelace", "year": "1843"},
+        )
+
+    monkeypatch.setattr("carrel.cli.google.export_from_google_workspace", fake_export)
+    monkeypatch.setattr("carrel.cli.google.run_convert_pipeline", fake_convert)
+
+    result = runner.invoke(
+        app,
+        [
+            "google",
+            "export",
+            "https://docs.google.com/document/d/doc123/edit",
+            "--vault",
+            str(vault),
+            "--keep-export",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert exported_path.exists()
+
+
+def test_google_export_failure_keeps_raw_file(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+    exported_path = vault / ".carrel" / "exports" / "doc123.docx"
+
+    async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:
+        assert url == "https://docs.google.com/document/d/doc123/edit"
+        assert workspace == vault.resolve()
+        assert export_format == "docx"
+        exported_path.parent.mkdir(parents=True, exist_ok=True)
+        exported_path.write_bytes(b"docx-bytes")
+        return exported_path
+
+    async def fake_convert(
+        file_path: Path,
+        vault_path: Path,
+        profile,
+        sensitivity,
+        tool,
+    ) -> tuple[ConvertTool, str, dict]:
+        assert file_path == exported_path
+        assert vault_path == vault.resolve()
+        assert profile is None
+        assert sensitivity is None
+        assert tool is None
+        raise ConversionError("conversion failed")
+
+    monkeypatch.setattr("carrel.cli.google.export_from_google_workspace", fake_export)
+    monkeypatch.setattr("carrel.cli.google.run_convert_pipeline", fake_convert)
+
+    result = runner.invoke(
+        app,
+        ["google", "export", "https://docs.google.com/document/d/doc123/edit", "--vault", str(vault)],
+    )
+
+    assert result.exit_code == 1
+    assert exported_path.exists()
 
 
 def test_google_export_without_gws_shows_install_hint(tmp_path, monkeypatch) -> None:
