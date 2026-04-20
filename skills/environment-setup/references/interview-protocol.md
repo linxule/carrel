@@ -75,47 +75,66 @@ Open with genuine curiosity about their research:
 
 ## Output
 
-After the interview, structure the answers into:
+After the interview, write `.carrel/environment.json` directly as a flat `ResearcherProfile` (the canonical Pydantic model in `src/carrel/models.py`). The legacy nested format (with a top-level `interview` key) is deprecated — Pydantic-validated tools (`carrel vault cheatsheet`, future `carrel env validate`) only see the flat fields.
+
+The schema your output must match:
 
 ```json
 {
-  "researcher": {
-    "name": "",
-    "institution": "",
-    "field": "",
-    "focus": "",
-    "role": "",
-    "ai_experience": "none|basic|moderate|advanced"
-  },
-  "data": {
-    "primary_file_types": ["pdf", "docx", "audio", ...],
-    "sensitivity": "low|medium|high",
-    "sensitivity_notes": "",
-    "note_taking": "word|google_docs|paper|obsidian|other",
-    "google_workspace": "docs|sheets|slides|drive|none",
-    "youtube_usage": "watches_lectures|assigns_to_students|research_videos|none",
-    "web_articles": true
-  },
-  "tools": {
-    "reference_manager": "zotero|mendeley|endnote|none",
-    "cloud_storage": "gdrive|dropbox|onedrive|local|other",
-    "audio_recording": "zoom|teams|phone|recorder|none",
-    "note_platform": "google_docs|word|obsidian|notion|paper|other",
-    "browser": "chrome|firefox|safari|edge|other"
+  "name": "Researcher Name",
+  "field": "organizational studies",
+  "sensitivity": "high",
+  "cloud_consent": false,
+  "comfort_level": "beginner",
+  "wiki_enabled": false,
+  "wiki_preference": null,
+  "wiki_proposal_deferred_until": null,
+  "tools_configured": {
+    "liteparse": true,
+    "coli": true,
+    "defuddle": true,
+    "obsidian": false,
+    "zotero": false,
+    "mineru": false,
+    "groq": false,
+    "vox": false,
+    "gws": false
   },
   "preferences": {
-    "cloud_comfort": "local_only|prefer_local|comfortable_with_cloud",
-    "gui_only": true,
-    "explanation_level": "brief|moderate|detailed",
-    "multi_model": "not_interested|interested|has_keys",
-    "multi_model_providers": [],
-    "existing_api_keys": [],
-    "timestamp_precision": "text_only|timestamps_needed"
+    "qualitative": true,
+    "many_papers": false,
+    "writing": false,
+    "interviews": true,
+    "literature_review": false,
+    "multi_model": false,
+    "timestamp_precision": "text_only",
+    "google_workspace": "none",
+    "audio_recording": "zoom",
+    "browser": "chrome",
+    "cloud_storage": "gdrive",
+    "note_platform": "obsidian",
+    "ai_experience": "moderate"
   },
-  "claude_code_familiarity": "new|some|experienced",
+  "automation": {
+    "enabled": false,
+    "trust_level": "advisory",
+    "model": "sonnet",
+    "schedule": "daily",
+    "review_cadence": "quarterly",
+    "last_reviewed": null
+  },
+  "claude_code_familiarity": "new",
   "collaborators": true,
-  "team_context": ""
+  "team_context": "lab of 4 PhDs"
 }
 ```
 
-Save this to `.carrel/environment.json` as the `interview` field.
+**Field rules:**
+- `sensitivity` MUST be one of `"high" | "medium" | "low"` (the `Sensitivity` enum)
+- `cloud_consent` is a `bool`, NOT a string like `"local_only"`
+- `automation` is a full `AutomationConfig`; safe defaults shown above
+- `tools_configured` keys are the canonical tool names; values are booleans (true = installed and configured)
+- `preferences` is free-form (`dict[str, Any]`); the keys shown drive Phase 4 scaffold decisions (`qualitative`, `many_papers`, `writing` pick which `.base` database files get scaffolded)
+- All optional fields can be omitted — Pydantic will default them
+
+Save the JSON directly to `.carrel/environment.json`. Validate by running `uv run python -c "from carrel.models import ResearcherProfile; ResearcherProfile.model_validate_json(open('.carrel/environment.json').read())"` — no exception means the schema is correct.

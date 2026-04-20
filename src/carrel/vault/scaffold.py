@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from carrel import __version__
-from carrel.models import ResearcherProfile, ScaffoldResult
+from carrel.models import ResearcherProfile, ScaffoldResult, SetupState
 from carrel.vault.templates import (
     BASE_TEMPLATES,
     copy_template,
@@ -98,14 +98,8 @@ def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> Scaf
     if setup_state_path.exists():
         skipped.append(_safe_relative(setup_state_path, vault))
     else:
-        setup_state_path.write_text(
-            json.dumps(
-                {"last_completed_phase": 4, "version": __version__, "completed_at": None},
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        initial_state = SetupState(last_completed_phase=4, version=__version__)
+        setup_state_path.write_text(initial_state.model_dump_json(indent=2) + "\n", encoding="utf-8")
         created.append(_safe_relative(setup_state_path, vault))
 
     cheat_sheet = vault / "_meta" / "cheat_sheet.md"

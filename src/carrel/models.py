@@ -146,6 +146,20 @@ class AutomationConfig(BaseModel):
     last_reviewed: str | None = None
 
 
+class SetupState(BaseModel):
+    """Tracks /carrel-setup phase progress for resumable setup.
+
+    Written by `carrel vault init` after Phase 4 (initial: last_completed_phase=4).
+    Updated by Claude as subsequent phases complete. Marked complete by setting
+    `completed_at` to today's ISO date at Phase 9. Read by the session-start hook
+    to surface a resume prompt for paused setups.
+    """
+
+    last_completed_phase: int = Field(ge=0, le=9)
+    version: str
+    completed_at: str | None = None  # ISO date YYYY-MM-DD when setup completes
+
+
 class ResearcherProfile(BaseModel):
     name: str | None = None
     field: str | None = None

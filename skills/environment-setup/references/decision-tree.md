@@ -32,11 +32,13 @@ These are set up for every researcher regardless of answers:
 
 ## Sensitivity Assessment
 
+**Schema note**: `sensitivity` is the `Sensitivity` enum (`"high" | "medium" | "low"`) and `cloud_consent` is a `bool` on `ResearcherProfile`. Together they encode the policy. Do NOT write string values like `"local_only"` to `cloud_consent` — that's the legacy v0.2-era schema and Pydantic will reject it.
+
 ```
 Interview: "Do you work with sensitive data?"
 
 → HIGH (IRB data, interview transcripts, unpublished manuscripts):
-  - Set cloud_consent to "local_only" in environment.json
+  - Set sensitivity: "high" and cloud_consent: false in environment.json
   - CLAUDE.md: "ALWAYS warn before using any cloud service"
   - Default to local conversion tools only
   - liteparse (PDF), coli (audio), markitdown (Office docs) are all local — safe
@@ -44,12 +46,12 @@ Interview: "Do you work with sensitive data?"
   - groq (cloud transcription) not available in this profile
 
 → MEDIUM (unpublished drafts, but no IRB/participant data):
-  - Set cloud_consent to "prefer_local"
+  - Set sensitivity: "medium" and cloud_consent: false in environment.json
   - CLAUDE.md: "Prefer local tools. Ask before cloud processing."
   - Cloud tools available but not default; researcher must confirm
 
 → LOW (published papers, public materials, course content):
-  - Set cloud_consent to "comfortable_with_cloud"
+  - Set sensitivity: "low" and cloud_consent: true in environment.json
   - CLAUDE.md: "Cloud and local tools both available"
   - Can use all tools freely
 ```
