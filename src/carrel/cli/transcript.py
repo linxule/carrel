@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import shutil
 import time
 from pathlib import Path
 
@@ -14,12 +15,14 @@ from carrel.env.audit import audit
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError, ToolNotConfigured
 from carrel.models import Sensitivity, TranscribeResult, TranscribeTool
+from carrel.policy.sensitivity import PolicyDecision, select_tool
 from carrel.transcribe.adapters.coli import transcribe_with_coli
 from carrel.transcribe.adapters.gemini import transcribe_with_gemini
 from carrel.transcribe.adapters.groq import transcribe_with_groq
 from carrel.transcribe.adapters.youtube_captions import transcribe_with_youtube_captions
 from carrel.transcribe.filer import file_transcript
 from carrel.transcribe.router import select_transcribe_tool
+from carrel.transcribe.youtube_url import is_youtube_url
 from carrel.vault.organize import transcript_filename
 
 app = typer.Typer(help="Transcript creation and listing")
@@ -28,6 +31,32 @@ console = Console()
 
 def _is_url(source: str) -> bool:
     return source.startswith("http://") or source.startswith("https://")
+
+
+def _transcribe_policy_decision(
+    source: str,
+    profile,
+    sensitivity: Sensitivity | None,
+    tool: TranscribeTool | None,
+) -> PolicyDecision:
+    effective_sensitivity = sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM)
+    available_tools: list[TranscribeTool] = []
+    if is_youtube_url(source):
+        available_tools.append(TranscribeTool.YOUTUBE_CAPTIONS)
+        if os.environ.get("GEMINI_API_KEY"):
+            available_tools.append(TranscribeTool.GEMINI)
+    else:
+        if shutil.which("coli"):
+            available_tools.append(TranscribeTool.COLI)
+        if os.environ.get("GROQ_API_KEY"):
+            available_tools.append(TranscribeTool.GROQ)
+    return select_tool(
+        requested_tool=tool,
+        available_tools=available_tools,
+        sensitivity=effective_sensitivity,
+        cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
+        tool_class="transcribe",
+    )
 
 
 async def _transcribe(
@@ -65,6 +94,7 @@ def create_command(
     vault: Path | None = typer.Option(None, "--vault"),
     tool: TranscribeTool | None = typer.Option(None, "--tool"),
     sensitivity: Sensitivity | None = typer.Option(None, "--sensitivity"),
+    explain: bool = typer.Option(False, "--explain"),
     kind: str = typer.Option("recording", "--kind"),
     speakers: int | None = typer.Option(None, "--speakers"),
     force: bool = typer.Option(False, "--force"),
@@ -76,6 +106,9 @@ def create_command(
         resolved_source = source if _is_url(source) else str(normalize_path(Path(source)))
         vault_path = resolve_vault(vault)
         profile = read_profile(vault_path)
+        if explain:
+            console.print(_transcribe_policy_decision(resolved_source, profile, sensitivity, tool))
+            return
         predicted = vault_path / "transcripts" / transcript_filename(
             source=resolved_source,
             date=time.strftime("%Y-%m-%d"),

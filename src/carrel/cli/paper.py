@@ -1,22 +1,51 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import shutil
 import time
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
+from carrel.cli import emit_carrel_error, normalize_path, resolve_cloud_consent, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
 from carrel.convert.filer import file_paper
 from carrel.convert.pipeline import run_convert_pipeline, select_convert_tool_only
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.models import ConvertResult, ConvertTool, Sensitivity
+from carrel.policy.sensitivity import PolicyDecision, select_tool
 
 app = typer.Typer(help="Paper conversion and listing")
 console = Console()
+
+
+def _convert_policy_decision(
+    file_path: Path,
+    profile,
+    sensitivity: Sensitivity | None,
+    tool: ConvertTool | None,
+) -> PolicyDecision:
+    effective_sensitivity = sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM)
+    available_tools: list[ConvertTool] = []
+    if file_path.suffix.lower() != ".pdf":
+        available_tools.append(ConvertTool.MARKDOWNIFY)
+    else:
+        if tool == ConvertTool.MARKDOWNIFY:
+            available_tools.append(ConvertTool.MARKDOWNIFY)
+        if shutil.which("lit"):
+            available_tools.append(ConvertTool.LITEPARSE)
+        if os.environ.get("MINERU_API_KEY"):
+            available_tools.append(ConvertTool.MINERU)
+    return select_tool(
+        requested_tool=tool,
+        available_tools=available_tools,
+        sensitivity=effective_sensitivity,
+        cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
+        tool_class="convert",
+    )
 
 @app.command("convert")
 def convert_command(
@@ -24,6 +53,7 @@ def convert_command(
     vault: Path | None = typer.Option(None, "--vault"),
     tool: ConvertTool | None = typer.Option(None, "--tool"),
     sensitivity: Sensitivity | None = typer.Option(None, "--sensitivity"),
+    explain: bool = typer.Option(False, "--explain"),
     force: bool = typer.Option(False, "--force"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
@@ -32,6 +62,9 @@ def convert_command(
         file_path = normalize_path(file)
         vault_path = resolve_vault(vault)
         profile = read_profile(vault_path)
+        if explain:
+            console.print(_convert_policy_decision(file_path, profile, sensitivity, tool))
+            return
         if dry_run:
             selected_tool = asyncio.run(select_convert_tool_only(file_path, vault_path, profile, sensitivity, tool))
             result = ConvertResult(
