@@ -93,6 +93,18 @@ Ask the researcher for a Google Doc they'd like to import:
 
 ## Troubleshooting
 
+## Windows-specific setup
+
+On Windows, `gws auth setup` cannot find `gcloud.cmd` due to how Rust binaries resolve `.cmd` wrappers. Skip that command and follow these steps instead:
+
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create a new OAuth 2.0 Client ID of type "Desktop app"
+3. Download the credentials JSON
+4. Place it at `%APPDATA%\gws\credentials.json` (or wherever `gws` expects)
+5. Run `gws auth login -s drive` — this reads the manually-placed credentials and completes the browser OAuth flow.
+
+Same one-time setup friction as macOS, different entry point.
+
 **"Access blocked: This app's request is invalid"**
 - The OAuth consent screen is in "Testing" mode — make sure the researcher's email is added as a test user (Step 4.6).
 
