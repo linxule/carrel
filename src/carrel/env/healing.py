@@ -8,6 +8,7 @@ from pydantic import BaseModel, ValidationError
 
 from carrel import __version__
 from carrel.models import AuditResult, ResearcherProfile
+from carrel.env.sync import sync_tools_configured
 from carrel.env.validation import (
     DriftIssue,
     detect_raw_marker_conflicts,
@@ -45,22 +46,6 @@ def _populate_missing_top_level_fields(raw_data: dict[str, Any]) -> list[str]:
         raw_data["version"] = __version__
         added.append("Added missing optional field 'version'")
     return added
-
-
-def _sync_tools_configured(raw_data: dict[str, Any], audit_result: AuditResult) -> list[str]:
-    tools = raw_data.get("tools_configured")
-    if not isinstance(tools, dict):
-        return []
-
-    changes: list[str] = []
-    for tool, configured in sorted(tools.items()):
-        actual = audit_result.tool_matrix.is_available(tool, audit_result.platform)
-        if configured != actual:
-            tools[tool] = actual
-            changes.append(
-                f"Re-synced tools_configured.{tool} to {str(actual).lower()} on {audit_result.platform.value}"
-            )
-    return changes
 
 
 def apply_safe_environment_fixes(
@@ -133,8 +118,6 @@ def apply_safe_environment_fixes(
             fixed.append(f"Removed orphaned keys: {', '.join(unknown_keys)}")
 
     fixed.extend(_populate_missing_top_level_fields(working))
-    fixed.extend(_sync_tools_configured(working, audit_result))
-
     try:
         profile = ResearcherProfile.model_validate(working)
     except ValidationError as error:
@@ -152,6 +135,17 @@ def apply_safe_environment_fixes(
             ),
             None,
         )
+
+    synced_profile = sync_tools_configured(profile, audit_result)
+    if synced_profile.tools_configured != profile.tools_configured:
+        previous = profile.tools_configured
+        for tool, value in sorted(synced_profile.tools_configured.items()):
+            if previous.get(tool) != value:
+                fixed.append(
+                    f"Re-synced tools_configured.{tool} to {str(value).lower()} on "
+                    f"{audit_result.platform.value}"
+                )
+        profile = synced_profile
 
     if deferred:
         return (
