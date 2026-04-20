@@ -33,7 +33,7 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
 - **11 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, self-improve)
 - **2 hooks** (session start environment check, session end reflection prompt)
-- **1 Python core library** (`carrel` CLI — convert, transcribe, vault, env commands)
+- **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust` subcommand groups)
 
 ## Commands
 
@@ -191,7 +191,7 @@ Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Co
 
 | Feature | Desktop Code tab | CLI |
 |---------|-----------------|-----|
-| Skills (all 10) | Yes | Yes |
+| Skills (all 11) | Yes | Yes |
 | Commands (/carrel-*) | Yes | Yes |
 | Hooks | Yes | Yes |
 | Agents (@setup-interviewer, @research-partner) | Yes | Yes |
