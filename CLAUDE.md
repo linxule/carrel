@@ -13,6 +13,7 @@ uv run carrel paper convert paper.pdf            # Convert PDF (liteparse defaul
 uv run carrel transcript create rec.m4a          # Transcribe audio (coli default)
 uv run carrel capture url https://example.com    # Web capture (defuddle)
 uv run carrel google export <google-docs-url>    # Google Docs export (gws)
+uv run carrel vault cheatsheet --vault . --force # Regenerate _meta/cheat_sheet.md
 ```
 
 ## Architecture
@@ -45,7 +46,9 @@ carrel/
 ├── hooks/                # Plugin hooks (session start/end)
 ├── commands/             # Plugin slash commands (/carrel-*)
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
-├── bootstrap.sh          # Fresh Mac setup script
+├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
+├── install.sh            # macOS/Linux one-line installer (curl | bash)
+├── install.ps1           # Windows installer (see Gotchas re: partial Windows support)
 └── pyproject.toml        # pydantic + typer + rich + httpx + markitdown
 ```
 
@@ -86,7 +89,13 @@ Carrel can run overnight via Desktop App local scheduled tasks. The `automation`
 - **Generated prompt**: `_meta/automation-prompt.md` — per-researcher, uses vault detection (no absolute path)
 - **Two-track sync**: `environment.json` + vault `CLAUDE.md` must both reflect automation preferences
 
-Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (configure), `/carrel-mirror` (research self-portrait), `/carrel-share` (collaborator handbook from vault context)
+Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (configure), `/carrel-mirror` (research self-portrait)
+
+## Collaboration (v0.5.1)
+
+`/carrel-share` generates a vault-specific handbook for an incoming collaborator (RA, co-author, lab member) by synthesizing friction log, capability log, reflections, configured tools, sensitivity rules, and active threads. Distinct from `/carrel-setup` (new researcher's own vault) and from Claude Code's `/team-onboarding` (generic Claude Code usage tips). Output: `_meta/handbook/[YYYY-MM-DD]-for-[name].md`.
+
+Skill: `collaborator-onboarding`. Profile fields that drive it: `collaborators: bool`, `team_context: str | None`. Asked in setup interview; surfaced in Phase 9 handoff when `collaborators == true`.
 
 ## Knowledge Wiki
 
@@ -106,6 +115,7 @@ Optional synthesis layer: agent-maintained entity/concept pages that compound kn
 Interview preferences flow into two systems that must stay in sync:
 - **environment.json** → CLI router (structured, mechanical). The CLI reads `cloud_consent`, `sensitivity`, etc.
 - **Vault CLAUDE.md** → Claude's judgment (narrative, contextual). Claude reads this every session.
+- **setup-state.json** (`.carrel/setup-state.json`, added v0.5.2) → tracks `last_completed_phase` so `/carrel-setup` can pause and resume. Written by `carrel vault init` (initial: phase 4); Claude updates as phases complete; `completed_at` set at phase 9. Hook surfaces a resume prompt if paused.
 
 The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from the interview. When preferences change, update BOTH files. The session-start hook surfaces preferences so Claude has immediate context.
 
@@ -127,6 +137,7 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Cheat sheet regeneration: `carrel vault cheatsheet --vault <path> --force` (added v0.5.2; the legacy `generate-cheatsheet.js` was removed)
 - youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
 - Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
+- Windows support is partial: `install.ps1` works, but `env/audit.py` uses macOS `mdfind` (won't detect Obsidian/Zotero on Windows), `env/install.py` constants are all `brew`, and `decision-tree.md` recommends `brew install` unconditionally. Windows users complete install but hit walls during `/carrel-setup`. See `planning/specs/007-cross-platform-support.md` (when written) for the fix plan.
 
 ## Capability Absorption
 
@@ -142,7 +153,7 @@ Carrel is the on-ramp to ItDepends (abductive research agent). Same Python + pyd
 
 ## Spec & Review History
 
-Multi-model review process: spec written, reviewed by Codex (adversarial) + Gemini (constructive) through 3 rounds. All in `planning/`.
+Multi-model review process: each spec gets adversarial reviews (typically Codex + a feasibility/architect pass) before implementation; some specs go through multiple rounds. All artifacts in `planning/`.
 
 | File | Purpose |
 |------|---------|
@@ -156,3 +167,4 @@ Multi-model review process: spec written, reviewed by Codex (adversarial) + Gemi
 | `planning/reviews/004-review-architect.md` | v0.4 feasibility review (architect) |
 | `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
 | `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
+| `planning/specs/006-environment-validation-and-self-healing.md` | v0.6 spec: schema validation, lint, doctor agent (pre-review) |
