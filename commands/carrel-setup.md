@@ -50,12 +50,19 @@ Run `carrel vault init <path>` to create:
 - Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration
 - `.carrel/environment.json` (writes a default `ResearcherProfile`; replace with the interview profile below)
+- `CLAUDE.md` starter with profile-sync HTML markers
 - Note templates + research-database `.base` files (selected from `preferences.*`)
 - `_meta/cheat_sheet.md`, `_meta/my-environment.md`, `_meta/capability-log.md`, `_meta/friction_log.md`
 
 After scaffolding, overwrite `.carrel/environment.json` with the researcher's profile from the interview (Claude does this directly — write the full `ResearcherProfile` JSON).
 
-Then generate `CLAUDE.md` at project root with researcher profile, tool inventory, and behavioral guidelines. This file auto-loads in all future sessions.
+Then update or regenerate the root `CLAUDE.md` so its HTML markers match the interview profile. If you rewrote `.carrel/environment.json` after `carrel vault init`, run:
+
+```bash
+carrel vault add-markers --vault <path>
+```
+
+Keep the narrative guidance in `CLAUDE.md`, but preserve the marker block so `carrel vault check-sync` can detect drift in future sessions.
 
 **Natural pause point.** Ask the researcher: *"Your vault is set up and Claude knows your profile. We can keep going to optional tools and automation, or you can pause here and pick this up later — the session-start hook will remember where we stopped. Want to keep going?"*
 

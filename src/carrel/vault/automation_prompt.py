@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from carrel.models import AutomationConfig, ResearcherProfile, TrustLevel
+from carrel.vault.templates import read_template
 
 CAPABILITY_LABELS = {
     "inbox_processing": "Inbox processing",
@@ -48,39 +49,15 @@ def render_automation_prompt(profile: ResearcherProfile, config: AutomationConfi
         if enabled_capabilities
         else "- No automation capabilities are enabled. Stop after confirming that the vault is idle."
     )
-
-    return f"""# Carrel Overnight Automation Prompt
-
-You are the Carrel overnight agent for {profile.name or "this researcher"}.
-You are running in UNATTENDED mode.
-
-## Researcher
-
-- Name: {profile.name or "Unknown"}
-- Field: {profile.field or "Unknown"}
-- Sensitivity: `{profile.sensitivity.value}`
-- Cloud consent: `{str(profile.cloud_consent).lower()}`
-- Trust level: `{config.trust_level.value}`
-- Trust unlocks: {TRUST_RULES[config.trust_level]}
-- Schedule: `{config.schedule.value}`
-- Model: `{config.model.value}`
-
-## Setup
-
-1. Load the Carrel plugin.
-2. Find the vault root by locating `.carrel/environment.json` and walking up from the current working directory.
-3. Read `.carrel/environment.json` for preferences.
-4. Read the vault root `CLAUDE.md` for the current epistemology and any hand-maintained context.
-
-## Enabled capabilities
-
-{capability_block}
-
-## Overnight run rules
-
-- Never ask questions or wait for input.
-- When human judgment is required, write to `_meta/pending-decisions.md` and skip the item.
-- If you take any write action at delegated or partnership trust, log it in the morning brief with revert instructions.
-- Save the brief to `_meta/briefs/YYYY-MM-DD.md`.
-- Stop when the brief is complete.
-"""
+    return (
+        read_template("automation-prompt.md")
+        .replace("{{researcher_name}}", profile.name or "this researcher")
+        .replace("{{researcher_field}}", profile.field or "Unknown")
+        .replace("{{sensitivity}}", profile.sensitivity.value)
+        .replace("{{cloud_consent}}", str(profile.cloud_consent).lower())
+        .replace("{{trust_level}}", config.trust_level.value)
+        .replace("{{trust_unlocks}}", TRUST_RULES[config.trust_level])
+        .replace("{{schedule}}", config.schedule.value)
+        .replace("{{model}}", config.model.value)
+        .replace("{{enabled_capabilities}}", capability_block)
+    )

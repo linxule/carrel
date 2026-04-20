@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const { checkVersion } = require('./check-version');
 
 function findCarrelRoot(startPath) {
@@ -86,6 +87,72 @@ function shouldShowMigrationPrompt(pluginState, pluginVersion, now) {
     return true;
   }
   return now.getTime() - lastAcknowledged.getTime() >= 24 * 60 * 60 * 1000;
+}
+
+function shouldRunDaily(lastCheckedAt, now) {
+  if (!lastCheckedAt) {
+    return true;
+  }
+  const lastChecked = new Date(lastCheckedAt);
+  if (Number.isNaN(lastChecked.getTime())) {
+    return true;
+  }
+  return now.getTime() - lastChecked.getTime() >= 24 * 60 * 60 * 1000;
+}
+
+function checkProfileSync(projectRoot) {
+  const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+  if (!fs.existsSync(claudeMdPath)) {
+    return;
+  }
+
+  const statePath = path.join(projectRoot, '.carrel', 'plugin-state.json');
+  const pluginState = readJsonFile(statePath) || {};
+  const now = new Date();
+  if (!shouldRunDaily(pluginState.last_checked_at, now)) {
+    return;
+  }
+
+  const stampCheckedAt = () => {
+    try {
+      const latestState = readJsonFile(statePath) || {};
+      latestState.last_checked_at = now.toISOString();
+      safeWriteJson(statePath, latestState);
+    } catch (error) {
+      logHookError('plugin-state last_checked_at write', error);
+    }
+  };
+
+  try {
+    const child = spawn('carrel', ['vault', 'check-sync', '--vault', projectRoot], {
+      cwd: projectRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stderr = '';
+    child.stderr.on('data', chunk => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', error => {
+      logHookError('check-sync spawn', error);
+      stampCheckedAt();
+    });
+
+    child.on('close', code => {
+      const errorText = stderr.trim();
+      if (errorText) {
+        console.error('carrel-hook:', errorText);
+      } else if (code === 1) {
+        console.log('⚠ Profile drift detected in CLAUDE.md — run `carrel vault check-sync` for details.');
+      } else if (code !== 0) {
+        console.error('carrel-hook:', `check-sync exited with code ${code}`);
+      }
+      stampCheckedAt();
+    });
+  } catch (error) {
+    logHookError('check-sync start', error);
+  }
 }
 
 function checkAutomation(projectRoot, env) {
@@ -361,6 +428,8 @@ function main() {
       console.log('');
       console.log('Note: No CLAUDE.md found in vault. Consider running /carrel-setup to generate one.');
     }
+
+    checkProfileSync(projectRoot);
 
     // Check for plugin version changes
     const versionResult = checkVersion(projectRoot);

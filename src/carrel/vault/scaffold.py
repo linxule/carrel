@@ -6,6 +6,7 @@ from pathlib import Path
 from carrel import __version__
 from carrel.models import ResearcherProfile, ScaffoldResult, SetupState
 from carrel.safe_path import safe_vault_join
+from carrel.vault.markers import ensure_markers
 from carrel.vault.templates import (
     BASE_TEMPLATES,
     copy_template,
@@ -51,6 +52,34 @@ def _safe_write(path: Path, content: str) -> tuple[str, str]:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     return "created", str(path)
+
+
+def _enabled_tools(profile: ResearcherProfile) -> str:
+    return ",".join(sorted(tool for tool, enabled in profile.tools_configured.items() if enabled))
+
+
+def _claude_marker_values(profile: ResearcherProfile) -> dict[str, str]:
+    return {
+        "sensitivity": profile.sensitivity.value,
+        "cloud_consent": str(profile.cloud_consent).lower(),
+        "trust_level": profile.automation.trust_level.value,
+        "tools_configured": _enabled_tools(profile),
+        "wiki_enabled": str(profile.wiki_enabled).lower(),
+    }
+
+
+def _render_claude_template(profile: ResearcherProfile) -> str:
+    rendered = (
+        read_template("CLAUDE.md")
+        .replace("{{name}}", profile.name or "Unknown")
+        .replace("{{field}}", profile.field or "Unknown")
+        .replace("{{sensitivity}}", profile.sensitivity.value)
+        .replace("{{cloud_consent}}", str(profile.cloud_consent).lower())
+        .replace("{{trust_level}}", profile.automation.trust_level.value)
+        .replace("{{wiki_enabled}}", str(profile.wiki_enabled).lower())
+        .replace("{{tools_configured}}", _enabled_tools(profile) or "none")
+    )
+    return ensure_markers(rendered, _claude_marker_values(profile))
 
 
 def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> ScaffoldResult:
@@ -110,6 +139,10 @@ def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> Scaf
 
     env_dashboard = safe_vault_join(vault, "_meta", "my-environment.md")
     action, raw_path = _safe_write(env_dashboard, read_template("my-environment.md"))
+    (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
+
+    claude_md = safe_vault_join(vault, "CLAUDE.md")
+    action, raw_path = _safe_write(claude_md, _render_claude_template(active_profile))
     (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
 
     capability_log = safe_vault_join(vault, "_meta", "capability-log.md")

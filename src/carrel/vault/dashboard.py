@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from carrel.models import AuditResult, ResearcherProfile, TrustLevel
+from carrel.vault.templates import read_template
 
 try:
     from carrel.policy.trust import list_actions as policy_list_actions
@@ -92,37 +93,33 @@ def render_dashboard(
         else "- No write actions unlocked at this trust level"
     )
     wiki_status = "enabled" if profile.wiki_enabled else "disabled"
-
-    return f"""# My Research Environment
-
-> Deterministic dashboard generated from `.carrel/environment.json`. Regenerate via `carrel vault dashboard --force`.
-
-## Setup
-
-- Name: {profile.name or "Unknown"}
-- Field: {profile.field or "Unknown"}
-- Vault path: `(set by CLI at write time)`
-- Trust level: `{profile.automation.trust_level.value}`
-- Sensitivity: `{profile.sensitivity.value}`
-- Cloud consent: `{str(profile.cloud_consent).lower()}`
-- Wiki status: `{wiki_status}`
-{audit_line}
-
-## Configured tools
-
-{tools_lines}
-
-## Activity stats
-
-- Papers: {stats.papers}
-- Transcripts: {stats.transcripts}
-- Inbox items: {stats.inbox}
-
-## Trust-unlocked actions
-
-{unlocked_lines}
-
-## Notes
-
-- Regenerate via `carrel vault dashboard --force`
-"""
+    template = read_template("dashboard.md")
+    return (
+        template.replace(
+            "{{setup_block}}",
+            "\n".join(
+                [
+                    f"- Name: {profile.name or 'Unknown'}",
+                    f"- Field: {profile.field or 'Unknown'}",
+                    "- Vault path: `(set by CLI at write time)`",
+                    f"- Trust level: `{profile.automation.trust_level.value}`",
+                    f"- Sensitivity: `{profile.sensitivity.value}`",
+                    f"- Cloud consent: `{str(profile.cloud_consent).lower()}`",
+                    audit_line,
+                ]
+            ),
+        )
+        .replace("{{configured_tools}}", tools_lines)
+        .replace(
+            "{{activity_stats}}",
+            "\n".join(
+                [
+                    f"- Papers: {stats.papers}",
+                    f"- Transcripts: {stats.transcripts}",
+                    f"- Inbox items: {stats.inbox}",
+                ]
+            ),
+        )
+        .replace("{{trust_unlocked_actions}}", unlocked_lines)
+        .replace("{{wiki_status}}", wiki_status)
+    )
