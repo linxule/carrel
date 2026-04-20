@@ -1,3 +1,5 @@
+> **Platform note:** Recommendations below are macOS-first. On Windows, prefer `winget install ...` for system tools. On Linux, use the distro package manager. Spec 007 will fully platform-branch this document. Claude should adapt brew commands by reading the audit platform signal (`AuditResult.os` today; spec 007 proposes `audit.platform`).
+
 # Decision Tree
 
 Maps interview answers + hardware audit → configuration plan.

@@ -54,6 +54,8 @@ Then generate `CLAUDE.md` at project root with researcher profile, tool inventor
 - If they want to pause: leave `setup-state.json` as-is (`last_completed_phase: 4`, `completed_at: null`) — the hook will surface a resume prompt next session.
 - If they want to continue: proceed to Phase 5.
 
+> Note: if you're on Windows, some downstream tools below may not be available — see Platform Support in README.
+
 ### Phase 5: Optional MCPs [skippable]
 
 If the decision tree indicates mineru or zotero, add to project `.mcp.json` and guide through API key setup. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF processing). Skip if you're not sure — you can add any of them later."
@@ -63,7 +65,10 @@ After this phase (whether you configured anything or skipped), update `setup-sta
 ### Phase 6: Human Steps (~10-15 min real time)
 
 Tell the researcher what THEY need to do (Claude can't install GUI apps):
-- Install Obsidian (offer `brew install --cask obsidian` or download from obsidian.md)
+- Install Obsidian:
+  macOS: `brew install --cask obsidian`  
+  Windows: `winget install Obsidian.Obsidian`  
+  Linux: Download AppImage from https://obsidian.md/download
 - Open Obsidian → "Open folder as vault" → select this project folder
 - Install Web Clipper for their browser
 
