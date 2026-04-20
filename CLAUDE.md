@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 49 tests
+uv run pytest                                    # 62 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel vault init /tmp/test               # Scaffold a vault
 uv run carrel paper convert paper.pdf            # Convert PDF (liteparse default)
@@ -14,6 +14,9 @@ uv run carrel transcript create rec.m4a          # Transcribe audio (coli defaul
 uv run carrel capture url https://example.com    # Web capture (defuddle)
 uv run carrel google export <google-docs-url>    # Google Docs export (gws)
 uv run carrel vault cheatsheet --vault . --force # Regenerate _meta/cheat_sheet.md
+uv run carrel setup-state show --vault .         # Inspect setup phase (v0.5.3+)
+uv run carrel setup-state advance --phase N      # Move to next phase atomically
+uv run carrel setup-state complete --vault .     # Mark setup complete (idempotent)
 ```
 
 ## Architecture
@@ -115,7 +118,7 @@ Optional synthesis layer: agent-maintained entity/concept pages that compound kn
 Interview preferences flow into two systems that must stay in sync:
 - **environment.json** → CLI router (structured, mechanical). The CLI reads `cloud_consent`, `sensitivity`, etc.
 - **Vault CLAUDE.md** → Claude's judgment (narrative, contextual). Claude reads this every session.
-- **setup-state.json** (`.carrel/setup-state.json`, added v0.5.2) → tracks `last_completed_phase` so `/carrel-setup` can pause and resume. Written by `carrel vault init` (initial: phase 4); Claude updates as phases complete; `completed_at` set at phase 9. Hook surfaces a resume prompt if paused.
+- **setup-state.json** (`.carrel/setup-state.json`, added v0.5.2) → tracks `last_completed_phase` so `/carrel-setup` can pause and resume. Written by `carrel vault init` (initial: phase 4); managed via the `carrel setup-state` CLI (added v0.5.3 — `advance --phase N`, `complete`, `show`, `reset`); `completed_at` set at phase 9. Hook surfaces a resume prompt if paused. The `SetupState` Pydantic model enforces `phase ∈ [4,9]`, semver `version`, ISO `completed_at`, and the mutual-implication invariant `phase == 9 ⟺ completed_at is set`.
 
 The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from the interview. When preferences change, update BOTH files. The session-start hook surfaces preferences so Claude has immediate context.
 
@@ -134,10 +137,11 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Install constants are centralized in `env/install.py` — don't duplicate
 - coli install uses `bun add -g @marswave/coli` (not npm)
 - gws (Google Workspace CLI) requires Google Cloud project + OAuth — high friction setup, see `references/gws-setup-guide.md`
-- Cheat sheet regeneration: `carrel vault cheatsheet --vault <path> --force` (added v0.5.2; the legacy `generate-cheatsheet.js` was removed)
+- Cheat sheet regeneration: `carrel vault cheatsheet --vault <path> --force` (added v0.5.2; the legacy `generate-cheatsheet.js` was removed). Renderer beefed up in v0.5.3 with configured-tools matrix, common workflows, and next steps sections.
 - youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
 - Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
-- Windows support is partial: `install.ps1` works, but `env/audit.py` uses macOS `mdfind` (won't detect Obsidian/Zotero on Windows), `env/install.py` constants are all `brew`, and `decision-tree.md` recommends `brew install` unconditionally. Windows users complete install but hit walls during `/carrel-setup`. See `planning/specs/007-cross-platform-support.md` (when written) for the fix plan.
+- Windows support is partial. v0.5.3 added stopgap cross-platform guidance for `/carrel-setup` (OS-branched Obsidian install in Phase 6; `install_command_for(tool, platform)` helper in `env/install.py`; platform note at top of `decision-tree.md`). README now has a Platform Support matrix. But `env/audit.py` still uses macOS `mdfind` and most install constants remain brew-only — full fix is `planning/specs/007-cross-platform-support.md` (pre-implementation; locked-blocked on liteparse Windows + gws Windows research).
+- Setup-state changes go through `carrel setup-state` (added v0.5.3) — never edit `.carrel/setup-state.json` by hand. The CLI is the validation boundary.
 
 ## Capability Absorption
 
@@ -169,7 +173,7 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
 | `planning/specs/006-environment-validation-and-self-healing.md` | v0.6 spec: schema validation, lint, doctor agent (pre-review) |
 | `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree (pre-review) |
-| `planning/reviews/008-deployment-readiness-triangulated.md` | Synthesis of Kimi + Codex + internal code-reviewer findings on the v0.5.0→v0.5.2 sprint; tiered fix plan for Codex delegation |
+| `planning/reviews/008-deployment-readiness-triangulated.md` | Synthesis of Kimi + Codex + internal code-reviewer findings on the v0.5.0→v0.5.2 sprint; tiered fix plan — **fully implemented in v0.5.3** (B1, B2, A1-A7, S1-S3, H1-H3) |
 | `planning/reviews/008-review-kimi.md` | Kimi rounds 1+2: schema drift findings + post-fix re-review |
 | `planning/reviews/008-review-codex.md` | Codex fresh adversarial pass: 2 BLOCKERS + #1 recommendation (deterministic state-transition CLI) |
 | `planning/reviews/008-review-internal.md` | Internal code-reviewer: 6 HIGH-confidence Python/JS issues |

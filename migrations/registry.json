@@ -34,6 +34,13 @@
       "file": "0.5.1-to-0.5.2.md",
       "breaking": false,
       "summary": "Resumable setup via .carrel/setup-state.json + pause points; carrel vault cheatsheet CLI; legacy .js scaffolders removed"
+    },
+    {
+      "from": "0.5.2",
+      "to": "0.5.3",
+      "file": "0.5.2-to-0.5.3.md",
+      "breaking": false,
+      "summary": "carrel setup-state CLI (deterministic phase transitions); tightened SetupState model with mutual-implication invariant; hook input validation; install.ps1 verification step + bun URL fix; cross-platform /carrel-setup guidance; cheatsheet beefed up; spec 006/007 corrections"
     }
   ]
 }
