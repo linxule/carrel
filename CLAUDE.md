@@ -124,7 +124,7 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Install constants are centralized in `env/install.py` — don't duplicate
 - coli install uses `bun add -g @marswave/coli` (not npm)
 - gws (Google Workspace CLI) requires Google Cloud project + OAuth — high friction setup, see `references/gws-setup-guide.md`
-- `generate-cheatsheet.js` is still a Node.js script (not yet ported to Python CLI)
+- Cheat sheet regeneration: `carrel vault cheatsheet --vault <path> --force` (added v0.5.2; the legacy `generate-cheatsheet.js` was removed)
 - youtube-transcript-api >= 1.0 uses `.fetch()` not `.get()`, returns objects not dicts
 - Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
 

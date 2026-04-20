@@ -26,7 +26,7 @@ These are set up for every researcher regardless of answers:
 | Vault folder structure | `carrel vault init` | Customized based on field |
 | `.obsidian/` config | `carrel vault init` | Core plugins, templates |
 | `CLAUDE.md` | Generated | Researcher profile + guidelines |
-| Cheat sheet | `generate-cheatsheet.js` | Reference card in `_meta/` |
+| Cheat sheet | `carrel vault init` writes initial; `carrel vault cheatsheet --force` regenerates | Reference card in `_meta/` |
 | liteparse | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` | Local PDF conversion — always install |
 | markitdown | Auto-installed with carrel | Office docs (Word, PowerPoint, Excel), EPUB, Jupyter |
 

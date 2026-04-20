@@ -1,6 +1,6 @@
 # Cheat Sheet Template
 
-This template is used by `generate-cheatsheet.js` to create a customized reference card. Variables in `{{brackets}}` are replaced with values from `.carrel/environment.json`.
+This template is used by `carrel vault cheatsheet` (and the underlying `render_cheat_sheet()` in `src/carrel/vault/templates.py`) to create a customized reference card. Variables in `{{brackets}}` are replaced with values from `.carrel/environment.json`.
 
 ---
 
