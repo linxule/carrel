@@ -27,6 +27,10 @@ Check for `.carrel/environment.json` in the project root, and (if present) `.car
   - Jump straight into work
 - **environment.json present, setup-state.json shows `last_completed_phase < 9` and `completed_at: null`** → Setup paused. Recap what was completed, confirm the stopping point, and resume from `last_completed_phase + 1`. Do NOT re-interview — the profile already exists in environment.json.
 
+## Reading Platform Context
+
+At Step 2, read `audit.platform` from `carrel env doctor --format json`. Use this platform value for every subsequent install recommendation.
+
 ## First-Time Setup Flow
 
 ### Step 1: Interview (conversational, ~10 min)
@@ -53,6 +57,7 @@ Run `carrel env doctor --format json` silently. Consult `references/hardware-aud
 - Installed tools (node, python, pandoc, ffmpeg, obsidian)
 - Existing tool configurations
 - Hardware capability tier (high/medium/low)
+- Canonical platform signal in `audit.platform` for later install guidance
 
 Do NOT show raw output to the researcher. Translate findings into plain language:
 "You're on a Mac with Apple Silicon and plenty of storage. I found Python and Node already installed."
@@ -148,10 +153,14 @@ If the decision tree indicates mineru, zotero, or gws:
 ### Step 7: Human Steps
 
 Tell the researcher what THEY need to do (Claude can't install GUI apps):
-- Install Obsidian:
-  macOS: `brew install --cask obsidian`
-  Windows: `winget install Obsidian.Obsidian`
-  Linux: Download AppImage from https://obsidian.md/download
+- Install Obsidian with the command that matches `audit.platform`:
+
+| Platform | Command |
+|----------|---------|
+| macOS | `brew install --cask obsidian` |
+| Windows | `winget install Obsidian.Obsidian` |
+| Linux | Download AppImage from https://obsidian.md |
+
 - Open Obsidian → "Open folder as vault" → select this project folder
 - Install Web Clipper for their browser (Chrome/Firefox/Safari extension store)
 

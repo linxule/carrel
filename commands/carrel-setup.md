@@ -38,7 +38,7 @@ Cover: research area, file types, data sensitivity, existing tools, comfort leve
 
 ### Phase 2: Silent Audit (~30 sec)
 
-Run `carrel env doctor --format json` to detect hardware, installed tools, and existing configurations. Summarize findings in plain language — never show raw output.
+Run `carrel env doctor --format json` to detect hardware, installed tools, and existing configurations. Extract `audit.platform` from the JSON and remember it for Phases 5 and 6. Summarize findings in plain language — never show raw output.
 
 ### Phase 3: The Plan (~2 min)
 
@@ -66,7 +66,7 @@ Then generate `CLAUDE.md` at project root with researcher profile, tool inventor
 
 ### Phase 5: Optional MCPs [skippable]
 
-If the decision tree indicates mineru or zotero, add to project `.mcp.json` and guide through API key setup. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF processing). Skip if you're not sure — you can add any of them later."
+If the decision tree indicates mineru or zotero, add to project `.mcp.json` and guide through API key setup. Tool recommendations in this phase are platform-gated: use the install row that matches the `audit.platform` value you extracted in Phase 2. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF processing). Skip if you're not sure — you can add any of them later."
 
 After this phase (whether you configured anything or skipped), run:
 
@@ -76,11 +76,8 @@ carrel setup-state advance --phase 5 --vault <path>
 
 ### Phase 6: Human Steps (~10-15 min real time)
 
-Tell the researcher what THEY need to do (Claude can't install GUI apps):
-- Install Obsidian:
-  macOS: `brew install --cask obsidian`  
-  Windows: `winget install Obsidian.Obsidian`  
-  Linux: Download AppImage from https://obsidian.md/download
+Tell the researcher what THEY need to do (Claude can't install GUI apps). Use the OS-aware tables in `skills/environment-setup/references/decision-tree.md` and match them to the `audit.platform` value from Phase 2:
+- Install Obsidian with the matching platform command
 - Open Obsidian → "Open folder as vault" → select this project folder
 - Install Web Clipper for their browser
 

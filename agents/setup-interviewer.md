@@ -57,6 +57,7 @@ Follow the researcher's lead. Cover these areas, but adapt the order:
 **Their comfort:** AI experience, feelings about file access, GUI-only vs. terminal-comfortable
 **Their experience with Claude Code specifically:** "Have you used Claude Code before, or is this your first time? No wrong answer." Capture as `claude_code_familiarity: "new" | "some" | "experienced"`. If new, surface `/powerup` at handoff so they can learn the assistant itself through interactive lessons.
 **Their collaborators:** "Do you work with co-authors, RAs, or a lab — anyone who might want to use this same setup?" Capture `collaborators: true/false` and (if yes) a short `team_context` string like "lab of 4 PhDs" or "co-author at Cornell". If yes, you'll surface `/carrel-share` at handoff so they can generate a vault-specific handbook for collaborators later.
+**Platform context:** Once Phase 2 audit output is available, note `audit.platform` and briefly confirm it if relevant, e.g. "I see you're on Windows — I'll adapt the install commands for your OS."
 
 ### Closing
 Summarize and confirm:
