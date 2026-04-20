@@ -1,8 +1,8 @@
 # Spec 010: Policy Module — Sensitivity-Aware Routing
 
-**Status**: Pre-research / pre-implementation
+**Status**: Locked, ready for implementation (2026-04-20)
 **Origin**: 009 holistic audit, A2 + B4 stopgap (Codex §2 — "sensitivity is mechanically meaningless")
-**Target version**: 0.6.x (likely co-ships with spec 008 trust enforcement — same architectural pattern)
+**Target version**: 0.7.0 (co-ships with spec 007 cross-platform implementation)
 
 ---
 
@@ -44,16 +44,41 @@ The B4 stopgap protects HIGH only. The MEDIUM band ("ask the researcher" vs "def
    - `HIGH`: local-only; refuse cloud even with explicit `--tool <cloud>` (B4 hardening)
 5. **Audit log option**: `_meta/routing-log.jsonl` records every decision (file, tool, sensitivity, consent, selected, rationale). Opt-in via profile flag.
 
-## Open Questions
+## Locked Decisions
 
-- **Should `cloud_consent` deprecate?** With sensitivity as a 3-tier enum, `cloud_consent` becomes redundant for LOW (always cloud-OK) and HIGH (never cloud). It only matters for MEDIUM ("ask"). Either:
-  - Keep both as separate fields (current shape)
-  - Replace `cloud_consent: bool` with a 3-tier `cloud_preference: Literal["never", "ask", "comfortable"]` that interacts with sensitivity per a documented matrix
-  - Delete `cloud_consent` entirely; sensitivity alone is the gate
-  Leaning toward keeping both and documenting the matrix — minimum migration cost.
-- **How does this interact with spec 008 trust enforcement?** Both are policy modules. Should they share a `policy.py` namespace, or be `policy/sensitivity.py` + `policy/trust.py`? Probably the latter — different decision domains.
-- **What about `gws` for Google Workspace?** v0.5.4 H9 added it to the cloud set. But Google Workspace exports are inherently cloud — there's no local alternative. Should `gws` be exempt from the sensitivity gate (since the data is ALREADY in Google's cloud, exporting it locally is a privacy improvement, not a privacy regression)? Open. Currently subject to the gate.
-- **MEDIUM band UX**: the "ask the researcher" path needs a UI. Hook prompt? CLI confirm? `--yes` flag? Defer to implementation.
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| `cloud_consent` deprecation | **Keep both fields** | Backward compat; zero migration cost. Document the matrix explicitly. LOW+consent→cloud, HIGH+anything→local, MEDIUM→requires explicit `--tool <cloud>` override. |
+| Namespace with spec 008 | **Separate modules**: `policy/sensitivity.py` + `policy/trust.py` | Different decision domains; evolve independently. Share nothing except CLI patterns. Rename v0.6.0's top-level `trust.py` to `policy/trust.py` during 010 implementation. |
+| `gws` sensitivity exemption | **No exemption** | Data DOES leave the local machine via a Google API call. HIGH sensitivity should block regardless of "it's already in Google's cloud" reasoning — researcher intent for HIGH is "nothing leaves this machine." |
+| MEDIUM band UX | **Explicit `--tool <cloud>` = consent** | No separate ask-prompt flow in v1. The explicit tool choice IS the consent. If researcher doesn't provide one and local is unavailable, fail with actionable hint ("Local tool missing; to use cloud, run with `--tool mineru`"). |
+
+## Matrix (locked)
+
+Tool selection resolves as:
+
+```
+sensitivity × cloud_consent × requested_tool → (selected_tool, rationale)
+```
+
+| sensitivity | cloud_consent | requested_tool | local available? | Result |
+|-------------|---------------|----------------|------------------|--------|
+| HIGH | any | local | yes | local (preference honored) |
+| HIGH | any | local | no | **refuse**: "HIGH sensitivity requires local; local tool missing; install and retry" |
+| HIGH | any | cloud (explicit) | n/a | **refuse**: "HIGH sensitivity blocks cloud tools regardless of consent" |
+| HIGH | any | none | yes | local (default) |
+| HIGH | any | none | no | **refuse** (same as above) |
+| MEDIUM | any | local | yes | local |
+| MEDIUM | any | local | no | **refuse**: "local tool missing; to use cloud, run with `--tool <cloud>`" |
+| MEDIUM | any | cloud (explicit) | n/a | cloud (explicit is consent) |
+| MEDIUM | any | none | yes | local |
+| MEDIUM | any | none | no | **refuse** (same) |
+| LOW | true | cloud (explicit) | n/a | cloud |
+| LOW | true | local | no | cloud (consent + no local → auto-route) |
+| LOW | true | none | yes | local (local-first default) |
+| LOW | true | none | no | cloud (auto-route with consent) |
+| LOW | false | cloud (explicit) | n/a | cloud (explicit is consent regardless) |
+| LOW | false | none | no | **refuse**: "local tool missing; to use cloud, set cloud_consent=True or run with `--tool <cloud>`" |
 
 ## Constraints
 

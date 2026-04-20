@@ -1,8 +1,8 @@
 # Spec 011: Profile Sync Architecture
 
-**Status**: Pre-research / pre-implementation
+**Status**: Locked, ready for implementation (2026-04-20)
 **Origin**: 009 holistic audit, A3 (Codex §3 + §6 — "narrative shadow state"; Bug Class 3 prediction)
-**Target version**: 0.6.x or 0.7.0 (depending on scope)
+**Target version**: 0.7.0 (co-ships with spec 007 cross-platform implementation)
 
 ---
 
@@ -50,18 +50,39 @@ The vault `CLAUDE.md` is intentionally hand-maintained — it carries narrative 
 3. **`carrel vault check-sync`** — diffs the structured fields embedded in vault `CLAUDE.md` against environment.json. Reports drift. Can be called by the session-start hook to surface "your CLAUDE.md is out of sync with your settings" warnings.
 4. **Skill integration**: `/carrel-setup`, `/carrel-automate`, `/carrel-share` all use the regenerators instead of asking Claude to hand-maintain.
 
-## Open Questions
+## Locked Decisions
 
-- **`my-environment.md` template scope**: is this the same content as the cheat sheet, or does it have unique sections (activity stats, recent friction-log entries, capability log highlights)? If unique, the renderer needs to read more than environment.json. Probably yes — it's a "living dashboard" per current docs.
-- **Activity stats**: where do they come from? Counting files in `papers/`, `transcripts/`, `inbox/`? Reading `_meta/friction_log.md`? This becomes a richer data source than just the profile.
-- **`check-sync` heuristic**: how does it know what's "structured fields embedded in CLAUDE.md"? Options:
-  - Convention (specific markers like `<!-- carrel:sensitivity -->`)
-  - Section heading matching (look for `## Sensitivity` header and parse value)
-  - LLM-based (defeats the purpose)
-  
-  Leaning toward marker comments — explicit, machine-parseable, future-proof.
-- **Backfill for existing vaults**: vaults written before this spec lands won't have markers in CLAUDE.md. Migration: skip drift-check on un-marked vaults; print one-time hint to add markers.
-- **Hook integration**: when does check-sync run? Every session-start would be expensive; once-per-day with a `last_checked_at` stamp would be reasonable.
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| `my-environment.md` scope | **Richer than cheat_sheet** — include activity stats, trust level, sensitivity, configured tools, current trust-unlocked actions, recent friction (file count only for v1) | It's the "living dashboard" per existing docs; should show state change, not just static config |
+| Activity stats source | **File counts** (`papers/`, `transcripts/`, `inbox/`) for v1; friction-log extraction deferred | Simple to implement, no new parsing burden. Can extend in v2 if researchers want more signal. |
+| `check-sync` heuristic | **HTML-comment markers** (`<!-- carrel:sensitivity -->medium<!-- /carrel:sensitivity -->`) | Explicit, machine-parseable, future-proof. No heading-match drift; no LLM defeating the purpose. Obsidian renders comments invisibly. |
+| Backfill for existing vaults | **Un-marked vaults skip drift-check** with one-time hint: "Add `<!-- carrel:* -->` markers to your CLAUDE.md to enable sync checking. See `/carrel-status --add-markers` to auto-insert." | Avoids breaking existing vaults; explicit opt-in path for researchers who want the feature. |
+| Hook integration cadence | **Once per day** with `last_checked_at: str` field in plugin-state.json | Every-session would be expensive on file I/O; daily catches drift without nag. Silent if nothing wrong. |
+
+## Implementation shape (locked)
+
+### New commands
+- `carrel vault dashboard --vault PATH --force` — regenerates `_meta/my-environment.md`
+- `carrel vault automation-prompt --vault PATH --force` — regenerates `_meta/automation-prompt.md`
+- `carrel vault check-sync --vault PATH` — diffs marker values in CLAUDE.md against environment.json; prints drift table; exits non-zero if any drift
+- `carrel vault add-markers --vault PATH` — one-time migration; inserts marker pairs into a vault CLAUDE.md that's still un-marked (idempotent; safe re-runs)
+
+### Marker schema
+```html
+<!-- carrel:sensitivity -->medium<!-- /carrel:sensitivity -->
+<!-- carrel:cloud_consent -->false<!-- /carrel:cloud_consent -->
+<!-- carrel:trust_level -->consultative<!-- /carrel:trust_level -->
+<!-- carrel:tools_configured -->liteparse,coli,defuddle<!-- /carrel:tools_configured -->
+<!-- carrel:wiki_enabled -->false<!-- /carrel:wiki_enabled -->
+```
+
+Parsers: simple regex per marker name. Writers: read marker value, compare to `environment.json`, surface drift.
+
+### Skill integration
+- `/carrel-setup` Phase 4: scaffold writes CLAUDE.md with markers populated from interview
+- `/carrel-automate`: when updating environment.json, also call `carrel vault dashboard --force` and re-sync markers
+- Session-start hook: if `last_checked_at` > 24 hours old, run `carrel vault check-sync` and surface drift findings as a banner
 
 ## Constraints
 
