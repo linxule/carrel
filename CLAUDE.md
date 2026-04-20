@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # ~168 tests
+uv run pytest                                    # 228 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel env validate --vault .            # Validate environment.json + drift markers
 uv run carrel env fix --safe --vault .          # Apply safe environment.json repairs
