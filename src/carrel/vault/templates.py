@@ -28,6 +28,57 @@ BASE_TEMPLATES = [
     "writing-tracker.base",
 ]
 
+TOOL_COMMAND_EXAMPLES = {
+    "liteparse": [
+        "carrel paper convert paper.pdf --tool liteparse",
+        "carrel paper convert paper.pdf --tool liteparse --dry-run",
+        "carrel paper list --vault <vault>",
+    ],
+    "mineru": [
+        "carrel paper convert paper.pdf --tool mineru",
+        "carrel paper convert paper.pdf --tool mineru --force",
+        "carrel google export https://docs.google.com/document/d/... --tool mineru",
+    ],
+    "markdownify": [
+        "carrel paper convert report.docx --tool markdownify",
+        "carrel paper convert slides.pptx --tool markdownify",
+        "carrel google export https://docs.google.com/document/d/... --tool markdownify",
+    ],
+    "defuddle": [
+        "carrel capture url https://example.com/article",
+        "carrel capture url https://example.com/article --dry-run",
+        "carrel capture url https://example.com/article --force",
+    ],
+    "coli": [
+        "carrel transcript create rec.m4a --tool coli",
+        "carrel transcript create interview.wav --tool coli --kind interview",
+        "carrel transcript create lecture.mp3 --tool coli --dry-run",
+    ],
+    "groq": [
+        "carrel transcript create rec.m4a --tool groq",
+        "carrel transcript create lecture.mp3 --tool groq --kind lecture",
+        "carrel transcript create rec.m4a --tool groq --timeout 180",
+    ],
+    "gemini": [
+        "carrel transcript create https://www.youtube.com/watch?v=... --tool gemini",
+        "carrel transcript create https://youtu.be/... --tool gemini --kind lecture",
+    ],
+    "youtube_captions": [
+        "carrel transcript create https://www.youtube.com/watch?v=... --tool youtube_captions",
+        "carrel transcript create https://youtu.be/... --tool youtube_captions",
+    ],
+    "gws": [
+        "carrel google export https://docs.google.com/document/d/...",
+        "carrel google export https://docs.google.com/spreadsheets/d/... --export-format pdf",
+        "carrel google export https://docs.google.com/presentation/d/... --tool markdownify",
+    ],
+    "obsidian": [
+        "carrel vault init ~/Documents/Research",
+        "carrel vault status --vault <vault>",
+        "carrel vault cheatsheet --vault <vault> --force",
+    ],
+}
+
 
 def template_root() -> Path:
     return Path(__file__).resolve().parents[3] / "templates"
@@ -50,6 +101,53 @@ def load_obsidian_config() -> dict:
 
 def load_scaffold_config() -> dict:
     return json.loads(read_template("vault-scaffold.json"))
+
+
+def _tool_command_examples(tool: str) -> list[str]:
+    return TOOL_COMMAND_EXAMPLES.get(
+        tool,
+        [
+            "carrel env doctor",
+            "carrel env profile --vault <vault>",
+            "carrel vault cheatsheet --vault <vault> --force",
+        ],
+    )
+
+
+def _render_configured_tools(tools: dict[str, bool]) -> str:
+    enabled_tools = sorted(tool for tool, enabled in tools.items() if enabled)
+    if not enabled_tools:
+        return "- No tool-specific workflows configured yet. Run `/carrel-status` after setup changes.\n"
+
+    lines: list[str] = []
+    for tool in enabled_tools:
+        lines.append(f"### {tool}")
+        for command in _tool_command_examples(tool):
+            lines.append(f"- `{command}`")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_common_workflows(profile: ResearcherProfile) -> str:
+    prefs = profile.preferences
+    workflows = [
+        "- Daily check: run `/carrel-status` when something feels off or after adding tools.",
+    ]
+    if profile.wiki_enabled:
+        workflows.append("- Knowledge wiki: query via `/carrel-research` and keep field-map pages current.")
+    if profile.cloud_consent:
+        workflows.append("- Cloud tools are enabled: `mineru`, `groq`, and `gemini` can be selected when useful.")
+    else:
+        workflows.append("- Cloud tools are disabled by default: keep workflows local unless you explicitly opt in.")
+    if prefs.get("many_papers") or prefs.get("literature_review"):
+        workflows.append("- Paper pipeline: use `/carrel-convert` for one file or `/carrel-batch` for an inbox sweep.")
+    if prefs.get("qualitative") or prefs.get("interviews"):
+        workflows.append("- Interview workflow: transcribe recordings, then link transcripts into notes and coding docs.")
+    if profile.automation.enabled:
+        workflows.append("- Overnight automation is on: review `_meta/briefs/` and update preferences via `/carrel-automate`.")
+    if profile.collaborators:
+        workflows.append("- Collaborator handoff: generate or refresh a handbook with `/carrel-share`.")
+    return "\n".join(workflows) + "\n"
 
 
 def render_cheat_sheet(vault: Path, profile: ResearcherProfile) -> str:
@@ -79,4 +177,18 @@ Vault: {vault_name}
 - `admin/`
 - `_meta/`
 - `_templates/`
+
+## Configured tools
+
+{_render_configured_tools(tools)}
+
+## Common workflows
+
+{_render_common_workflows(profile)}
+
+## Next steps
+
+- Run `/carrel-status` for a live environment check.
+- Use `/carrel-share` when you need a collaborator-ready handbook for this vault.
+- Use `/carrel-migrate` to review updates and apply the migration system when Carrel changes.
 """

@@ -29,9 +29,9 @@ Carrel's bootstrap install is cross-platform, but the setup flow is not yet full
 
 ## What's Included
 
-- **9 commands** (`/carrel-*` for setup, conversion, transcription, reflection, migration)
+- **13 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration)
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **6 skills** (environment setup, vault operations, conversion, transcription, web capture, research partnership)
+- **10 skills** (environment setup, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, self-improve)
 - **2 hooks** (session start environment check, session end reflection prompt)
 - **1 Python core library** (`carrel` CLI — convert, transcribe, vault, env commands)
 
@@ -39,15 +39,19 @@ Carrel's bootstrap install is cross-platform, but the setup flow is not yet full
 
 | Command | What it does |
 |---------|-------------|
+| `/carrel-automate` | Set up or update overnight vault maintenance and analytical tasks |
+| `/carrel-batch` | Batch convert or transcribe a folder of files and file them to your vault |
+| `/carrel-capture` | Save web content to your vault |
+| `/carrel-cheatsheet` | Regenerate your reference card |
 | `/carrel-setup` | Full onboarding: interview, audit, scaffold vault |
 | `/carrel-status` | Check what's installed and working |
 | `/carrel-convert` | Convert PDF/Word/slides to markdown in your vault |
-| `/carrel-transcribe` | Transcribe audio to text in your vault |
-| `/carrel-capture` | Save web content to your vault |
-| `/carrel-reflect` | End-of-session reflection |
-| `/carrel-cheatsheet` | Regenerate your reference card |
-| `/carrel-migrate` | Check for updates, show what's new, apply migrations |
 | `/carrel-feedback` | Generate anonymized feedback digest for sharing |
+| `/carrel-migrate` | Check for updates, show what's new, apply migrations |
+| `/carrel-mirror` | Synthesize your research patterns from reflections and logs |
+| `/carrel-reflect` | End-of-session reflection |
+| `/carrel-share` | Generate a collaborator handbook for this vault |
+| `/carrel-transcribe` | Transcribe audio to text in your vault |
 
 ## Design Philosophy
 
@@ -183,7 +187,7 @@ Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Co
 
 | Feature | Desktop Code tab | CLI |
 |---------|-----------------|-----|
-| Skills (all 6) | Yes | Yes |
+| Skills (all 10) | Yes | Yes |
 | Commands (/carrel-*) | Yes | Yes |
 | Hooks | Yes | Yes |
 | Agents (@setup-interviewer, @research-partner) | Yes | Yes |

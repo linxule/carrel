@@ -27,6 +27,10 @@ def test_scaffold_creates_dashboard_and_capability_log(tmp_path) -> None:
     assert (result.vault / "_meta" / "my-environment.md").exists()
     assert (result.vault / "_meta" / "capability-log.md").exists()
     assert (result.vault / "_meta" / "local").is_dir()
+    cheat_sheet = (result.vault / "_meta" / "cheat_sheet.md").read_text(encoding="utf-8")
+    assert "## Configured tools" in cheat_sheet
+    assert "## Common workflows" in cheat_sheet
+    assert "## Next steps" in cheat_sheet
 
 
 def test_scaffold_always_includes_reading_progress_base(tmp_path) -> None:

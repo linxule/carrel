@@ -82,14 +82,16 @@ function checkAutomation(projectRoot, env) {
       : null;
 
     const now = new Date();
-
-    // 2. Check for new morning briefs
+    let briefs = [];
     try {
-      const briefs = fs.readdirSync(briefsDir)
+      briefs = fs.readdirSync(briefsDir)
         .filter(f => f.endsWith('.md') && /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
         .sort()
         .reverse();
+    } catch {}
 
+    // 2. Check for new morning briefs
+    try {
       if (briefs.length > 0) {
         const latestDate = briefs[0].replace('.md', '');
         const latestBriefTime = new Date(latestDate + 'T00:00:00Z');
@@ -185,11 +187,6 @@ function checkAutomation(projectRoot, env) {
       const automation = env.automation;
       if (automation && automation.enabled) {
         // Check if no briefs in last 7 days
-        const briefs = fs.readdirSync(briefsDir)
-          .filter(f => f.endsWith('.md') && /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
-          .sort()
-          .reverse();
-
         if (briefs.length > 0) {
           const latestDate = new Date(briefs[0].replace('.md', '') + 'T00:00:00Z');
           if (daysBetween(now, latestDate) > 7) {
