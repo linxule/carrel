@@ -62,6 +62,13 @@
       "file": "0.6.0-to-0.7.0.md",
       "breaking": false,
       "summary": "Four specs ship together: 007 (first-class Windows + Linux support via Platform enum, per-tool install dicts, OS-aware decision tree, cheatsheet platform param), 010 (policy/sensitivity.py with 16-row routing matrix and --explain flag; routers consume policy; trust.py moved to policy/trust.py), 011 (carrel vault dashboard|automation-prompt|check-sync|add-markers; HTML-comment markers in CLAUDE.md; hook once-per-24h sync check), 006 (carrel env validate + fix --safe + /carrel-fix + env-doctor skill; tools_configured re-sync via PlatformToolMatrix). 228 tests pass. Imperial PC + Mac researchers at parity."
+    },
+    {
+      "from": "0.7.0",
+      "to": "0.7.1",
+      "file": "0.7.0-to-0.7.1.md",
+      "breaking": false,
+      "summary": "Patch: removed src/carrel/trust.py backward-compat shim (deferred from v0.8.0). Zero internal imports; pre-pilot cleanup. Use carrel.policy.trust for any external imports. CLI unchanged. 228 tests pass."
     }
   ]
 }
