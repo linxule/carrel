@@ -6,6 +6,40 @@
 
 ---
 
+## LOCK BLOCKERS — DO NOT IMPLEMENT UNTIL RESOLVED
+
+> Implementation must not start until the blockers below are resolved and the spec is re-locked.
+
+The following questions MUST be answered (with citations) before this spec is locked. Per Kimi review (2026-04-20): "committing a spec that admits it doesn't know whether a core tool works on Windows creates false confidence and leaves the implementation team with an unscoped research task mid-cycle."
+
+### Lock blocker A: liteparse Windows installability
+
+If liteparse has no Windows install path, Windows researchers with HIGH sensitivity have NO local PDF conversion option. They are forced to either:
+- (a) Use mineru (cloud) — violates HIGH-sensitivity local-only default
+- (b) Use WSL — adds significant setup friction and breaks the "Carrel works natively on your OS" promise
+- (c) Use markitdown for PDFs — but markitdown PDF support is poor (the whole reason liteparse was added)
+
+**Required research before lock**: investigate upstream (`run-llama/liteparse`) for:
+1. Is there a `pip install` path? (If yes, Windows works via Python/pip directly.)
+2. Is there a `bun add -g` / `npm install -g` package? (If yes, Windows works via Node.)
+3. Is the Homebrew formula a wrapper around something installable on Windows directly?
+4. If none of the above, is there a documented Windows build-from-source path?
+
+**Decision matrix for the spec lock**:
+- If liteparse works on Windows (any path) → spec proceeds as-is
+- If liteparse is genuinely Mac-only → spec MUST add an explicit "Windows + HIGH sensitivity" decision tree branch with: WSL recommendation, mineru cloud opt-in with explicit consent capture, or accept the gap and document the limitation prominently in the README
+
+### Lock blocker B: gws Windows alternative
+
+Confirmed no Windows package as of 2026-04-20. The spec's current resolution ("mark Mac-only with Web Clipper as fallback") is acceptable IF the Web Clipper workflow actually covers the Google Workspace use case. Verify before lock that:
+- Web Clipper handles Google Docs (yes — it's a documented use case)
+- Web Clipper handles Google Sheets (likely degraded; needs testing)
+- Web Clipper handles Google Slides (likely degraded; needs testing)
+
+If Sheets/Slides degrade significantly via Web Clipper, document the gap explicitly.
+
+---
+
 ## Context
 
 Carrel's install path is cross-platform: `install.sh` covers macOS/Linux, `install.ps1` covers Windows. Both bootstrap the toolchain and install the plugin successfully.
@@ -87,14 +121,14 @@ Single source of truth for OS detection. All branching downstream consults this.
 
 Add to `models.py`. `carrel env doctor` populates it from `detect_platform()`. Surfaced in JSON output for the interviewer to use.
 
-#### A3. Shared `ToolAvailability` matrix (consumed by spec 006 validator too)
+#### A3. Shared `PlatformToolMatrix` (consumed by spec 006 validator too)
 
 Add to `models.py`:
 
 ```python
-class ToolAvailability(BaseModel):
+class PlatformToolMatrix(BaseModel):
     """Per-tool, per-platform availability matrix.
-    
+
     Single source of truth for "is tool X available on platform Y" — consumed
     by carrel env doctor (reporting), the 006 validator (drift detection),
     and the decision tree (recommendation gating).
@@ -104,6 +138,8 @@ class ToolAvailability(BaseModel):
     def is_available(self, tool: str, platform: Platform) -> bool:
         return self.matrix.get(tool, {}).get(platform, False)
 ```
+
+This is distinct from the existing `ToolAvailability` model already defined in `src/carrel/models.py` (`binaries`, `api_keys`, `mcp_servers`).
 
 Populated at startup from per-tool detection (binaries via `shutil.which()`, GUI apps via the platform-aware detection in B1). Spec 006's validator reads this matrix instead of running its own detection — eliminating the cross-cutting risk Kimi flagged.
 
@@ -234,7 +270,7 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 | 7 | Interviewer surfaces OS context and skips OS-incompatible tool recommendations |
 | 8 | `SKILL.md` Step 6 (Obsidian install) is platform-branched |
 | 9 | The cheat sheet renders OS-correct commands (passes platform to render function) |
-| 10 | Pytest covers platform detection and install-command lookup for all three platforms (mocked) |
+| 10 | Pytest covers platform detection, install-command lookup for all three platforms (mocked), and `PlatformToolMatrix` gating |
 
 ### Should Have
 
@@ -275,36 +311,6 @@ Audit `install.ps1` to confirm it installs (or makes available): node, bun, uv, 
 
 ---
 
-## Lock Blockers (must resolve before implementation)
-
-The following questions MUST be answered (with citations) before this spec is locked. Per Kimi review (2026-04-20): "committing a spec that admits it doesn't know whether a core tool works on Windows creates false confidence and leaves the implementation team with an unscoped research task mid-cycle."
-
-### Lock blocker A: liteparse Windows installability
-
-If liteparse has no Windows install path, Windows researchers with HIGH sensitivity have NO local PDF conversion option. They are forced to either:
-- (a) Use mineru (cloud) — violates HIGH-sensitivity local-only default
-- (b) Use WSL — adds significant setup friction and breaks the "Carrel works natively on your OS" promise
-- (c) Use markitdown for PDFs — but markitdown PDF support is poor (the whole reason liteparse was added)
-
-**Required research before lock**: investigate upstream (`run-llama/liteparse`) for:
-1. Is there a `pip install` path? (If yes, Windows works via Python/pip directly.)
-2. Is there a `bun add -g` / `npm install -g` package? (If yes, Windows works via Node.)
-3. Is the Homebrew formula a wrapper around something installable on Windows directly?
-4. If none of the above, is there a documented Windows build-from-source path?
-
-**Decision matrix for the spec lock**:
-- If liteparse works on Windows (any path) → spec proceeds as-is
-- If liteparse is genuinely Mac-only → spec MUST add an explicit "Windows + HIGH sensitivity" decision tree branch with: WSL recommendation, mineru cloud opt-in with explicit consent capture, or accept the gap and document the limitation prominently in the README
-
-### Lock blocker B: gws Windows alternative
-
-Confirmed no Windows package as of 2026-04-20. The spec's current resolution ("mark Mac-only with Web Clipper as fallback") is acceptable IF the Web Clipper workflow actually covers the Google Workspace use case. Verify before lock that:
-- Web Clipper handles Google Docs (yes — it's a documented use case)
-- Web Clipper handles Google Sheets (likely degraded; needs testing)
-- Web Clipper handles Google Slides (likely degraded; needs testing)
-
-If Sheets/Slides degrade significantly via Web Clipper, document the gap explicitly.
-
 ## Open Questions
 
 1. **Liteparse on Windows.** See Lock Blocker A above. Critical to resolve before locking.
@@ -317,7 +323,7 @@ If Sheets/Slides degrade significantly via Web Clipper, document the gap explici
 
 5. **Linux distros.** `apt` is Debian/Ubuntu; `dnf` is Fedora; Arch uses `pacman`. Do we branch on distro within Linux, or pick one (Debian/Ubuntu) and document the others as "you know what to do"? Lean: Ubuntu/Debian as default in install constants, document others in a comment.
 
-6. **Coordination with spec 006.** Spec 006 (validator) and spec 007 (cross-platform) both touch `carrel env doctor`. Per Kimi review and the resolution in spec 006's "Cross-Cutting" section: 007 ships first (introduces `Platform`, `AuditResult.platform`, and the `ToolAvailability` matrix in deliverable A3); 006 ships second and consumes the matrix. Sequential, not interleaved. Locked.
+6. **Coordination with spec 006.** Spec 006 (validator) and spec 007 (cross-platform) both touch `carrel env doctor`. Per Kimi review and the resolution in spec 006's "Cross-Cutting" section: 007 ships first (introduces `Platform`, `AuditResult.platform`, and the `PlatformToolMatrix` in deliverable A3); 006 ships second and consumes the matrix. Sequential, not interleaved. Locked.
 
 ---
 

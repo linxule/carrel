@@ -107,7 +107,7 @@ def validate_command(
    - Extra top-level keys in `environment.json` (not in `ResearcherProfile.model_fields`)
    - `setup-state.json` `version` field mismatch with current plugin (this is the only file that carries a version — `environment.json` does not)
    - Stale `automation.last_reviewed` against `automation.review_cadence` (per AutomationConfig, computed against today's date)
-   - `tools_configured` booleans vs actual install state — delegated to a shared `ToolAvailability` matrix that audit.py also consumes (see Cross-Cutting below)
+   - `tools_configured` booleans vs actual install state — delegated to a shared `PlatformToolMatrix` that audit.py also consumes (see Cross-Cutting below)
 6. CLAUDE.md desync checks (text-grep based, not full parse):
    - Look for "Sensitivity:" line in CLAUDE.md
    - Compare against `profile.sensitivity`
@@ -143,14 +143,15 @@ def fix_command(
     """Auto-fix safe drift in .carrel/environment.json."""
 ```
 
+Setup-state drift is handled by `carrel setup-state` (added v0.5.3) — see A1 in 008-review.
+
 **Known-safe fixes:**
 
 | Drift | Fix |
 |-------|-----|
 | `sensitivity` not in enum but matches known rename (`'prefer_local'`, `'cautious'`) | Map to canonical (`'medium'`) and set `cloud_consent=False` |
-| `setup-state.json` `version` ≠ current plugin | Update `version` field; record migration in capability log |
 | Missing optional field with safe default | Add with default |
-| `tools_configured` boolean wrong per `ToolAvailability` matrix (tool not actually installed on this platform) | Set to `false`, log change |
+| `tools_configured` boolean wrong per `PlatformToolMatrix` (tool not actually installed on this platform) | Set to `false`, log change |
 
 **Refuses to fix:**
 
@@ -259,7 +260,7 @@ For Advisory/Consultative trust levels: write findings to `_meta/suggestions/` o
 | 1 | `carrel env validate` reports schema errors with field-level paths |
 | 2 | `carrel env validate` reports drift warnings (extra keys, version mismatch) |
 | 3 | `carrel env validate` reports CLAUDE.md/JSON desync for sensitivity field at minimum |
-| 4 | `carrel env fix --safe` correctly applies the four known-safe fixes from table |
+| 4 | `carrel env fix --safe` correctly applies the three known-safe fixes from table |
 | 5 | `carrel env fix --safe` refuses to fix unknown enum values; emits clear message |
 | 6 | All `fix` operations write a `.bak` and emit a change log |
 | 7 | Field validators on ResearcherProfile rename known legacy values without raising |
@@ -306,10 +307,10 @@ For Advisory/Consultative trust levels: write findings to `_meta/suggestions/` o
 
 Spec 006 (validator) and spec 007 (cross-platform) both touch `carrel env doctor`. Kimi review (2026-04-20) flagged a sequencing risk: the validator's `tools_configured` drift check assumes a definition of "is this tool installed" that becomes platform-aware in spec 007. If 006 ships first, the validator will misfire on Windows/Linux when 007 lands.
 
-**Resolution**: introduce a shared `ToolAvailability` matrix in `models.py` that BOTH `audit.py` (reporting) AND the 006 validator (drift detection) consume. The matrix is a `dict[str, dict[Platform, bool]]` populated from per-tool detection logic. Spec 007 owns its construction; spec 006 only reads it.
+**Resolution**: introduce a shared `PlatformToolMatrix` in `models.py` that BOTH `audit.py` (reporting) AND the 006 validator (drift detection) consume. The matrix is a `dict[str, dict[Platform, bool]]` populated from per-tool detection logic. Spec 007 owns its construction; spec 006 only reads it.
 
 This means:
-- Spec 007 ships first (introduces `Platform` enum, `AuditResult.platform`, and `ToolAvailability` matrix)
+- Spec 007 ships first (introduces `Platform` enum, `AuditResult.platform`, and `PlatformToolMatrix`)
 - Spec 006 ships second (consumes the matrix; no platform-specific logic of its own)
 - The two specs share one source of truth for "tool X is available on platform Y"
 
