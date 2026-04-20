@@ -1,6 +1,7 @@
 # Cheat Sheet Output Guide
 
 This file describes the markdown produced by `src/carrel/vault/templates.py::render_cheat_sheet()`. It is not a Mustache template.
+The renderer uses the current platform (or the explicitly supplied `platform` argument) to choose install commands.
 
 ## Header
 
@@ -36,6 +37,7 @@ Derived from `profile.tools_configured`.
 - If no tools are enabled, the section contains one fallback line saying no tool-specific workflows are configured yet.
 - If tools are enabled, each enabled tool gets:
   - `### <tool name>`
+  - Optional `- Install: <platform-specific command>` when Carrel knows the right install command for that tool
   - A short list of command examples from `TOOL_COMMAND_EXAMPLES`
 
 ## Common Workflows

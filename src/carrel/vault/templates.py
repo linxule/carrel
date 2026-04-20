@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from carrel.env.install import install_command
+from carrel.env.platform import Platform, detect_platform
 from carrel.models import ResearcherProfile
 
 # Registry of all template files shipped with the plugin.
@@ -114,7 +116,7 @@ def _tool_command_examples(tool: str) -> list[str]:
     )
 
 
-def _render_configured_tools(tools: dict[str, bool]) -> str:
+def _render_configured_tools(tools: dict[str, bool], platform: Platform) -> str:
     enabled_tools = sorted(tool for tool, enabled in tools.items() if enabled)
     if not enabled_tools:
         return "- No tool-specific workflows configured yet. Run `/carrel-status` after setup changes.\n"
@@ -122,6 +124,9 @@ def _render_configured_tools(tools: dict[str, bool]) -> str:
     lines: list[str] = []
     for tool in enabled_tools:
         lines.append(f"### {tool}")
+        install_hint = install_command(tool, platform)
+        if install_hint:
+            lines.append(f"- Install: `{install_hint}`")
         for command in _tool_command_examples(tool):
             lines.append(f"- `{command}`")
         lines.append("")
@@ -150,7 +155,12 @@ def _render_common_workflows(profile: ResearcherProfile) -> str:
     return "\n".join(workflows) + "\n"
 
 
-def render_cheat_sheet(vault: Path, profile: ResearcherProfile) -> str:
+def render_cheat_sheet(
+    vault: Path,
+    profile: ResearcherProfile,
+    platform: Platform | None = None,
+) -> str:
+    resolved_platform = detect_platform() if platform is None else platform
     tools = profile.tools_configured
     name = profile.name or "Researcher"
     vault_name = vault.name
@@ -180,7 +190,7 @@ Vault: {vault_name}
 
 ## Configured tools
 
-{_render_configured_tools(tools)}
+{_render_configured_tools(tools, resolved_platform)}
 
 ## Common workflows
 

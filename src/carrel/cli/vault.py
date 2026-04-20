@@ -13,6 +13,7 @@ from rich.table import Table
 from carrel.cli import emit_carrel_error, normalize_path, resolve_vault
 from carrel.cli.output import OutputFormat, print_result
 from carrel.env.audit import audit
+from carrel.env.platform import detect_platform
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.models import FileResult
@@ -244,7 +245,14 @@ def cheatsheet_command(
             )
         else:
             cheat_sheet.parent.mkdir(parents=True, exist_ok=True)
-            cheat_sheet.write_text(render_cheat_sheet(vault_path, profile), encoding="utf-8")
+            try:
+                cheat_sheet_platform = asyncio.run(audit(vault_path)).platform
+            except Exception:
+                cheat_sheet_platform = detect_platform()
+            cheat_sheet.write_text(
+                render_cheat_sheet(vault_path, profile, cheat_sheet_platform),
+                encoding="utf-8",
+            )
             result = FileResult(path=cheat_sheet, action="updated" if existed else "created")
         print_result(result, fmt)
     except CarrelError as error:
