@@ -23,6 +23,7 @@ uv run carrel setup-state advance --phase N      # Move to next phase atomically
 uv run carrel setup-state complete --vault .     # Mark setup complete (idempotent)
 uv run carrel trust check automation:propose --vault .  # Check if action allowed at current trust level
 uv run carrel trust list --vault .  # See what current trust unlocks
+uv run carrel paper convert foo.pdf --explain    # Print routing decision + rationale without executing
 ```
 
 ## Architecture
@@ -148,7 +149,7 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Wiki preference fields (`wiki_preference`, `wiki_proposal_deferred_until`) are on the Pydantic model but read by Claude via skill instructions, not enforced by hooks — consistent with all carrel preferences
 - Cross-platform (v0.7.0): all Tier 1 tools work on macOS, Linux, Windows. Install paths are platform-keyed in `env/install.py`; audit detects the platform in `audit.py`; decision-tree and cheatsheet render OS-aware.
 - Setup-state changes go through `carrel setup-state` (added v0.5.3) — never edit `.carrel/setup-state.json` by hand. The CLI is the validation boundary.
-- Sensitivity gate (v0.5.4): `Sensitivity.HIGH` blocks ALL cloud tools (mineru, groq, gemini, gws) regardless of `cloud_consent`. Implemented in `consent.py:resolve_cloud_consent`. Stopgap until policy module (spec 010) lands. `gws` is treated as cloud since it's a Google API call.
+- Sensitivity gate (v0.7.0): the full 16-row (sensitivity × cloud_consent × requested_tool) matrix is implemented in `src/carrel/policy/sensitivity.py:select_tool`. HIGH blocks cloud regardless of consent (gws included — Google API calls send data). MEDIUM requires explicit `--tool <cloud>` to route to cloud. LOW defaults local-first; `cloud_consent=True` auto-routes when local unavailable. `consent.py:resolve_cloud_consent` is now a thin backward-compat wrapper around `policy.sensitivity`. Use `--explain` on `carrel paper convert` / `transcript create` / `google export` to see the routing decision + rationale without executing.
 - Vault writes go through `safe_path.safe_vault_join` (v0.5.4) — resolves the path and rejects anything escaping the vault root. Used by all filers + scaffold + google export.
 - Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it.
 - Profile sync (v0.7.0): `_meta/my-environment.md` and `_meta/automation-prompt.md` are now deterministic (regenerate via `carrel vault dashboard|automation-prompt --force`). Vault `CLAUDE.md` uses HTML-comment markers (`<!-- carrel:field -->value<!-- /carrel:field -->`); `carrel vault check-sync` surfaces drift. Hook runs check-sync once per 24h.
