@@ -177,8 +177,9 @@ Multi-model review process: each spec gets adversarial reviews before implementa
 | `planning/reviews/004-review-architect.md` | v0.4 feasibility review (architect) |
 | `planning/reviews/004-review-implementation.md` | v0.4 post-implementation spec compliance |
 | `planning/reviews/005-knowledge-wiki-review.md` | Knowledge wiki: internal + Codex adversarial reviews (2 rounds) |
-| `planning/specs/006-environment-validation-and-self-healing.md` | v0.6 spec: schema validation, lint, doctor agent (pre-review) |
-| `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree (pre-review) |
+| `planning/specs/006-environment-validation-and-self-healing.md` | v0.7 spec: schema validation, lint, doctor agent; consumes spec 007's PlatformToolMatrix (pre-implementation, sequenced after 007) |
+| `planning/specs/007-cross-platform-support.md` | v0.7 spec: Windows + Linux first-class support; platform-aware audit, install, decision tree. **Locked 2026-04-20** (upstream blockers resolved — liteparse + gws both ship Windows support). Ready for implementation. |
+| `planning/research/007-windows-tools-research.md` | Research that unblocked spec 007 (liteparse + gws Windows install paths; Web Clipper rejection; native Google Docs Markdown export tip) |
 | `planning/reviews/008-deployment-readiness-triangulated.md` | Synthesis of Kimi + Codex + internal code-reviewer findings on the v0.5.0→v0.5.2 sprint; tiered fix plan — **fully implemented in v0.5.3** (B1, B2, A1-A7, S1-S3, H1-H3) |
 | `planning/reviews/008-review-kimi.md` | Kimi rounds 1+2: schema drift findings + post-fix re-review |
 | `planning/reviews/008-review-codex.md` | Codex fresh adversarial pass: 2 BLOCKERS + #1 recommendation (deterministic state-transition CLI) |
