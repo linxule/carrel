@@ -7,7 +7,7 @@ import platform
 import shutil
 from pathlib import Path
 
-from carrel.env.platform import detect_platform
+from carrel.env.platform import Platform, detect_platform
 from carrel.models import (
     ApiKeyStatus,
     AuditResult,
@@ -85,6 +85,81 @@ async def _detect_macos_app(bundle_id: str) -> str | None:
     return await _run_command(["mdfind", f"kMDItemCFBundleIdentifier == '{bundle_id}'"])
 
 
+def _false_platform_map() -> dict[Platform, bool]:
+    return {platform_key: False for platform_key in Platform}
+
+
+def _first_match_path(paths: list[Path]) -> str | None:
+    for path in paths:
+        if path.exists():
+            return str(path)
+    return None
+
+
+def _detect_windows_obsidian_path() -> str | None:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if not local_app_data:
+        return None
+    return _first_match_path(
+        [
+            Path(local_app_data) / "Obsidian" / "Obsidian.exe",
+            Path(local_app_data) / "Obsidian",
+        ]
+    )
+
+
+def _detect_windows_zotero_path() -> str | None:
+    program_files = os.environ.get("PROGRAMFILES")
+    if not program_files:
+        return None
+    return _first_match_path(
+        [
+            Path(program_files) / "Zotero" / "zotero.exe",
+            Path(program_files) / "Zotero",
+        ]
+    )
+
+
+def _detect_linux_obsidian_path() -> str | None:
+    return shutil.which("obsidian") or _first_match_path([Path.home() / ".config" / "obsidian"])
+
+
+def _detect_linux_zotero_path() -> str | None:
+    return shutil.which("zotero") or _first_match_path([Path.home() / ".zotero"])
+
+
+def _detect_gui_tool_path(tool: str, current_platform: Platform) -> str | None:
+    if current_platform is Platform.MACOS:
+        if tool == "obsidian":
+            return _first_match_path([Path("/Applications/Obsidian.app")])
+        if tool == "zotero":
+            return _first_match_path([Path("/Applications/Zotero.app")])
+    if tool == "obsidian":
+        if current_platform is Platform.WINDOWS:
+            return _detect_windows_obsidian_path()
+        if current_platform is Platform.LINUX:
+            return _detect_linux_obsidian_path()
+    if tool == "zotero":
+        if current_platform is Platform.WINDOWS:
+            return _detect_windows_zotero_path()
+        if current_platform is Platform.LINUX:
+            return _detect_linux_zotero_path()
+    return None
+
+
+async def _detect_gui_binary(tool: str, current_platform: Platform) -> BinaryInfo:
+    detected_path: str | None = None
+    if current_platform is Platform.MACOS:
+        bundle_id = "md.obsidian" if tool == "obsidian" else "org.zotero.zotero"
+        detected = await _detect_macos_app(bundle_id)
+        if detected:
+            detected_path = detected.splitlines()[0]
+    else:
+        detected_path = _detect_gui_tool_path(tool, current_platform)
+
+    return BinaryInfo(installed=detected_path is not None, path=detected_path)
+
+
 def _read_mcp_servers(project_path: Path | None) -> list[str]:
     if project_path is None:
         return []
@@ -98,14 +173,16 @@ def _read_mcp_servers(project_path: Path | None) -> list[str]:
     return sorted((data.get("mcpServers") or {}).keys())
 
 
-def _build_platform_tool_matrix(
-    current_platform,
-    binaries: dict[str, BinaryInfo],
-) -> PlatformToolMatrix:
-    matrix: dict[str, dict] = {}
-    for tool, info in binaries.items():
-        matrix[tool] = {platform: False for platform in current_platform.__class__}
-        matrix[tool][current_platform] = info.installed
+def populate_tool_matrix(current_platform: Platform) -> PlatformToolMatrix:
+    matrix: dict[str, dict[Platform, bool]] = {}
+    for tool, args in TOOL_CHECKS.items():
+        matrix[tool] = _false_platform_map()
+        matrix[tool][current_platform] = shutil.which(args[0]) is not None
+
+    for tool in ("obsidian", "zotero"):
+        matrix[tool] = _false_platform_map()
+        matrix[tool][current_platform] = _detect_gui_tool_path(tool, current_platform) is not None
+
     return PlatformToolMatrix(matrix=matrix)
 
 
@@ -154,24 +231,8 @@ async def audit(project_path: Path | None = None) -> AuditResult:
         version = _parse_version(await _run_command(args)) if installed else None
         binaries[name] = BinaryInfo(installed=installed, version=version, path=tool_path)
 
-    if system_name == "Darwin":
-        obsidian_path = await _detect_macos_app("md.obsidian")
-        zotero_path = await _detect_macos_app("org.zotero.zotero")
-        binaries["obsidian"] = BinaryInfo(
-            installed=bool(obsidian_path),
-            path=obsidian_path.splitlines()[0] if obsidian_path else None,
-        )
-        binaries["zotero"] = BinaryInfo(
-            installed=bool(zotero_path),
-            path=zotero_path.splitlines()[0] if zotero_path else None,
-        )
-    else:
-        binaries["obsidian"] = BinaryInfo(
-            installed=shutil.which("obsidian") is not None, path=shutil.which("obsidian")
-        )
-        binaries["zotero"] = BinaryInfo(
-            installed=shutil.which("zotero") is not None, path=shutil.which("zotero")
-        )
+    binaries["obsidian"] = await _detect_gui_binary("obsidian", detected_platform)
+    binaries["zotero"] = await _detect_gui_binary("zotero", detected_platform)
 
     api_keys = {
         tool: ApiKeyStatus(configured=bool(os.environ.get(env_var)), env_var=env_var)
@@ -181,7 +242,11 @@ async def audit(project_path: Path | None = None) -> AuditResult:
     tool_info = ToolAvailability(
         binaries=binaries, api_keys=api_keys, mcp_servers=_read_mcp_servers(resolved_project)
     )
-    tool_matrix = _build_platform_tool_matrix(detected_platform, binaries)
+    tool_matrix = populate_tool_matrix(detected_platform)
+    for tool, info in binaries.items():
+        if tool not in tool_matrix.matrix:
+            tool_matrix.matrix[tool] = _false_platform_map()
+        tool_matrix.matrix[tool][detected_platform] = info.installed
     return AuditResult(
         os=os_name,
         platform=detected_platform,
