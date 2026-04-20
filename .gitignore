@@ -6,6 +6,9 @@ node_modules/
 .carrel/
 _meta/
 
+# Claude Code session state (scheduled tasks lock, etc.)
+.claude/
+
 # Python build artifacts
 *.egg-info/
 __pycache__/
