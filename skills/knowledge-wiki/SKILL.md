@@ -26,6 +26,15 @@ Unlike traditional RAG (which rediscovers knowledge per query), the wiki compile
 - Trust level is consultative or higher
 - Agent observes repeated cross-source questions in a vault with 15+ papers
 
+Before writing, run:
+
+```bash
+carrel trust check wiki:propose --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:propose but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
+
 **Do NOT activate:**
 - Researcher has fewer than 15 sources and hasn't asked
 - Trust level is advisory and researcher hasn't explicitly requested
@@ -106,6 +115,15 @@ Lightweight. For answering questions about the researcher's domain.
 
 ### Write mode (ingest, lint)
 Full orientation required before writing.
+
+Before writing, run:
+
+```bash
+carrel trust check wiki:write --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:write but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
 
 1. Read `wiki/SCHEMA.md` — conventions, domain, tag taxonomy
 2. Read `wiki/index.md` — what pages exist

@@ -103,6 +103,15 @@ The researcher chooses how much to delegate. Default is **Advisory**. Each level
 
 **Levels 3-4 are experimental in v0.4.** They rely on session checkpoint history for revert. Make this clear during setup — the researcher's choice of trust level is itself an act of judgment, not an abdication of it.
 
+Before reorganizing existing files outside inbox routing, run:
+
+```bash
+carrel trust check vault:reorganize --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to vault:reorganize but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
+
 ### Confidence rubric for suggestions (all levels)
 
 Cross-linking suggestions are rated before writing:
@@ -180,6 +189,14 @@ the agreed epistemology — organizational behavior research, sensitivity medium
 - List files in inbox/ newer than the most recent _meta/briefs/ entry
   (or all files if no briefs exist)
 - Convert PDFs using liteparse, docs using markitdown, audio using coli
+Before writing, run:
+
+```bash
+carrel trust check vault:move-file --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to vault:move-file but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
 - File converted output to appropriate vault folders
 - If a file needs human judgment: write to _meta/pending-decisions.md,
   do NOT process it
@@ -304,6 +321,15 @@ When resolving in an interactive session: check off the item with `[x]` and add 
 
 ## Pending Approvals (Consultative Level)
 
+Before writing, run:
+
+```bash
+carrel trust check automation:propose --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to automation:propose but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
+
 At trust level 2 (Consultative), proposed actions are written to `_meta/pending-approvals.md` in structured executable format. The researcher approves individual items in the next session.
 
 ```markdown
@@ -315,6 +341,15 @@ Proposed actions from overnight processing. Approve individually or all at once.
 - [ ] **2026-04-04 file**: Move inbox/smith-2026.pdf → papers/smith-2026/paper.md
 - [ ] **2026-04-04 gap**: Consider adding Pentland (frequent Feldman co-author, cited in 4 notes but not in vault)
 ```
+
+Before writing, run:
+
+```bash
+carrel trust check automation:execute --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to automation:execute but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
 
 When the researcher approves an item in an interactive session, execute it and mark `[x]`.
 
@@ -398,7 +433,13 @@ When running `/carrel-automate`:
 4. Update `environment.json` `automation` section
 5. Update vault `CLAUDE.md` automation preferences section (two-track sync)
 6. Update `_meta/my-environment.md` to reflect automation status
-7. Generate the prompt → save to `_meta/automation-prompt.md`
+7. Before writing, run:
+   ```bash
+   carrel trust check automation:write-prompt --vault .
+   ```
+   If the check exits non-zero, surface the gate to the researcher: "I tried to automation:write-prompt but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+   If the check exits 0, proceed:
+   Generate the prompt → save to `_meta/automation-prompt.md`
    (save old prompt to `_meta/automation-prompt.prev.md` if one exists)
 8. Initialize `_meta/` automation directories and header files
 9. Guide researcher through Desktop App scheduled task setup (steps above)

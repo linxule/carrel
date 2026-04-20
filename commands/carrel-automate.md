@@ -92,6 +92,15 @@ If this file exists, update or add an automation status line so the researcher c
 
 ### Step 7: Generate Automation Prompt
 
+Before writing, run:
+
+```bash
+carrel trust check automation:write-prompt --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to automation:write-prompt but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
+
 Create a personalized prompt template at `_meta/automation-prompt.md`. This is what gets pasted into the Desktop App scheduler.
 
 If `_meta/automation-prompt.md` already exists, save the old version as `_meta/automation-prompt.prev.md` before writing the new one.

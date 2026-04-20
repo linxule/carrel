@@ -118,6 +118,15 @@ The researcher said yes. Now draft the SCHEMA.md for their review:
 Once the researcher approves the schema (or explicitly opts in):
 
 **Step 1 — Create wiki structure:**
+Before writing, run:
+
+```bash
+carrel trust check wiki:write --vault .
+```
+
+If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:write but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits 0, proceed:
+
 ```
 wiki/
 ├── SCHEMA.md        (from approved draft)
