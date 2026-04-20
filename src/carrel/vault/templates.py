@@ -134,7 +134,7 @@ def _render_common_workflows(profile: ResearcherProfile) -> str:
         "- Daily check: run `/carrel-status` when something feels off or after adding tools.",
     ]
     if profile.wiki_enabled:
-        workflows.append("- Knowledge wiki: query via `/carrel-research` and keep field-map pages current.")
+        workflows.append("- Knowledge wiki: ask Claude about your field map; pages live in `wiki/`.")
     if profile.cloud_consent:
         workflows.append("- Cloud tools are enabled: `mineru`, `groq`, and `gemini` can be selected when useful.")
     else:

@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pydantic import ValidationError
+
+from carrel.errors import CarrelError
 from carrel.models import ResearcherProfile
 
 
@@ -16,7 +19,13 @@ def read_profile(vault: Path) -> ResearcherProfile | None:
     path = _profile_path(vault)
     if not path.exists():
         return None
-    return ResearcherProfile.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    try:
+        return ResearcherProfile.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    except (ValidationError, json.JSONDecodeError, OSError) as error:
+        raise CarrelError(
+            f"Could not parse {path}",
+            hint="Run /carrel-setup to regenerate it.",
+        ) from error
 
 
 def write_profile(vault: Path, profile: ResearcherProfile) -> Path:

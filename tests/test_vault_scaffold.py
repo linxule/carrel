@@ -33,6 +33,15 @@ def test_scaffold_creates_dashboard_and_capability_log(tmp_path) -> None:
     assert "## Next steps" in cheat_sheet
 
 
+def test_scaffold_cheat_sheet_uses_natural_language_wiki_copy(tmp_path) -> None:
+    profile = ResearcherProfile(wiki_enabled=True)
+    result = scaffold_vault(tmp_path / "vault", profile=profile)
+
+    cheat_sheet = (result.vault / "_meta" / "cheat_sheet.md").read_text(encoding="utf-8")
+    assert "- Knowledge wiki: ask Claude about your field map; pages live in `wiki/`." in cheat_sheet
+    assert "/carrel-research" not in cheat_sheet
+
+
 def test_scaffold_always_includes_reading_progress_base(tmp_path) -> None:
     result = scaffold_vault(tmp_path / "vault")
 

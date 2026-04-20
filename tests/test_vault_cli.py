@@ -18,3 +18,16 @@ def test_vault_cheatsheet_wraps_invalid_profile_errors(tmp_path) -> None:
     assert result.exit_code == 1
     assert "Could not parse" in result.stderr
     assert "/carrel-setup" in result.stderr
+
+
+def test_env_profile_wraps_corrupted_profile_errors(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    carrel_dir = vault / ".carrel"
+    carrel_dir.mkdir(parents=True)
+    (carrel_dir / "environment.json").write_text("{not json}", encoding="utf-8")
+
+    result = runner.invoke(app, ["env", "profile", "--vault", str(vault)])
+
+    assert result.exit_code == 1
+    assert "Could not parse" in result.stderr
+    assert "Run /carrel-setup to regenerate it." in result.stderr

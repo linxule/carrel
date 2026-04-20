@@ -87,7 +87,7 @@ function main() {
     process.exit(0);
   }
 
-  const researcher = env.interview?.researcher;
+  const researcher = env.name ? env : (env.interview?.researcher || null);
   if (!researcher) {
     process.exit(0);
   }
