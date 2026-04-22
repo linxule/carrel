@@ -61,6 +61,11 @@ planning/
 | `specs/010-policy-module.md` | v0.7.0 spec: `src/carrel/policy/sensitivity.py` owns sensitivity routing with 16-row matrix; `--explain` rationale flag — **fully implemented in v0.7.0** (closes 009 A2 / Codex §2) |
 | `specs/011-profile-sync-architecture.md` | v0.7.0 spec: regenerators for the 4 mirror surfaces (`my-environment.md`, `automation-prompt.md`); drift-check for vault `CLAUDE.md` via HTML-comment markers — **fully implemented in v0.7.0** (closes 009 A3 / Codex §3,§6) |
 | `reviews/012-pre-pilot-windows-sweep.md` | Pre-pilot adversarial sweep on Windows-specific code paths (Codex + manual fallback). Four HIGH/MEDIUM fixes shipped before push to origin: Windows Obsidian/Zotero detection paths, cross-platform `disk_free` via `shutil.disk_usage`, `install.ps1` `$LASTEXITCODE` checks, CRLF-tolerant frontmatter regex in `check-environment.js`. |
+| `specs/013-model-teammates.md` | v0.8.1 spec: multi-model agent integration (Codex/ChatGPT, Gemini, Kimi) via community CC plugins; interview beat + state-neutral Phase 5b + `/carrel-teammates` + `model-teammates` skill + `model_teammates` profile field + single-line dashboard surface. Three trim passes shaped the final shape — started with a policy module, CLAUDE.md marker, cheat sheet rendering, 4-value enum, and vendored install references; ended with a thin wrapper around the stable upstream plugins. |
+| `reviews/013-review-codex.md` | Codex initial adversarial review: 2 BLOCKERs (code-level sensitivity gate; vendored install references) + 1 HIGH (Phase 5b setup-state gap) + 2 MEDIUM + 1 LOW. Most declined as over-engineered; factual Kimi-install fix applied. |
+| `reviews/013-review-kimi.md` | Kimi initial second-pair-of-eyes: 2 HIGH fixes (Kimi CLI install command, migration test-count arithmetic). Hardening recs (casing validator, drift plumbing) declined. |
+| `reviews/013-trim-codex.md` | Deletion-first review (code): CUT `/carrel-teammates` content (→ delegate), CUT dashboard rendering (→ single line), TRIM `ModelTeammateStatus` (→ 3 values), consolidate constants, trim spec/migration narrative. Applied. |
+| `reviews/013-trim-kimi.md` | Deletion-first review (prose): 62% reduction target across 8 files. Research-moves table appeared 7× (collapsed to skill + interview); sensitivity rule appeared 7× (collapsed to skill). Applied. |
 
 ## Release arc summary
 

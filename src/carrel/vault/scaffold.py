@@ -7,6 +7,7 @@ from carrel import __version__
 from carrel.models import ResearcherProfile, ScaffoldResult, SetupState
 from carrel.safe_path import safe_vault_join
 from carrel.vault.markers import ensure_markers
+from carrel.vault.sync import marker_values
 from carrel.vault.templates import (
     BASE_TEMPLATES,
     copy_template,
@@ -59,13 +60,7 @@ def _enabled_tools(profile: ResearcherProfile) -> str:
 
 
 def _claude_marker_values(profile: ResearcherProfile) -> dict[str, str]:
-    return {
-        "sensitivity": profile.sensitivity.value,
-        "cloud_consent": str(profile.cloud_consent).lower(),
-        "trust_level": profile.automation.trust_level.value,
-        "tools_configured": _enabled_tools(profile),
-        "wiki_enabled": str(profile.wiki_enabled).lower(),
-    }
+    return marker_values(profile)
 
 
 def _render_claude_template(profile: ResearcherProfile) -> str:

@@ -54,6 +54,14 @@ class HardwareCapability(str, Enum):
     LOW = "low"
 
 
+class ModelTeammateStatus(str, Enum):
+    """Install/interest state for a multi-model agent teammate."""
+
+    CONFIGURED = "configured"   # plugin installed + verified
+    INTERESTED = "interested"   # said yes but deferred install
+    SKIPPED = "skipped"         # declined — don't re-ask
+
+
 class BinaryInfo(BaseModel):
     installed: bool
     version: str | None = None
@@ -191,6 +199,7 @@ class ResearcherProfile(BaseModel):
     claude_code_familiarity: Literal["new", "some", "experienced"] | None = None
     collaborators: bool | None = None
     team_context: str | None = None
+    model_teammates: dict[str, ModelTeammateStatus] = Field(default_factory=dict)
     unknown_keys: dict[str, Any] = Field(
         default_factory=dict,
         alias="_unknown_keys",

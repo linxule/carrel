@@ -4,8 +4,19 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from carrel.models import AuditResult, ResearcherProfile, TrustLevel
+from carrel.models import AuditResult, ModelTeammateStatus, ResearcherProfile, TrustLevel
 from carrel.vault.templates import read_template
+
+
+def _teammates_summary(profile: ResearcherProfile) -> str:
+    if not profile.model_teammates:
+        return "none"
+    items: list[str] = []
+    for name in sorted(profile.model_teammates):
+        status = profile.model_teammates[name]
+        value = status.value if isinstance(status, ModelTeammateStatus) else str(status)
+        items.append(f"{name}={value}")
+    return ", ".join(items)
 
 try:
     from carrel.policy.trust import list_actions as policy_list_actions
@@ -105,6 +116,7 @@ def render_dashboard(
                     f"- Trust level: `{profile.automation.trust_level.value}`",
                     f"- Sensitivity: `{profile.sensitivity.value}`",
                     f"- Cloud consent: `{str(profile.cloud_consent).lower()}`",
+                    f"- Model teammates: {_teammates_summary(profile)}",
                     audit_line,
                 ]
             ),

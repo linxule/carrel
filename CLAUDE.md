@@ -113,6 +113,12 @@ Commands: `/carrel-batch` (sequential file processing), `/carrel-automate` (conf
 
 Skill: `collaborator-onboarding`. Profile fields that drive it: `collaborators: bool`, `team_context: str | None`. Asked in setup interview; surfaced in Phase 9 handoff when `collaborators == true`.
 
+## Model Teammates (v0.8.1)
+
+`/carrel-teammates` brings Codex (ChatGPT), Gemini, and Kimi into Claude Code via community plugins (`openai/codex-plugin-cc`, `thepushkarp/cc-gemini-plugin`, `linxule/kimi-plugin-cc`). Profile field `model_teammates: dict[str, ModelTeammateStatus]`. Skill: `skills/model-teammates/SKILL.md`. Spec: `planning/specs/013-model-teammates.md`.
+
+Vocabulary: **teammates** ≠ Claude-side `agents/` (setup-interviewer, research-partner) ≠ human `collaborators` (co-authors/RAs via `/carrel-share`).
+
 ## Knowledge Wiki
 
 Optional synthesis layer: agent-maintained entity/concept pages that compound knowledge across sources. Adapted from [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) + [Hermes Agent](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).

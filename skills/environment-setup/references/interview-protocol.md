@@ -48,9 +48,19 @@ Open with genuine curiosity about their research:
 - Have you used Claude Code before, or is this your first time? (No wrong answer.)
 - How do you feel about AI tools having access to files on your computer?
 - Would you prefer everything stays on your computer, or are you comfortable with some cloud processing?
-- Would you find it useful to get perspectives from different AI models? (e.g., "Check this with Gemini" or "What does GPT think about this argument?")
 
-**Listen for:** Privacy stance (determines sensitivity level), AI experience (determines how much to explain), trust level (determines how proactive to be). Claude Code familiarity specifically — if new, surface `/powerup` at handoff (interactive lessons that teach Claude Code itself). If they mention using other AI tools (ChatGPT, Gemini), they may already have API keys — ask. If they express interest in multiple perspectives, vox-mcp is a good fit.
+**Listen for:** Privacy stance (determines sensitivity level), AI experience (determines how much to explain), trust level (determines how proactive to be). Claude Code familiarity specifically — if new, surface `/powerup` at handoff (interactive lessons that teach Claude Code itself).
+
+### About Model Teammates (~1-2 min) — proactive offer
+
+Most researchers don't realize this is possible, so **say it first**.
+
+> "Quick thing that's worth flagging: Claude Code already supports multi-agent workflows, but by default that's Claude talking to Claude. You can also bring other foundation models in as teammates — Codex (ChatGPT) for adversarial review, Gemini for long-context synthesis, Kimi for delegated work.
+>
+> 1. Do you already pay for any of these? (ChatGPT Plus/Pro, Gemini Advanced, Kimi) — if yes, we can hook them up with just a login.
+> 2. Even if not, are you curious about trying one? ChatGPT has a free tier and Gemini has generous free long-context use."
+
+**Listen for:** which subscriptions they already hold, which they're curious about, which they decline. Populate `model_teammates` on the profile with `interested` / `skipped`. Schema details and sensitivity handling live in `skills/model-teammates/SKILL.md`.
 
 ### About Their Collaborators (~1 min)
 
@@ -132,7 +142,11 @@ The schema your output must match:
   },
   "claude_code_familiarity": "new",
   "collaborators": true,
-  "team_context": "lab of 4 PhDs"
+  "team_context": "lab of 4 PhDs",
+  "model_teammates": {
+    "codex": "interested",
+    "gemini": "skipped"
+  }
 }
 ```
 

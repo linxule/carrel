@@ -81,6 +81,10 @@ After this phase (whether you configured anything or skipped), run:
 carrel setup-state advance --phase 5 --vault <path>
 ```
 
+### Phase 5b: Model Teammates [state-neutral]
+
+Delegate to the `model-teammates` skill. Record each teammate's status in `model_teammates`. State-neutral because `/carrel-teammates` is re-runnable anytime — no setup-state transition here.
+
 ### Phase 6: Human Steps (~10-15 min real time)
 
 Tell the researcher what THEY need to do (Claude can't install GUI apps). Use the OS-aware tables in `skills/environment-setup/references/decision-tree.md` and match them to the `audit.platform` value from Phase 2:

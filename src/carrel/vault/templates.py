@@ -200,5 +200,6 @@ Vault: {vault_name}
 
 - Run `/carrel-status` for a live environment check.
 - Use `/carrel-share` when you need a collaborator-ready handbook for this vault.
+- Use `/carrel-teammates` to add, remove, or review model teammates (Codex, Gemini, Kimi).
 - Use `/carrel-migrate` to review updates and apply the migration system when Carrel changes.
 """

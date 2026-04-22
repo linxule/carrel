@@ -69,6 +69,13 @@
       "file": "0.7.0-to-0.7.1.md",
       "breaking": false,
       "summary": "Patch: removed src/carrel/trust.py backward-compat shim (deferred from v0.8.0). Zero internal imports; pre-pilot cleanup. Use carrel.policy.trust for any external imports. CLI unchanged. 228 tests pass."
+    },
+    {
+      "from": "0.7.1",
+      "to": "0.8.1",
+      "file": "0.7.1-to-0.8.1.md",
+      "breaking": false,
+      "summary": "Spec 013 model teammates: /carrel-teammates + model-teammates skill wrap Codex (ChatGPT), Gemini, and Kimi CC plugins. Proactive interview beat + state-neutral /carrel-setup Phase 5b during onboarding. ResearcherProfile.model_teammates field (ModelTeammateStatus: configured|interested|skipped). Single-line dashboard surface. Carrel never handles API keys. Three trim passes shaped the final scope (declined: code-level policy module, vendored install refs, CLAUDE.md marker, cheat-sheet rendering, REMOVED enum value, duplicated prose). 234 tests pass."
     }
   ]
 }

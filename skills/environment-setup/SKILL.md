@@ -150,6 +150,10 @@ If the decision tree indicates mineru, zotero, or gws:
 - For gws: see `references/gws-setup-guide.md` — this is a high-friction setup, set expectations
 - Or note as "available later" if they're not ready
 
+### Step 6b: Offer Model Teammates (state-neutral)
+
+Delegate to `model-teammates` skill. Record status in `model_teammates`. Doesn't block setup progression.
+
 ### Step 7: Human Steps
 
 Tell the researcher what THEY need to do (Claude can't install GUI apps):
