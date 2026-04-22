@@ -11,6 +11,7 @@ Tracks what Carrel has absorbed, where it came from, and when to check for updat
 | Concept mapping (JSON Canvas) | kepano/obsidian-skills/json-canvas @ v1.0.1 | `research-partner/references/concept-mapping.md` | — | 2026-04-03 | 2026-07-01 |
 | Knowledge wiki (compiled synthesis) | karpathy/LLM-wiki gist + NousResearch/hermes-agent/skills/research/llm-wiki @ v2.0.0 | `knowledge-wiki/references/wiki-protocol.md` | — | 2026-04-07 | 2026-07-07 |
 | Collaborator handbook (vault legibility for others) | Claude Code `/team-onboarding` (v2.1.101) — design pattern only, not the command itself | `collaborator-onboarding/SKILL.md` + `references/handbook-template.md` | — | 2026-04-20 | 2026-07-20 |
+| Model teammates (multi-model agent wiring) | `openai/codex-plugin-cc`, `thepushkarp/cc-gemini-plugin`, `linxule/kimi-plugin-cc` — thin wrapper pattern: interview beat + profile field + skill pointing at upstream. Not vendored. | `model-teammates/SKILL.md` + `commands/carrel-teammates.md` | — | 2026-04-22 | 2026-07-22 |
 
 ## Evaluated and Skipped
 
@@ -42,3 +43,6 @@ Sources to check during quarterly review:
 - [karpathy/LLM-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — Knowledge wiki pattern (original gist)
 - [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) — Hermes Agent skill implementations (llm-wiki, research tools)
 - Obsidian changelog — new file types, syntax changes, plugin API updates
+- [openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) — check for CLI install command drift, new slash commands
+- [thepushkarp/cc-gemini-plugin](https://github.com/thepushkarp/cc-gemini-plugin) — check for CLI install command drift, new flags
+- [linxule/kimi-plugin-cc](https://github.com/linxule/kimi-plugin-cc) — check for CLI install command drift, new slash commands

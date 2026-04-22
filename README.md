@@ -29,9 +29,9 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 
 ## What's Included
 
-- **14 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery)
+- **15 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery, model teammates)
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **11 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, self-improve)
+- **12 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, model teammates, self-improve)
 - **2 hooks** (session start environment check, session end reflection prompt)
 - **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust` subcommand groups)
 
@@ -52,6 +52,7 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 | `/carrel-mirror` | Synthesize your research patterns from reflections and logs |
 | `/carrel-reflect` | End-of-session reflection |
 | `/carrel-share` | Generate a collaborator handbook for this vault |
+| `/carrel-teammates` | Add, remove, or review model teammates (Codex, Gemini, Kimi) |
 | `/carrel-transcribe` | Transcribe audio to text in your vault |
 
 ## Trust Levels
@@ -191,7 +192,7 @@ Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Co
 
 | Feature | Desktop Code tab | CLI |
 |---------|-----------------|-----|
-| Skills (all 11) | Yes | Yes |
+| Skills (all 12) | Yes | Yes |
 | Commands (/carrel-*) | Yes | Yes |
 | Hooks | Yes | Yes |
 | Agents (@setup-interviewer, @research-partner) | Yes | Yes |
