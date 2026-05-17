@@ -66,6 +66,18 @@ planning/
 | `reviews/013-review-kimi.md` | Kimi initial second-pair-of-eyes: 2 HIGH fixes (Kimi CLI install command, migration test-count arithmetic). Hardening recs (casing validator, drift plumbing) declined. |
 | `reviews/013-trim-codex.md` | Deletion-first review (code): CUT `/carrel-teammates` content (→ delegate), CUT dashboard rendering (→ single line), TRIM `ModelTeammateStatus` (→ 3 values), consolidate constants, trim spec/migration narrative. Applied. |
 | `reviews/013-trim-kimi.md` | Deletion-first review (prose): 62% reduction target across 8 files. Research-moves table appeared 7× (collapsed to skill + interview); sensitivity rule appeared 7× (collapsed to skill). Applied. |
+| `specs/014-cc-plugin-v090.md` | v0.9.0 spec: CC plugin architecture normalization + feature adds. Originally drafted as cross-CLI port (Codex + Kimi); re-scoped to CC-only after triage. Ships 7 new CLI subcommands (extract deterministic ops from `/feedback`, `/migrate`, `/mirror`, `/reflect`, `/share`, `/batch`, `/automate`), 3 skill enrichments (absorb orchestration prose), ~7 wrapper shrinks with `${ARGS}` convention, 3 CC feature adds (marketplace metadata expansion, `UserPromptSubmit` hook for per-turn context, `PreToolUse` Bash matcher for sensitivity gate). Cross-CLI work parked as Future Work pending demand signal. |
+| `reviews/014-investigation-feasibility.md` | Cross-CLI feasibility synthesis: CC / Codex / Kimi comparison + porting verdict (Codex ~70% portable, Kimi ~30% today, ~80% if #1714 lands). |
+| `reviews/014-investigation-codex-plugins.md` | Initial Codex CLI plugin system survey. |
+| `reviews/014-investigation-codex-deep-gaps.md` | Codex plugin root env var + agent TOML schema + subagent surface. Confirms Codex honors `${CLAUDE_PLUGIN_ROOT}` for CC compat. |
+| `reviews/014-investigation-kimi-gaps.md` | Kimi #1714 status (open, 25-30% merge probability in 6 months per Kimi reviewer) + subagent surface (actual built-ins are `default` + `okabe`, not the earlier-cited `coder`/`explore`/`plan`). |
+| `reviews/014-investigation-carrel-mapping.md` | Carrel plugin component inventory + CC plugin spec summary. |
+| `reviews/014-investigation-commands-vs-skills.md` | Command-to-skill coverage map: 47% REDUNDANT, 27% PARTIAL, 27% UNIQUE. Data behind the v0.9.0 architecture-normalization rationale. |
+| `reviews/014-review-codex.md` | Cross-CLI draft Codex adversarial review. 1 factually wrong claim (16 commands; verified 15), 2 valid concerns (skill-discovery fallback, `setup-interviewer` state-machine loss). |
+| `reviews/014-review-kimi.md` | Cross-CLI draft Kimi second-pair-of-eyes. Skill auto-discovery mechanism unconfirmed, subagent pre-registration barrier, hook handler path resolution gap. |
+| `reviews/014-review-internal.md` | Cross-CLI draft code-architect feasibility pass. 8 CLI naming corrections, `host/` → `build/` rename, `PluginBuilder` ABC → `BUILDERS: dict[Target, Callable]` dispatch dict, templates `importlib.resources` migration. |
+| `reviews/014-cc-only-trim.md` | CC-only re-scope: triaged 24 original Phase 1 deliverables; 10 KEEP, 5 MODIFY, 9 DROP. Effort cut from ~2 large units to ~1. |
+| `reviews/014-cc-feature-gap.md` | CC plugin feature audit: top 3 unused features adopted in v0.9.0 (marketplace metadata, `UserPromptSubmit`, `PreToolUse` Bash matcher). |
 
 ## Release arc summary
 
@@ -75,3 +87,4 @@ planning/
 | v0.5.4 | Holistic audit follow-through | 009 review tier 0-3 fixes |
 | v0.6.0 | Trust enforcement | 008 |
 | v0.7.0 | Cross-platform + control plane closure | 006, 007, 010, 011 |
+| v0.9.0 | CC plugin architecture normalization + feature adds | 014 (CC-only scope) |
