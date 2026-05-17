@@ -29,11 +29,11 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 
 ## What's Included
 
-- **15 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery, model teammates)
+- **15 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery, model teammates — 7 of these are now thin wrappers over typed CLI subcommands; see [`commands/CONVENTIONS.md`](commands/CONVENTIONS.md))
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **12 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, model teammates, self-improve)
-- **2 hooks** (session start environment check, session end reflection prompt)
-- **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust` subcommand groups)
+- **13 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, model teammates, self-improve, session-reflection)
+- **4 hooks** (session start environment check, session end reflection prompt, per-turn vault context injection, pre-tool-use sensitivity gate for cloud subprocesses)
+- **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust`, `automate`, `batch`, `migrate` subcommand groups)
 
 ## Commands
 
@@ -58,6 +58,12 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 ## Trust Levels
 
 Carrel's automation trust model is now code-enforced, not just narrated in skill markdown. Advisory, Consultative, Delegated, and Partnership still define the relationship contract, but writes that cross those boundaries now go through `carrel trust check <action>` before the skill proceeds. Use `uv run carrel trust list --vault .` to see the current action matrix for a vault.
+
+## Architecture (v0.9.0)
+
+Carrel follows a three-layer rule: **skills = judgment, CLI = deterministic ops, transports = thin**. v0.9.0 extracted seven slash-command bodies into the Python CLI to enforce this — the wrappers in `commands/` are now single-line `!carrel <subcmd> ${ARGS}` shells; the orchestration prose lives in the matching skill; the file I/O lives in `carrel <subcmd>`. The pattern lets you drive the same operations from the CLI (audit, automation, scripts) or via natural language through Claude. See [`planning/specs/014-cc-plugin-v090.md`](planning/specs/014-cc-plugin-v090.md) and [`commands/CONVENTIONS.md`](commands/CONVENTIONS.md).
+
+Two new Claude Code hooks ship alongside: `UserPromptSubmit` injects per-turn vault context (sensitivity, trust, active brief) so Claude stays oriented mid-session; `PreToolUse` adds a sensitivity ask-gate before any `carrel ... --tool <cloud-tool>` subprocess runs (skip per-invocation with a `# bypass-gate` comment). Set `CARREL_HOOK_DEBUG=1` to see hook-decision stderr.
 
 ## Design Philosophy
 
@@ -192,7 +198,7 @@ Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Co
 
 | Feature | Desktop Code tab | CLI |
 |---------|-----------------|-----|
-| Skills (all 12) | Yes | Yes |
+| Skills (all 13) | Yes | Yes |
 | Commands (/carrel-*) | Yes | Yes |
 | Hooks | Yes | Yes |
 | Agents (@setup-interviewer, @research-partner) | Yes | Yes |
