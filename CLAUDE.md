@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 275 tests
+uv run pytest                                    # 279 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel env validate --vault .            # Validate environment.json + drift markers
 uv run carrel env fix --safe --vault .          # Apply safe environment.json repairs
@@ -51,24 +51,28 @@ The core library NEVER asks questions or makes judgment calls. Skills handle tha
 ```
 carrel/
 ├── src/carrel/           # Python core library
-│   ├── cli/              # typer CLI (paper, transcript, vault, env, capture, google, setup-state, trust)
+│   ├── cli/              # typer CLI (paper, transcript, vault, env, capture, google, setup-state, trust, automate, batch, migrate)
 │   ├── convert/          # PDF/doc conversion (router, adapters, filer, pipeline)
 │   ├── transcribe/       # Audio/video transcription (router, adapters, filer)
 │   ├── google/           # Google Workspace export (gws CLI integration)
 │   ├── vault/            # Vault scaffold, organize, templates, markers, dashboard, automation_prompt
 │   ├── env/              # Audit, profile, install, validation, healing, platform
 │   ├── policy/           # Sensitivity routing (16-row matrix) + trust enforcement
+│   ├── feedback/         # Anonymized feedback digest exporter (v0.9.0)
+│   ├── migrate/          # Migration runner — registry walk + plugin-state.json writer (v0.9.0)
+│   ├── share/            # Collaborator handbook synthesizer + sensitivity redaction (v0.9.0)
 │   ├── models.py         # Pydantic models (options, results, enums, AutomationConfig, ResearcherProfile, SetupState)
 │   ├── safe_path.py      # Vault containment helper
 │   ├── youtube_url.py    # Unified YouTube URL parser
 │   ├── source_hash.py    # Unified source-hash helper for idempotency
 │   └── errors.py         # CarrelError with actionable hints
-├── tests/                # pytest suite
+├── tests/                # pytest suite (279 tests)
 ├── templates/            # Vault templates (loaded by vault/templates.py)
-├── skills/               # Plugin skills (convert, transcribe, vault-ops, environment-setup, automation, knowledge-wiki, etc.)
+├── skills/               # 13 plugin skills (convert, transcribe, vault-ops, environment-setup, automation, knowledge-wiki, collaborator-onboarding, model-teammates, self-improve, research-partner, env-doctor, web-capture, session-reflection)
 ├── agents/               # Plugin agents (setup-interviewer, research-partner)
-├── hooks/                # Plugin hooks (session start/end)
-├── commands/             # Plugin slash commands (/carrel-*)
+├── hooks/                # 4 plugin hooks: SessionStart (check-environment.js), SessionEnd (session-reflect.js), UserPromptSubmit (inject-context.js, v0.9.0), PreToolUse Bash matcher (sensitivity-gate.js, v0.9.0)
+├── commands/             # 15 plugin slash commands (/carrel-*); 7 are thin wrappers per CONVENTIONS.md
+│   └── CONVENTIONS.md    # ${ARGS} (skill-constructed) vs $ARGUMENTS (raw) convention (v0.9.0)
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
 ├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
 ├── install.sh            # macOS/Linux one-line installer (curl | bash)
@@ -185,6 +189,9 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it.
 - Environment drift (v0.7.0, spec 006): `carrel env validate --vault .` is the full validator and `carrel env fix --safe --vault .` applies deterministic repairs to `.carrel/environment.json` only. Hook runs `env validate` once per 24h and surfaces `/carrel-fix` when drift needs review.
 - Profile sync (v0.7.0): `_meta/my-environment.md` and `_meta/automation-prompt.md` are now deterministic (regenerate via `carrel vault dashboard|automation-prompt --force`). Vault `CLAUDE.md` uses HTML-comment markers (`<!-- carrel:field -->value<!-- /carrel:field -->`); `carrel vault check-sync` still exists for marker-only inspection.
+- Wrapper convention (v0.9.0): 7 slash commands are now thin `!carrel <subcmd> ${ARGS}` shells (no body prose). `${ARGS}` = skill-constructed typed-flag arg list; `$ARGUMENTS` = raw user input. Documented in `commands/CONVENTIONS.md`. The other 8 commands keep their existing shape; shrink later if they accumulate orchestration prose. `tests/test_command_wrappers.py` enforces the structural template for the 7 wrappers.
+- Hook debugging (v0.9.0): `inject-context.js` (UserPromptSubmit) and `sensitivity-gate.js` (PreToolUse Bash matcher) silent-fail on any error path so they don't disrupt user turns. Set `CARREL_HOOK_DEBUG=1` to enable `[carrel:<hook-name>] <reason>` stderr logging when diagnosing why a hook isn't firing. The sensitivity gate also rejects (passes through silently) when the command contains shell control characters (`;`, `&`, `|`, `<`, `>`, `` ` ``, `$`) — use `# bypass-gate` in those cases.
+- Mirror filename (v0.9.0): `carrel vault mirror --write` writes to `_meta/mirror/<YYYY-MM>.md` (monthly, idempotent same-month). Reflect-log writes to `_meta/reflections/reflection-<YYYY-MM-DD>.md`; feedback-digest writes to flat `_meta/feedback-digest-<YYYY-MM-DD>.md`. These three paths form a read/write loop (feedback-export reads reflections, mirror reads reflections + friction-log + capability-log) — `session-reflection` skill owns reflect + feedback; `research-partner` skill owns mirror synthesis.
 
 ## Capability Absorption
 
