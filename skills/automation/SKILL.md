@@ -420,32 +420,71 @@ _meta/
 
 ## /carrel-automate Workflow
 
-When running `/carrel-automate`:
+The skill conducts the interview; the CLI writes the files. Final hand-off is the **Calling Pattern** below — one invocation after the interview resolves.
 
-1. Check current automation state in `environment.json`
-2. **First time**: conversational interview
-   - What should run unattended? Walk through each capability and its default
-   - Trust level for vault operations? Explain each level; note that 3-4 are experimental
-   - Model preference? (Sonnet default, Opus for higher-quality synthesis)
-   - Schedule? (daily / weekdays / weekly)
-   - Review cadence? (how often to revisit automation settings)
-3. **Returning**: show current config, ask what to change
-4. Update `environment.json` `automation` section
-5. Update vault `CLAUDE.md` automation preferences section (two-track sync)
-6. Update `_meta/my-environment.md` to reflect automation status
-7. Before writing, run:
-   ```bash
-   carrel trust check automation:write-prompt --vault .
-   ```
-   If the check exits non-zero, surface the gate to the researcher: "I tried to automation:write-prompt but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
-   If the check exits 0, proceed:
-   Generate the prompt → save to `_meta/automation-prompt.md`
-   (save old prompt to `_meta/automation-prompt.prev.md` if one exists)
-8. Initialize `_meta/` automation directories and header files
-9. Guide researcher through Desktop App scheduled task setup (steps above)
-10. Mention cost estimate for their chosen configuration
+### The 10-step flow
 
-**Step 9 in environment-setup**: after cheat sheet generation, offer: "Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. This uses Claude Desktop's scheduled tasks and costs approximately $3-8/month with Sonnet. Want to set this up now? You can always run `/carrel-automate` later."
+1. **Check current state.** Read `.carrel/environment.json` `automation` section. `enabled: false` (default) → first-time, go to step 2. `enabled: true` → returning, go to step 3.
+
+2. **First-time interview.** Conversational, not a form. Cover in any natural order:
+   - **What should run unattended?** Walk each capability with its default (see "The Automation Contract"). Re-check `wiki_enabled` — only offer the `wiki_maintenance` toggle ("Field map maintenance") if `wiki_enabled: true`. If `false`, skip the toggle and add a closing note: *"One capability not set up yet is a knowledge field map — I can synthesize your sources into topic and entity pages over time. Ask me about a 'field map' when you're ready."*
+   - **Trust level?** Use the "Graduated Trust Levels" section above as the canonical explainer — don't duplicate that language here. Note that levels 3-4 are experimental.
+   - **Model preference?** Sonnet (default, faster, cheaper) vs Opus (deeper, higher cost).
+   - **Schedule?** Daily / weekdays / weekly. If weekly, ask which day.
+   - **Review cadence?** Monthly / quarterly / biannual.
+
+3. **Returning interview.** Show current config in a readable summary. If `wiki_enabled` flipped to `true` since last review but `wiki_maintenance` is still `false`, surface it: *"Since your last automation review, you've set up a knowledge field map. Would you like to include field map maintenance in overnight automation?"* Then ask "What would you like to change?" — apply only requested changes.
+
+4. **Update environment.json.** The Calling Pattern does this — flags map to typed `AutomationConfig` fields; CLI sets `last_reviewed` to today.
+
+5. **Update vault `CLAUDE.md` (two-track sync).** Append or update an `## Automation` section in plain language — this is Claude's behavioral guide, not a config file. Describe what's authorized, the trust level, what to log. CLI does the structured write; you do the narrative one.
+
+6. **Update `_meta/my-environment.md`.** Update or add an automation status line for at-a-glance visibility in Obsidian. Regenerable via `carrel vault dashboard --force`.
+
+7. **Generate the automation prompt.** The Calling Pattern handles this — CLI runs `carrel trust check automation:write-prompt --vault .` internally, assembles a per-researcher prompt from name, field, enabled capabilities, trust level, model, sensitivity, active tools, then writes `_meta/automation-prompt.md` (preserving any existing one as `automation-prompt.prev.md`).
+
+8. **Initialize `_meta/` directories.** CLI creates `_meta/pending-decisions.md` and `_meta/pending-approvals.md` with headers if absent. Doesn't overwrite. Other directories (`briefs/`, `suggestions/`, etc.) are lazy.
+
+9. **Walk through Desktop App setup.** Point the researcher at "Setting Up a Desktop Scheduled Task" above; confirm the task got saved.
+
+10. **Cost heads-up.** Frame as approximate: *"Daily Sonnet runs about $3-8/month depending on vault size and tasks. Daily Opus is $15-40/month. Weekly is roughly one-seventh."* For per-task detail, point at "Cost Model" above.
+
+### Calling pattern
+
+Hand off to the CLI in one invocation once the interview resolves:
+
+```bash
+carrel automate configure --enabled true --trust-level advisory \
+  --model sonnet --schedule daily --review-cadence quarterly \
+  --inbox-processing true --vault-health true --cross-linking true \
+  --gap-analysis false --draft-feedback false --reflection-synthesis true \
+  --wiki-maintenance false --vault .
+```
+
+CLI owns: writing `AutomationConfig` to `environment.json`, running `policy.trust.is_allowed()` as the internal gate, generating `_meta/automation-prompt.md`, initializing pending-decisions/approvals files. Skill owns: the interview, the trust-level conversation, the vault `CLAUDE.md` narrative update, and the Desktop App walkthrough. Pass only flags the interview resolved — CLI preserves untouched fields on the returning-researcher path.
+
+**Step 9 in environment-setup**: after cheat sheet generation, offer: *"Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. Claude Desktop's scheduled tasks cost approximately $3-8/month with Sonnet. Set this up now? You can always run `/carrel-automate` later."*
+
+---
+
+## Unattended-Mode Contract for Batch Operations
+
+When the overnight agent runs `carrel batch convert <folder> --unattended` or `carrel batch transcribe <folder> --unattended`, the batch contract changes — the `convert` and `transcribe` skills' interactive flows don't apply. This skill owns that contract.
+
+**Adaptation rules** (apply to both convert and transcribe batches):
+
+- **Skip the pre-batch confirmation.** Process all recognized files immediately with default routing. No "Ready to start?" prompt.
+- **Skip inline questions.** Instead of pausing for judgment calls, write them to `_meta/pending-decisions.md`:
+  ```markdown
+  - [ ] **YYYY-MM-DD inbox**: `filename` — reason this needs human input
+  ```
+- **Defer rather than block** on: scanned PDFs needing cloud OCR, sensitive-looking filenames, poor transcription quality, ambiguous file types, files where cloud-processing consent is uncertain given the researcher's sensitivity.
+- **Continue processing everything else.** Idempotency (SHA-256 source-hash) still applies — already-processed files are skipped silently.
+- **Morning brief replaces the post-batch summary.** Counts of converted/skipped/failed plus a link to `_meta/pending-decisions.md` if items were deferred. Folds into the standard morning brief format above.
+
+The `--unattended` flag is the **only** way the CLI knows to apply this contract. Never set it from interactive use — it suppresses confirmations the researcher would want to see.
+
+The scheduled-prompt template (see "Example generated prompt" above) embeds the `--unattended` flag automatically for any batch invocations it schedules.
 
 ---
 

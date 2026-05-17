@@ -1,6 +1,6 @@
 ---
 name: self-improve
-description: "This skill should be used when evaluating an external skill, MCP, or tool for absorption into Carrel ('should we absorb this', 'evaluate for absorption', 'does this overlap'), when Claude has just created a custom artifact for a researcher and needs to log it and update their environment dashboard, when promoting a recurring custom solution to a template ('promote this to a template', 'make this official'), or during quarterly upstream review ('review upstream sources', 'what capabilities have we added', 'check registry')."
+description: "This skill should be used when evaluating an external skill, MCP, or tool for absorption into Carrel ('should we absorb this', 'evaluate for absorption', 'does this overlap'), when Claude has just created a custom artifact for a researcher and needs to log it and update their environment dashboard, when promoting a recurring custom solution to a template ('promote this to a template', 'make this official'), when walking a researcher through a plugin version upgrade ('check for updates', 'what changed', '/carrel-migrate'), or during quarterly upstream review ('review upstream sources', 'what capabilities have we added', 'check registry')."
 ---
 
 # self-improve
@@ -217,6 +217,57 @@ When the same kind of custom artifact appears across multiple researchers (or th
 
 Researchers who already created a local version keep it. The plugin-shipped version is available for new vaults and for researchers who want to switch.
 
+## Walking a Researcher Through a Plugin Upgrade
+
+When the researcher invokes `/carrel-migrate` (or asks "what's new", "check for updates", "anything I should upgrade"), orchestrate the upgrade as a brief conversation around a single CLI call. The CLI does the registry walk, version comparison, and `plugin-state.json` write atomically; the skill handles assessment, framing, and any manual steps each migration calls out.
+
+### Calling pattern
+
+```
+carrel migrate apply [--plugin-root <path>]
+```
+
+`--plugin-root` defaults to `${CLAUDE_PLUGIN_ROOT}` — only override when the researcher is running migrations against a non-active plugin install (rare). The CLI returns the list of applied migrations with their manual steps; the skill narrates them.
+
+### Before calling the CLI
+
+Quickly assess the current environment so suggestions land in context, not in the abstract:
+
+- Read `.carrel/environment.json` — note configured tools, sensitivity, trust level, what the researcher said they wanted but skipped
+- Check what's actually installed on the machine (the env-doctor skill already knows how) and flag gaps the researcher might want to close in this session
+- Confirm the vault `CLAUDE.md` exists and looks current — if it's stale, mention that the upgrade is a good moment to refresh it
+
+This is a 15-second pass, not a full audit. The point is to have one or two concrete suggestions ready alongside the version bump.
+
+### After the CLI returns
+
+For each applied migration:
+
+- Tell the researcher what changed in terms of what they can now do — not in terms of code changes or refactors
+- Walk them through any manual steps the migration flagged (the CLI surfaces these; the skill paces them)
+- Confirm when a step is done before moving to the next
+- If a migration reports no action required, say so explicitly so the researcher doesn't wonder what they missed
+
+Then offer the 1-2 suggestions you noted in the pre-pass:
+
+- New commands or skills that became available since their last version
+- Tools they expressed interest in at setup but haven't configured (cloud tools if comfort has grown, Zotero if they've started a literature review, etc.)
+- Vault structure or configuration improvements the upgrade enables
+
+Frame these as options, not requirements. Researchers aren't obligated to adopt every new capability the moment it ships.
+
+### Already up to date
+
+If the CLI reports no migrations applied and your pre-pass found no gaps: tell the researcher they're on the latest version and the setup looks good. Show the current version and the last-check date from `plugin-state.json`. Don't manufacture suggestions to justify the conversation.
+
+### Pre-versioning installs
+
+If `.carrel/environment.json` exists but `.carrel/plugin-state.json` doesn't, the researcher is on a pre-versioning install. The CLI treats this as "apply all migrations from the earliest tracked version forward" — the skill's job is to set expectations: "Your vault predates the migration system, so I'll walk you through everything that's changed since you installed."
+
+### Tone
+
+Be brief and friendly. Researchers aren't developers — keep language at the level the setup interview established. Frame suggestions as options. Don't recite the migration file verbatim; translate it.
+
 ## Reviewing Upstream Sources
 
 Quarterly (or when a major upstream release happens):
@@ -230,6 +281,8 @@ Quarterly (or when a major upstream release happens):
 
 ## Related
 
+- **CLI**: `carrel migrate apply` (walks the migration registry and updates `plugin-state.json`)
+- **Commands**: `/carrel-migrate` (thin wrapper that invokes this skill)
 - **References**: `references/capability-registry.md` (what's been absorbed and when)
-- **Skills**: `vault-ops` (where most absorbed Obsidian capabilities land), `environment-setup` (decision tree for offering capabilities)
-- **Hooks**: `session-reflect.js` (captures what Claude built during a session)
+- **Skills**: `vault-ops` (where most absorbed Obsidian capabilities land), `environment-setup` (decision tree for offering capabilities), `env-doctor` (the pre-upgrade install check)
+- **Hooks**: `session-reflect.js` (captures what Claude built during a session); `check-version.js` (surfaces the upgrade prompt on session start)

@@ -50,24 +50,74 @@ The handbook must answer four questions for the collaborator:
 
 Use `references/handbook-template.md` for the markdown structure. Each section has a "skip if" rule for graceful degradation.
 
+## Modes
+
+The skill has two operating modes — choose based on how the researcher framed the request.
+
+### Interactive (default)
+
+A short brief exchange up front, then conversational refinement at the end. Use this when the researcher says "share with my RA" or "onboard Jane" without further detail.
+
+**Brief (one short exchange — don't make it a form):**
+- Who are they? (name, role — RA, co-author, lab member, advisor)
+- What do they need to do in this vault? (read papers? add transcripts? write drafts? review?)
+- How experienced are they with research workflows? (new grad student, senior PhD, faculty)
+
+**Refinement (after synthesis):** show the draft, ask one focused question: "Anything missing, or anything that shouldn't go to [name]?" Apply edits, save the final.
+
+**Canonical copy (optional):** offer "Want me to also save this as `_meta/lab-handbook.md` — your canonical 'latest version' you can update over time?" If yes, copy the file. If no, the dated handbook stands alone.
+
+### Quick mode
+
+Skip the brief, use defaults (new lab member, general access), save the dated handbook, skip the canonical copy. Use this when the researcher says "just generate one", "quick handbook", "draft something I can edit", or otherwise signals they want a starting point rather than a conversation.
+
+Quick mode is a behavioral shortcut. The CLI does not have a separate flag for it — it surfaces as `--mode quick` on the generate call.
+
+## Calling Pattern
+
+Once mode + collaborator + sensitivity are resolved, hand off to the CLI for synthesis and the file write:
+
+```bash
+carrel vault share generate \
+  --mode interactive|quick \
+  --for <collaborator-slug> \
+  --sensitivity low|medium|high \
+  [--vault PATH]
+```
+
+The CLI owns: source-material reads, handbook synthesis emission, sensitivity-rule application (what gets redacted at each level), idempotent dated-filename writes under `_meta/handbook/`, and the optional canonical-copy write. This skill owns: mode selection, the brief (interactive), the refinement loop (interactive), and the sensitivity conversation when redaction is uncertain.
+
+Use `--explain` to preview what the CLI would write — including which sources it would pull from and which sections sensitivity rules would redact — without committing.
+
 ## Output
 
-Write to `_meta/handbook/[YYYY-MM-DD]-for-[collaborator-slug].md`.
+Files land at `_meta/handbook/[YYYY-MM-DD]-for-[collaborator-slug].md`.
 
 - `[YYYY-MM-DD]` = today's date
 - `[collaborator-slug]` = lowercase, hyphenated. Examples: `jane`, `new-ra`, `co-author-cornell`. If the collaborator isn't named, use `lab-member`.
 
-Optionally also save as `_meta/lab-handbook.md` — the canonical "latest" version. Researcher chooses.
+Optionally also save as `_meta/lab-handbook.md` — the canonical "latest" version. Researcher chooses (interactive mode only).
 
 ## Sensitivity Considerations
 
-If the researcher's `sensitivity` is HIGH:
+The `--sensitivity` flag controls how the CLI applies redaction; this skill resolves it with the researcher before invoking.
+
+**Default:** read the researcher's `sensitivity` from `.carrel/environment.json` and pass it through. Override only when the collaborator's access is narrower than the researcher's vault-wide setting (e.g., a HIGH-sensitivity vault but the new RA only needs the public-facing project — pass `--sensitivity medium` with the researcher's confirmation).
+
+**Narration during synthesis (HIGH sensitivity):**
 - Default to project-level descriptions, not file lists
 - Don't include unpublished manuscript titles or transcript filenames in the handbook
 - Ask whether specific projects, papers, or threads should be redacted before sharing
 - Mention sensitivity rules prominently in the handbook itself (the collaborator needs to know what they can and can't do)
 
-If the collaborator's role is unclear, default to the more restrictive interpretation.
+**Narration during synthesis (MEDIUM sensitivity):**
+- File lists are fine; redact only files explicitly marked sensitive (e.g., filenames starting with `private-` or `irb-`)
+- Mention sensitivity rules briefly so the collaborator knows the contract
+
+**Narration during synthesis (LOW sensitivity):**
+- Full vault visibility; no redaction beyond the researcher's explicit asks
+
+If the collaborator's role is unclear, default to the more restrictive interpretation and tell the researcher you've done so: "I treated their access as HIGH-sensitivity since you didn't specify their role — let me know if I should loosen it."
 
 ## Anti-Patterns to Avoid
 

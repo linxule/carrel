@@ -78,6 +78,75 @@ After saving and cleaning:
 - Extract action items or decisions?
 - Connect it to related notes in your vault?"
 
+## Batch Workflow
+
+When the researcher points at a folder of recordings ("transcribe everything from the conference", "process the interviews folder"), shift into batch mode. The folder walk + per-file dispatch lives in the CLI; this skill owns the pre-batch confirmation and the per-file routing summary.
+
+### Pre-batch confirmation
+
+Default folder is `inbox/` inside the vault; any path is accepted. Recognized inputs:
+
+- **Audio/video files**: `.m4a`, `.mp3`, `.wav`, `.mp4`, `.webm`, `.mov`, `.ogg`, `.flac`
+- **YouTube URL lists**: `.txt` files containing YouTube URLs (one per line)
+
+Anything else: note it in the summary, skip it.
+
+Show a short report and ask before starting:
+
+> Found 6 items in `inbox/`:
+> - 4 audio files → coli (local)
+> - 1 video file → coli (local, will pull audio track)
+> - 1 txt file with 2 YouTube URLs → youtube_captions
+>
+> Any files you want handled differently? (e.g., switch to groq for faster turnaround, flag anything sensitive, set `--kind interview` for the recordings)
+>
+> Ready to start?
+
+Flag in advance anything that looks like it may need special handling — very large files, recordings whose filename suggests sensitive content (`patient-interview.m4a`), YouTube URL files with mixed valid/invalid URLs. coli runtime scales with audio length; tell the researcher upfront if it'll be a long queue.
+
+If `--kind` isn't obvious from filenames, ask whether the whole folder is one kind (e.g., all interviews) or mixed. The CLI uses `--kind` for filing under `transcripts/<kind>/`.
+
+### Calling pattern
+
+Once the researcher confirms, hand off to the CLI:
+
+```bash
+carrel batch transcribe <folder> [--vault PATH] [--kind interview|meeting|lecture|recording]
+```
+
+The CLI walks the folder, dispatches per file, and respects idempotency (SHA-256 source-hash; already-transcribed files return `action="skipped"`).
+
+### During the batch
+
+Flag judgment calls inline rather than silently failing:
+- Transcription quality looks poor → "The coli output for `interview-3.m4a` looks garbled. Want to retry with groq?"
+- Sensitive-looking filename → "This filename suggests sensitive content. Confirm local-only processing?"
+- YouTube URL file with mixed valid/invalid URLs → "2 of 4 URLs failed. Want me to show which ones?"
+
+Batch non-blocking questions at the end. Stop and ask immediately for blocking ones (ambiguous routing, suspected sensitive content).
+
+### Post-batch summary
+
+When the queue is done, give a single readable summary:
+
+> Batch complete:
+> - **Transcribed**: 5 files
+> - **Skipped**: 1 (already in vault)
+> - **Failed**: 0
+> - **Need input**: 1 — `unnamed-audio.m4a` (what kind: interview/meeting/lecture?)
+>
+> Everything is in `transcripts/`. Want me to clean up any of them now?
+
+Cleanup (typo/punctuation/speaker-label pass) is per-file and interactive — the batch produces raw transcripts; this skill's "After Transcription: Cleanup" section applies once the researcher picks one to work on.
+
+### Unattended-mode batches
+
+If the batch is scheduled (running without the researcher present), the contract is different: skip the confirmation, defer judgment calls to `_meta/pending-decisions.md`, never block. That contract lives in the `automation` skill — invoke it via `carrel batch transcribe <folder> --unattended` from a scheduled prompt, not from interactive use.
+
+### Aborting mid-batch
+
+If the researcher wants to stop mid-batch, files already transcribed are filed and safe — the CLI commits per-file. Resume by re-running the command; idempotency skips what's already done.
+
 ## Related
 
 - **Skills**: `vault-ops` for file placement questions

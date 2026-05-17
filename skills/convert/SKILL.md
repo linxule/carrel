@@ -70,8 +70,67 @@ If quality is poor, offer re-conversion:
 
 ## Batch Workflow
 
-For multiple files, run each with `carrel paper convert`, then summarize:
-"Converted 5 papers. 4 came through cleanly. One had table issues — flagging `smith-2019` for re-conversion."
+When the researcher points at a folder ("process my inbox", "convert everything in `~/Drop`"), shift into batch mode. The folder walk + per-file dispatch lives in the CLI; this skill owns the confirmation step and the routing summary.
+
+### Pre-batch confirmation
+
+Before the batch fires, enumerate what's there and report routing back to the researcher. Default folder is `inbox/` inside the vault; any path is accepted.
+
+Recognized document types: `.pdf`, `.docx`, `.doc`, `.pptx`, `.xlsx`. Anything else: note it in the summary, skip it.
+
+Show a short report and ask before starting:
+
+> Found 16 files in `inbox/`:
+> - 12 PDFs → liteparse (local)
+> - 3 Word docs → markitdown
+> - 1 unsupported (`notes.numbers`) — will skip
+>
+> Any files you want handled differently? (e.g., use mineru for the complex PDFs, mark anything sensitive)
+>
+> Ready to start?
+
+If a file looks like it may need special handling — scanned PDF, encrypted file, very large doc — flag it now rather than after failure. Tell the researcher upfront if the queue is long: liteparse takes ~30s per PDF, so 40 PDFs ≈ 20 minutes.
+
+### Calling pattern
+
+Once the researcher confirms, hand off to the CLI:
+
+```bash
+carrel batch convert <folder> [--vault PATH]
+```
+
+The CLI walks the folder, dispatches per file, and respects idempotency (SHA-256 source-hash; already-converted files return `action="skipped"`).
+
+### During the batch
+
+Flag judgment calls inline rather than silently failing:
+- Scanned/image-only PDF → "This looks scanned — want me to retry with mineru (cloud OCR)?"
+- Sensitive-looking filename (e.g., `patient-records.pdf`) → "This filename suggests sensitive content. Confirm local-only processing?"
+- Repeated tool failures → stop and ask, don't keep retrying
+
+Batch non-blocking questions at the end. Stop and ask immediately for blocking ones (ambiguous routing, suspected sensitive content).
+
+### Post-batch summary
+
+When the queue is done, give a single readable summary:
+
+> Batch complete:
+> - **Converted**: 14 files
+> - **Skipped**: 3 (already in vault)
+> - **Failed**: 1 — `scan-ocr.pdf` (image-only, retry with `--tool mineru`?)
+> - **Need input**: 1 — see questions above
+>
+> Everything is in your vault. Want me to open any of the new files?
+
+Mention any files that landed in fallback filing slots (sparse frontmatter, no author/year) so the researcher can rename them.
+
+### Unattended-mode batches
+
+If the batch is scheduled (running without the researcher present), the contract is different: skip the confirmation, defer judgment calls to `_meta/pending-decisions.md`, never block. That contract lives in the `automation` skill — invoke it via `carrel batch convert <folder> --unattended` from a scheduled prompt, not from interactive use.
+
+### Aborting mid-batch
+
+If the researcher wants to stop mid-batch, files already processed are filed and safe — the CLI commits per-file. Resume by re-running the command; idempotency skips what's already done.
 
 ## CRITICAL: Papers Are Not Notes
 

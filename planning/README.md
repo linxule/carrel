@@ -78,6 +78,9 @@ planning/
 | `reviews/014-review-internal.md` | Cross-CLI draft code-architect feasibility pass. 8 CLI naming corrections, `host/` → `build/` rename, `PluginBuilder` ABC → `BUILDERS: dict[Target, Callable]` dispatch dict, templates `importlib.resources` migration. |
 | `reviews/014-cc-only-trim.md` | CC-only re-scope: triaged 24 original Phase 1 deliverables; 10 KEEP, 5 MODIFY, 9 DROP. Effort cut from ~2 large units to ~1. |
 | `reviews/014-cc-feature-gap.md` | CC plugin feature audit: top 3 unused features adopted in v0.9.0 (marketplace metadata, `UserPromptSubmit`, `PreToolUse` Bash matcher). |
+| `reviews/014-impl-review-plugin-validator.md` | Pre-commit audit (1/4): plugin structural validity — valid-with-warnings; 2 hook JSON shape warnings later confirmed as bugs by code-reviewer. |
+| `reviews/014-impl-review-codex.md` | Pre-commit audit (2/4): codex adversarial pass — 1 HIGH (mirror prose routing), 4 MED (hook truncation, pending-decisions dedupe, silent failure modes, migration doc gaps). |
+| `reviews/014-impl-audit-synthesis.md` | Pre-commit audit synthesis: consolidates all 4 reviewer findings (plugin-validator, code-reviewer, kimi, codex), enumerates the 11 fixes applied + 4 deferred, sign-off for commit. Includes meta-lessons about skill↔CLI contract drift and adversarial-reviewer convergence as quality signal. |
 
 ## Release arc summary
 

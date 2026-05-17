@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 228 tests
+uv run pytest                                    # 275 tests
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel env validate --vault .            # Validate environment.json + drift markers
 uv run carrel env fix --safe --vault .          # Apply safe environment.json repairs
@@ -26,6 +26,14 @@ uv run carrel setup-state complete --vault .     # Mark setup complete (idempote
 uv run carrel trust check automation:propose --vault .  # Check if action allowed at current trust level
 uv run carrel trust list --vault .  # See what current trust unlocks
 uv run carrel paper convert foo.pdf --explain    # Print routing decision + rationale without executing
+uv run carrel vault feedback export --redact-list redact.txt --vault . # Anonymized feedback digest (v0.9.0)
+uv run carrel vault mirror --write --from-stdin --vault . # Idempotent dated mirror file (v0.9.0)
+uv run carrel vault reflect-log --append --from-stdin --vault . # Atomic append to dated reflect-log (v0.9.0)
+uv run carrel vault share generate --mode quick --for alice --sensitivity medium --vault . # Collaborator handbook (v0.9.0)
+uv run carrel batch convert <folder> [--unattended] --vault . # Sequential PDF batch (v0.9.0)
+uv run carrel batch transcribe <folder> [--unattended] --vault . # Sequential audio/YouTube batch (v0.9.0)
+uv run carrel automate configure --enabled true --trust-level consultative --schedule daily --review-cadence weekly --vault . # Typed-flag automation config, no prompts (v0.9.0)
+uv run carrel migrate apply [--plugin-root <path>] --vault . # Walk migrations registry, update plugin-state.json (v0.9.0)
 ```
 
 ## Architecture
@@ -140,6 +148,17 @@ Interview preferences flow into two systems that must stay in sync:
 - **setup-state.json** (`.carrel/setup-state.json`, added v0.5.2) → tracks `last_completed_phase` so `/carrel-setup` can pause and resume. Written by `carrel vault init` (initial: phase 4); managed via the `carrel setup-state` CLI (added v0.5.3 — `advance --phase N`, `complete`, `show`, `reset`); `completed_at` set at phase 9. Hook surfaces a resume prompt if paused. The `SetupState` Pydantic model enforces `phase ∈ [4,9]`, semver `version`, ISO `completed_at`, and the mutual-implication invariant `phase == 9 ⟺ completed_at is set`.
 
 The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from the interview. When preferences change, update BOTH files. The session-start hook surfaces preferences so Claude has immediate context.
+
+## Architecture Normalization (v0.9.0)
+
+Spec 014 (CC-only re-scope) normalizes the three-layer rule for 7 high-value command paths. Deterministic file I/O moved to `carrel <subcmd>`; orchestration moved into skills; slash commands shrunk to thin `!carrel <subcmd> ${ARGS}` wrappers.
+
+- **7 new CLI subcommands**: `vault {feedback export, mirror, reflect-log, share generate}`, `batch {convert, transcribe}`, `migrate apply`, `automate configure`. All typed-flag, no prompting; `--explain` dry-run where routing applies.
+- **7 wrapper shrinks** (564 → 35 body lines): `/carrel-{feedback,migrate,mirror,reflect,share,batch,automate}`. Convention: `${ARGS}` (skill-constructed) vs `$ARGUMENTS` (raw user input) documented in `commands/CONVENTIONS.md`.
+- **Skill enrichments** absorbed the freed orchestration prose: `automation` (10-step flow + Desktop App walkthrough + unattended-batch contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
+- **3 CC plugin feature adds**: marketplace metadata (keywords, category, license, repository); `UserPromptSubmit` hook (`hooks/inject-context.js`) for per-turn vault context; `PreToolUse` Bash matcher (`hooks/sensitivity-gate.js`) for sensitivity ask-gate before cloud subprocesses (bypass via `# bypass-gate` comment).
+
+Spec: `planning/specs/014-cc-plugin-v090.md`. Cross-CLI port (Codex + Kimi) parked as future work; investigation artifacts preserved.
 
 ## Version & Migration
 

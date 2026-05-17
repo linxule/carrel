@@ -7,12 +7,17 @@
     {
       "name": "carrel",
       "description": "AI-augmented research environment. Interview-first onboarding, Obsidian vault setup, document conversion, scheduled automation, and ongoing research tools for academics.",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": {
         "name": "Xule Lin (Imperial College London)"
       },
       "source": "./",
-      "homepage": "https://github.com/linxule/carrel"
+      "homepage": "https://github.com/linxule/carrel",
+      "keywords": ["research", "obsidian", "pdf", "transcription", "academic", "vault", "zotero", "knowledge-management"],
+      "category": "productivity",
+      "tags": ["research", "obsidian", "pdf", "transcription", "academic", "vault", "zotero", "knowledge-management"],
+      "license": "MIT",
+      "repository": "https://github.com/linxule/carrel"
     }
   ]
 }

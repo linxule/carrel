@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import re
-from datetime import date
+import sys
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import typer
@@ -16,7 +18,10 @@ from carrel.env.audit import audit
 from carrel.env.platform import detect_platform
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
-from carrel.models import FileResult
+from carrel.feedback.exporter import export_feedback
+from carrel.models import FileResult, Sensitivity
+from carrel.safe_path import safe_vault_join
+from carrel.share.synthesizer import slug_name, write_handbook
 from carrel.vault.automation_prompt import render_automation_prompt
 from carrel.vault.dashboard import collect_activity_stats, render_dashboard
 from carrel.vault.markers import ensure_markers, parse_markers
@@ -369,6 +374,298 @@ def add_markers_command(
                 reason=None if action == "updated" else "all markers already present",
             ),
             fmt,
+        )
+    except CarrelError as error:
+        emit_carrel_error(error)
+
+
+# ---------------------------------------------------------------------------
+# v0.9.0 (spec 014) — feedback export, mirror, reflect-log, share generate
+# ---------------------------------------------------------------------------
+
+feedback_app = typer.Typer(help="Feedback digest export")
+app.add_typer(feedback_app, name="feedback")
+
+share_app = typer.Typer(help="Generate vault handbooks for collaborators")
+app.add_typer(share_app, name="share")
+
+
+@feedback_app.command("export")
+def feedback_export_command(
+    redact_list: Path = typer.Option(
+        ...,
+        "--redact-list",
+        help="Path to a text file with one redaction term per line.",
+    ),
+    vault: Path | None = typer.Option(None, "--vault"),
+    fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
+) -> None:
+    """Write an anonymized feedback digest to _meta/feedback-digest-<YYYY-MM-DD>.md."""
+    try:
+        vault_path = resolve_vault(vault)
+        today = date.today().isoformat()
+        # Flat file in _meta/ (matches legacy /carrel-feedback convention and
+        # the session-reflection skill contract). Earlier (pre-fix) v0.9.0 builds
+        # used _meta/feedback-export/<date>.md — researchers upgrading from a
+        # very early v0.9.0 RC should move existing files manually.
+        output_path = safe_vault_join(
+            vault_path, "_meta", f"feedback-digest-{today}.md"
+        )
+        result = export_feedback(
+            vault=vault_path,
+            redact_list=normalize_path(redact_list),
+            output_path=output_path,
+            today=today,
+        )
+        if fmt == OutputFormat.JSON:
+            typer.echo(
+                json.dumps(
+                    {
+                        "path": str(result.path),
+                        "action": result.action,
+                        "sources": [str(s) for s in result.sources],
+                        "redacted_terms": result.redacted_terms,
+                    }
+                )
+            )
+            return
+        if fmt == OutputFormat.QUIET:
+            typer.echo(str(result.path))
+            return
+        console.print(
+            f"{result.action.capitalize()} {result.path} "
+            f"(sources={len(result.sources)}, redactions={result.redacted_terms})"
+        )
+    except CarrelError as error:
+        emit_carrel_error(error)
+
+
+@app.command("mirror")
+def mirror_command(
+    write: bool = typer.Option(
+        False, "--write", help="Persist the mirror to _meta/mirror/<YYYY-MM>.md."
+    ),
+    from_stdin: bool = typer.Option(
+        False,
+        "--from-stdin",
+        help="Read the mirror body from stdin (required with --write).",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite even when the existing file's source-hash matches.",
+    ),
+    vault: Path | None = typer.Option(None, "--vault"),
+    fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
+) -> None:
+    """Persist a researcher self-portrait synthesis to the dated mirror file."""
+    try:
+        vault_path = resolve_vault(vault)
+        if not write:
+            raise CarrelError(
+                "Mirror persistence requires --write",
+                hint="The CLI persists; synthesis stays in the skill. Pass --write --from-stdin.",
+            )
+        if not from_stdin:
+            raise CarrelError(
+                "Reading from stdin requires --from-stdin",
+                hint="Pipe the mirror synthesis: cat mirror.md | carrel vault mirror --write --from-stdin",
+            )
+        body = sys.stdin.read()
+        if not body.strip():
+            raise CarrelError(
+                "Empty mirror body received on stdin",
+                hint="Pipe a non-empty synthesis. Use --force only to overwrite an existing file.",
+            )
+        # Monthly filename — same month re-runs update the existing portrait
+        # rather than creating one file per day. Matches the research-partner
+        # skill's idempotency contract ("re-runs in the same month update the
+        # existing file rather than duplicating").
+        month = date.today().strftime("%Y-%m")
+        output_path = safe_vault_join(vault_path, "_meta", "mirror", f"{month}.md")
+        new_hash = hashlib.sha256(body.encode("utf-8")).hexdigest()
+        existed = output_path.exists()
+        action = "created"
+        if existed:
+            existing_hash = hashlib.sha256(
+                output_path.read_bytes()
+            ).hexdigest()
+            if existing_hash == new_hash and not force:
+                action = "skipped"
+                print_result(
+                    FileResult(
+                        path=output_path,
+                        action=action,
+                        reason="source-hash matches; pass --force to overwrite",
+                    ),
+                    fmt,
+                )
+                return
+            action = "overwritten"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = output_path.parent / f"{output_path.name}.tmp"
+        tmp.write_text(body, encoding="utf-8")
+        tmp.replace(output_path)
+        print_result(FileResult(path=output_path, action=action), fmt)
+    except CarrelError as error:
+        emit_carrel_error(error)
+
+
+@app.command("reflect-log")
+def reflect_log_command(
+    append: bool = typer.Option(
+        False, "--append", help="Append a reflection entry to today's reflect-log."
+    ),
+    from_stdin: bool = typer.Option(
+        False,
+        "--from-stdin",
+        help="Read the reflection body from stdin (required with --append).",
+    ),
+    vault: Path | None = typer.Option(None, "--vault"),
+    fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
+) -> None:
+    """Atomically append a reflection to _meta/reflections/reflection-<YYYY-MM-DD>.md."""
+    try:
+        vault_path = resolve_vault(vault)
+        if not append:
+            raise CarrelError(
+                "Reflection persistence requires --append",
+                hint="Reflect-log is append-only. Pass --append --from-stdin.",
+            )
+        if not from_stdin:
+            raise CarrelError(
+                "Reading from stdin requires --from-stdin",
+                hint="Pipe the reflection: cat reflection.md | carrel vault reflect-log --append --from-stdin",
+            )
+        body = sys.stdin.read().rstrip()
+        if not body:
+            raise CarrelError(
+                "Empty reflection body received on stdin",
+                hint="Pipe a non-empty reflection.",
+            )
+        today = date.today().isoformat()
+        # Matches legacy /carrel-reflect convention and the session-reflection
+        # skill contract: _meta/reflections/reflection-<date>.md. Mirror's
+        # synthesis and feedback-digest export both read from this path.
+        output_path = safe_vault_join(
+            vault_path, "_meta", "reflections", f"reflection-{today}.md"
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        existed = output_path.exists()
+        timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        entry = f"\n## {timestamp}\n\n{body}\n"
+        if not existed:
+            # First write of the day: seed from the vault's reflection template
+            # if present, else use a minimal header. Template path matches
+            # `carrel vault init` output (`_templates/reflection.md`).
+            template_path = vault_path / "_templates" / "reflection.md"
+            if template_path.is_file():
+                try:
+                    seed = template_path.read_text(encoding="utf-8").rstrip()
+                except (OSError, UnicodeDecodeError):
+                    seed = f"# Reflection — {today}"
+            else:
+                seed = f"# Reflection — {today}"
+            entry = f"{seed}\n{entry}"
+        # Atomic append: read-modify-write through a tmp file so a crash mid-write
+        # cannot leave a half-truncated reflect-log.
+        previous = output_path.read_text(encoding="utf-8") if existed else ""
+        tmp = output_path.parent / f"{output_path.name}.tmp"
+        tmp.write_text(previous + entry, encoding="utf-8")
+        tmp.replace(output_path)
+        print_result(
+            FileResult(
+                path=output_path,
+                action="appended" if existed else "created",
+            ),
+            fmt,
+        )
+    except CarrelError as error:
+        emit_carrel_error(error)
+
+
+@share_app.command("generate")
+def share_generate_command(
+    mode: str = typer.Option(
+        ...,
+        "--mode",
+        help="quick | full (skill picks; quick = defaults, full = synthesized handbook).",
+    ),
+    name: str = typer.Option(..., "--for", help="Collaborator name (slug-safe)."),
+    sensitivity: Sensitivity = typer.Option(
+        ...,
+        "--sensitivity",
+        help="low | medium | high — controls redaction depth.",
+    ),
+    vault: Path | None = typer.Option(None, "--vault"),
+    explain: bool = typer.Option(
+        False,
+        "--explain",
+        help="Print what would be written + redactions, do not persist.",
+    ),
+    fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
+) -> None:
+    """Write _meta/handbook/<YYYY-MM-DD>-for-<name>.md from the vault state."""
+    try:
+        vault_path = resolve_vault(vault)
+        collaborator_slug = slug_name(name)
+        today = date.today().isoformat()
+        output_path = safe_vault_join(
+            vault_path,
+            "_meta",
+            "handbook",
+            f"{today}-for-{collaborator_slug}.md",
+        )
+        if explain:
+            from carrel.share.synthesizer import synthesize_handbook
+
+            body, redactions = synthesize_handbook(
+                vault_path,
+                mode=mode,
+                name=name,
+                sensitivity=sensitivity,
+                today=today,
+            )
+            payload = {
+                "would_write": str(output_path),
+                "mode": mode,
+                "sensitivity": sensitivity.value,
+                "redactions_applied": redactions,
+                "bytes": len(body.encode("utf-8")),
+            }
+            if fmt == OutputFormat.JSON:
+                typer.echo(json.dumps(payload))
+            else:
+                typer.echo(json.dumps(payload, indent=2))
+            return
+        result = write_handbook(
+            vault_path,
+            mode=mode,
+            name=name,
+            sensitivity=sensitivity,
+            output_path=output_path,
+            today=today,
+        )
+        if fmt == OutputFormat.JSON:
+            typer.echo(
+                json.dumps(
+                    {
+                        "path": str(result.path),
+                        "action": result.action,
+                        "mode": result.mode,
+                        "sensitivity": result.sensitivity.value,
+                        "redactions_applied": result.redactions_applied,
+                    }
+                )
+            )
+            return
+        if fmt == OutputFormat.QUIET:
+            typer.echo(str(result.path))
+            return
+        console.print(
+            f"{result.action.capitalize()} {result.path} "
+            f"(mode={result.mode}, sensitivity={result.sensitivity.value}, "
+            f"redactions={len(result.redactions_applied)})"
         )
     except CarrelError as error:
         emit_carrel_error(error)

@@ -1,6 +1,6 @@
 ---
 name: research-partner
-description: "This skill should be used when a researcher wants to think through ideas, discuss a paper, get feedback on arguments, explore connections, brainstorm, or needs intellectual engagement. Triggers on 'help me think', 'what do you think', 'push back', 'what am I missing', 'I'm stuck', 'explore connections'."
+description: "This skill should be used when a researcher wants to think through ideas, discuss a paper, get feedback on arguments, explore connections, brainstorm, or needs intellectual engagement. Also covers research self-portrait synthesis — surfacing patterns across a researcher's own recent work ('show me my research patterns', 'what have I been working on', 'give me a mirror', '/carrel-mirror'). Triggers on 'help me think', 'what do you think', 'push back', 'what am I missing', 'I'm stuck', 'explore connections', 'mirror', 'self-portrait'."
 ---
 
 # research-partner
@@ -113,6 +113,68 @@ If vox-mcp is configured (check `.carrel/environment.json` → `tools_configured
 
 This is optional enrichment, not a default. Only suggest when the researcher is exploring ideas or stuck.
 
+## Research Self-Portrait (Mirror)
+
+When the researcher asks for a mirror, self-portrait, or "what have I been working on" view (`/carrel-mirror`, "show me my research patterns", monthly/semester reviews, or when feeling stuck and wanting to reconnect with the bigger picture), this skill is the synthesis engine. It reads the vault's metadata, synthesizes the portrait, and pipes it to the CLI for idempotent persistence.
+
+### Calling pattern
+
+```
+carrel vault mirror --write --from-stdin
+```
+
+The skill produces the synthesis prose and pipes it via stdin. The CLI handles the dated-filename emission (`_meta/mirror/YYYY-MM.md`) with source-hash idempotency — re-runs in the same month update the existing file rather than duplicating.
+
+### Data sources
+
+Read these before synthesizing:
+
+- `_meta/reflections/` — all entries, or only since the last mirror if one exists in `_meta/mirror/`
+- `_meta/capability-log.md` — what has been created
+- `_meta/friction_log.md` — what has frustrated
+- Vault stats: papers count by field and year, notes by type (literature notes, concept notes, drafts), draft status if tracked
+
+### The five dimensions
+
+Synthesize across these — not as headings to fill, but as lenses for what to notice:
+
+- **Reading** — dominant topics, fields, key authors; notable gaps or shifts
+- **Creating** — notes, canvases, custom trackers; volume and variety
+- **Recurring themes** — keywords and ideas that keep surfacing in reflections
+- **Friction patterns** — what consistently frustrates (tools, workflows, concepts)
+- **Trajectory** — shifting interests, emerging questions, where the work seems headed
+
+### Modes
+
+**Interactive** (default): present the portrait conversationally, then ask one follow-up — "Does this match how you see your work right now?" — and let the conversation go where it needs to. Don't write to `_meta/mirror/` unless the researcher asks you to save it.
+
+**Scheduled / write** (when called with `--write` from automation or when the researcher explicitly says "save the mirror"): skip the conversation. Produce the synthesis, pipe it to the CLI, confirm when saved. This is the path the monthly automated snapshot takes.
+
+### Output shape
+
+Lead with the synthesis, not the data. One sentence of pattern beats five bullets of counts. Example shape (don't copy verbatim — match the researcher's vault):
+
+> Here's what your vault says about your research right now:
+>
+> **What you've been reading**: Mostly institutional theory and organizational ecology — heavy on DiMaggio, Powell, and Hannan. You've pulled in a lot of 2019–2023 work, with a gap in empirical pieces.
+>
+> **What you've been building**: 14 literature notes this quarter, mostly concept-dense. Three canvases started; one abandoned. You haven't written a draft in six weeks.
+>
+> **What keeps coming up**: 'boundary conditions' appears in 5 of your last 8 reflections. So does a sense that your framework isn't quite clicking yet.
+>
+> **What frustrates you**: PDF conversion on scanned documents (flagged three times). Finding older sources you know you've read.
+>
+> **Where you seem to be heading**: Your recent notes cluster around legitimacy and field-level change — looks like you're narrowing from 'institutions broadly' toward something more specific. The abandoned canvas was about market emergence, which you haven't returned to.
+>
+> Does this match how you see your work right now?
+
+### Guidelines
+
+- **The value is in patterns, not counts.** One sentence of synthesis beats five bullet points of numbers.
+- **Don't invent trajectory.** If the data doesn't show a clear direction, say "the direction isn't clear yet." A vague mirror is worse than an honest one.
+- **If the metadata is sparse** (new vault, few reflections), say so: "There's not enough here yet for a full portrait — here's what I can see so far." Don't pad.
+- **Let the researcher correct.** In interactive mode, if they push back ("no, I've actually moved on from that"), update your reading and offer the revision. The mirror is a draft for them to amend, not a verdict.
+
 ## Integration with IO Plugin
 
 If the Interpretive Orchestration plugin is also installed (check for `.interpretive-orchestration/` directory in the project root or agents named `@dialogical-coder`, `@scholarly-companion`, `@stage1-listener`), defer to its specialized agents:
@@ -126,5 +188,8 @@ Research-partner handles general intellectual engagement; IO agents handle metho
 ## Related
 
 - **Agent**: `@research-partner` (optional — provides richer persistent dialogue; this skill works directly without it)
-- **Skills**: `vault-ops` for vault search and navigation
+- **CLI**: `carrel vault mirror --write --from-stdin` (idempotent dated mirror persistence)
+- **Commands**: `/carrel-mirror` (thin wrapper that invokes the mirror synthesis)
+- **Skills**: `vault-ops` for vault search and navigation; `session-reflection` (writes the reflections + friction log the mirror reads)
 - **References**: `references/concept-mapping.md` (canvas syntax for research concept maps)
+- **Files**: `_meta/reflections/`, `_meta/capability-log.md`, `_meta/friction_log.md`, `_meta/mirror/`

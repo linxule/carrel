@@ -1,0 +1,1 @@
+"""Collaborator handbook synthesis."""
