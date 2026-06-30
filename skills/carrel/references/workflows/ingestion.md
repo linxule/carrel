@@ -18,8 +18,10 @@ python3 scripts/carrel.py convert file <path> --vault <vault>
 ```
 
 For PDFs, prefer local `liteparse` when available. For non-PDFs, prefer
-`markitdown` when available. Cloud `mineru` is policy-gated and requires a host
-adapter; the bundled stdlib runtime does not call MinerU directly.
+`markitdown` when available. Cloud `mineru` and `mistral_ocr` are policy-gated
+and require a host adapter; the bundled stdlib runtime does not call provider
+PDF APIs directly. Treat `paddleocr` as an explicit local OCR candidate only
+after the host has installed its Python/runtime dependencies.
 
 For folder sweeps:
 

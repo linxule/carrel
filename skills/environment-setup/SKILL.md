@@ -117,7 +117,7 @@ Write CLAUDE.md with these sections:
 
 ## Available Tools
 [List what was installed and configured, in plain language]
-- PDF conversion: liteparse (local) [+ mineru if configured]
+- PDF conversion: liteparse (local) [+ mineru or mistral_ocr if configured]
 - Audio: coli (local) [+ groq if configured]
 - YouTube: [local captions / Gemini — based on what was set up]
 - Web capture: defuddle
@@ -144,7 +144,7 @@ Write CLAUDE.md with these sections:
 
 ### Step 6: Configure Optional Tools
 
-If the decision tree indicates mineru, zotero, or gws:
+If the decision tree indicates mineru, mistral_ocr, zotero, or gws:
 - Add them to the project `.mcp.json` (for MCP-based tools like zotero/vox)
 - Guide the researcher through API key setup (see API Key Storage section in `references/decision-tree.md`)
 - For gws: see `references/gws-setup-guide.md` — this is a high-friction setup, set expectations
@@ -185,7 +185,7 @@ Update the researcher's environment dashboard at `_meta/my-environment.md` (the 
 - Which trackers were installed (from Step 4)
 - Which cloud services are configured vs. available-but-not-configured (from the interview)
 - Vault path and Obsidian setup details
-- "Available but Not Configured" table: list tools/services the researcher skipped or deferred (Zotero, mineru, gws, groq, vox — whatever was noted as "available later" in environment.json), with a one-line description and how to activate
+- "Available but Not Configured" table: list tools/services the researcher skipped or deferred (Zotero, mineru, mistral_ocr, gws, groq, vox — whatever was noted as "available later" in environment.json), with a one-line description and how to activate
 
 This dashboard is the researcher's living view of their environment. It grows as they add tools, MCPs, custom trackers, and Obsidian plugins. Claude updates it whenever the environment changes (see `skills/self-improve/SKILL.md` for the maintenance protocol).
 

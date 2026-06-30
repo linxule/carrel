@@ -16,11 +16,11 @@ Convert files to markdown and save them to the appropriate vault folder with pro
 
 Uses the `convert` skill:
 
-1. Run `carrel paper convert <file> [--tool mineru] [--force] [--dry-run]`
+1. Run `carrel paper convert <file> [--tool mineru|mistral_ocr] [--force] [--dry-run]`
 2. The CLI picks the right tool (liteparse for PDFs, markitdown for everything else)
 3. Adds YAML frontmatter (title, authors, year, tags, source info)
 4. Files to `papers/<author-year>/paper.md` with folder-per-paper structure
-5. Assess quality, offer re-conversion with `--tool mineru` if needed
+5. Assess quality, offer re-conversion with `--tool mineru` for complex tables/formulas or `--tool mistral_ocr` for scanned/layout-heavy PDFs if needed
 
 ## Examples
 
@@ -31,6 +31,10 @@ Uses the `convert` skill:
 **Complex PDF with tables:**
 > "This has a lot of tables, use the cloud converter"
 > Runs `carrel paper convert paper.pdf --tool mineru`
+
+**Scanned PDF:**
+> "This is a scanned article, use OCR"
+> Runs `carrel paper convert scan.pdf --tool mistral_ocr`
 
 **Batch:**
 > "Convert all the PDFs in my Downloads folder"

@@ -42,6 +42,7 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers_on_macos(tmp_path, m
     )
     monkeypatch.setattr("sys.platform", "darwin")
     monkeypatch.setenv("MINERU_API_KEY", "configured")
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.setenv("GEMINI_API_KEY", "configured")
 
@@ -60,7 +61,9 @@ async def test_audit_reports_tools_api_keys_and_mcp_servers_on_macos(tmp_path, m
     assert result.tools.binaries["markitdown"].installed is True
     assert result.tools.binaries["obsidian"].installed is True
     assert result.tools.api_keys["mineru"].configured is True
+    assert result.tools.api_keys["mistral"].configured is False
     assert result.tools.api_keys["groq"].configured is False
+    assert result.tools.api_keys["gemini"].configured is True
     assert result.tools.mcp_servers == ["markdownify", "vox"]
     assert result.tool_matrix.is_available("git", Platform.MACOS) is True
     assert result.tool_matrix.is_available("git", Platform.WINDOWS) is False

@@ -19,6 +19,7 @@ class Sensitivity(str, Enum):
 class ConvertTool(str, Enum):
     LITEPARSE = "liteparse"
     MINERU = "mineru"
+    MISTRAL_OCR = "mistral_ocr"
     MARKDOWNIFY = "markdownify"
     DEFUDDLE = "defuddle"
 

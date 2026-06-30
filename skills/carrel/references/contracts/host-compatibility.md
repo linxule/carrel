@@ -29,6 +29,6 @@ Python 3.10 or newer is required.
 | Gemini CLI | High where Agent Skills are enabled | Install under `.agents/skills/carrel` or `.gemini/skills/carrel`; skill activation must be allowed to access bundled scripts/assets. |
 | Other local harnesses | Unknown until verified | Require explicit support for `SKILL.md` discovery, bundled files, local shell execution, Python 3.10+, and a stable skill-dir path. |
 
-Cloud provider calls (`mineru`, `groq`, `gemini`) are not implemented in the
-portable stdlib runtime. Host adapters may add them behind the same routing
-policy.
+Cloud provider calls (`mineru`, `mistral_ocr`, `groq`, `gemini`) are not
+implemented in the portable stdlib runtime. Host adapters may add them behind
+the same routing policy.

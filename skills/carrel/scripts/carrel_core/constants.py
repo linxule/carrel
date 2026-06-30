@@ -20,7 +20,7 @@ LOCAL_TOOLS = {
     "transcribe": {"coli", "provided"},
 }
 CLOUD_TOOLS = {
-    "convert": {"mineru"},
+    "convert": {"mineru", "mistral_ocr"},
     "transcribe": {"groq", "gemini"},
 }
 

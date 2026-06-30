@@ -22,21 +22,22 @@ That's the default. The CLI picks the right tool automatically (liteparse for PD
 
 ## Judgment Calls
 
-### When to suggest `--tool mineru`
+### When to suggest `--tool mineru` or `--tool mistral_ocr`
 
-Recommend mineru when the researcher describes or the filename suggests:
+Recommend a cloud OCR/conversion tool when the researcher describes or the
+filename suggests:
 - Tables, figures, or formulas that need accurate extraction
 - Scanned or image-based PDFs
 - Multi-column journal layouts where structure matters
 
-Say: "This looks like a complex PDF with tables. Want me to use the cloud converter for better accuracy? (`--tool mineru`)"
+Say: "This looks like a complex or scanned PDF. Want me to use a cloud OCR converter for better accuracy? (`--tool mineru` or `--tool mistral_ocr`)"
 
-Do not suggest mineru unprompted for straightforward text-heavy papers — liteparse handles those well.
+Do not suggest cloud OCR unprompted for straightforward text-heavy papers — liteparse handles those well.
 
 ### When to warn about sensitivity
 
 If the researcher has mentioned data sensitivity, IRB materials, unpublished manuscripts, or confidential content, note before running:
-- `--tool mineru` sends the document to a cloud API — skip it for sensitive files
+- `--tool mineru` and `--tool mistral_ocr` send the document to a cloud API — skip them for sensitive files
 - The default (liteparse) is local and safe
 
 ### When to use `--force`
@@ -65,7 +66,7 @@ After conversion, scan the output for:
 - Lost section structure
 
 If quality is poor, offer re-conversion:
-- "The tables didn't come through well — want to retry with `--tool mineru` for better accuracy?"
+- "The tables didn't come through well — want to retry with `--tool mineru` or `--tool mistral_ocr` for better accuracy?"
 - "Looks like a scanned PDF. The cloud converter handles those better."
 
 ## Batch Workflow
@@ -104,7 +105,7 @@ The CLI walks the folder, dispatches per file, and respects idempotency (SHA-256
 ### During the batch
 
 Flag judgment calls inline rather than silently failing:
-- Scanned/image-only PDF → "This looks scanned — want me to retry with mineru (cloud OCR)?"
+- Scanned/image-only PDF → "This looks scanned — want me to retry with a cloud OCR tool such as `mistral_ocr`?"
 - Sensitive-looking filename (e.g., `patient-records.pdf`) → "This filename suggests sensitive content. Confirm local-only processing?"
 - Repeated tool failures → stop and ask, don't keep retrying
 
@@ -117,7 +118,7 @@ When the queue is done, give a single readable summary:
 > Batch complete:
 > - **Converted**: 14 files
 > - **Skipped**: 3 (already in vault)
-> - **Failed**: 1 — `scan-ocr.pdf` (image-only, retry with `--tool mineru`?)
+> - **Failed**: 1 — `scan-ocr.pdf` (image-only, retry with `--tool mistral_ocr`?)
 > - **Need input**: 1 — see questions above
 >
 > Everything is in your vault. Want me to open any of the new files?

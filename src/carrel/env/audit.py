@@ -36,6 +36,7 @@ TOOL_CHECKS: dict[str, list[str]] = {
 
 API_KEY_CHECKS = {
     "mineru": "MINERU_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
     "groq": "GROQ_API_KEY",
     "gemini": "GEMINI_API_KEY",
 }

@@ -6,6 +6,7 @@ from pathlib import Path
 from carrel.consent import resolve_cloud_consent
 from carrel.convert.adapters.liteparse import convert_with_liteparse
 from carrel.convert.adapters.markdownify import convert_with_markdownify
+from carrel.convert.adapters.mistral_ocr import convert_with_mistral_ocr
 from carrel.convert.adapters.mineru import convert_with_mineru
 from carrel.convert.router import select_convert_tool
 from carrel.env.audit import audit
@@ -21,6 +22,11 @@ async def convert_file(file: Path, tool: ConvertTool) -> tuple[str, dict]:
         if not api_key:
             raise ToolNotConfigured("mineru", "MINERU_API_KEY")
         return await convert_with_mineru(file=file, api_key=api_key)
+    if tool == ConvertTool.MISTRAL_OCR:
+        api_key = os.environ.get("MISTRAL_API_KEY")
+        if not api_key:
+            raise ToolNotConfigured("mistral_ocr", "MISTRAL_API_KEY")
+        return await convert_with_mistral_ocr(file=file, api_key=api_key)
     return await convert_with_markdownify(file)
 
 

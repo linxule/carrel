@@ -12,8 +12,9 @@ selected only when policy allows.
 
 ## Tool Classes
 
-- Convert local: `liteparse`, `markdownify`
-- Convert cloud: `mineru`
+- Convert local: `liteparse`, `markdownify`; `paddleocr` only if a host adds an
+  explicit local OCR adapter.
+- Convert cloud: `mineru`, `mistral_ocr`
 - Capture local: `defuddle`, `markitdown`
 - Transcribe local: `coli`
 - Transcribe cloud: `groq`, `gemini`

@@ -179,6 +179,60 @@
       "rationale": "Cloud PDF conversion for complex tables, figures, and scans."
     },
     {
+      "id": "mistral-ocr",
+      "kind": "cloud-api",
+      "display_name": "Mistral OCR",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Upload local PDFs with purpose `ocr`, request a signed file URL, then call OCR with `model: mistral-ocr-latest` and document `{ \"type\": \"document_url\", \"document_url\": <signed_url> }`; read page markdown.",
+      "sources": [
+        "https://docs.mistral.ai/api/endpoint/ocr",
+        "https://docs.mistral.ai/api/endpoint/files",
+        "https://docs.mistral.ai/studio-api/document-processing/basic_ocr",
+        "https://docs.mistral.ai/openapi.yaml"
+      ],
+      "local_references": [
+        "src/carrel/convert/adapters/mistral_ocr.py",
+        "src/carrel/convert/pipeline.py",
+        "skills/carrel/references/workflows/ingestion.md",
+        "skills/carrel/references/contracts/optional-adapters.md",
+        "docs/api-keys-guide.md"
+      ],
+      "refresh_checks": [
+        "Confirm upload, signed URL, and OCR endpoint shapes.",
+        "Confirm `mistral-ocr-latest` remains the recommended OCR model alias.",
+        "Confirm high-sensitivity cloud block still applies before API calls."
+      ],
+      "rationale": "Cloud OCR option for scanned and layout-heavy PDFs when explicit cloud routing is acceptable."
+    },
+    {
+      "id": "paddleocr",
+      "kind": "python-package",
+      "display_name": "PaddleOCR PP-StructureV3",
+      "package": "paddleocr",
+      "observed_version": "3.7.0",
+      "version_probe": "python3 -m pip index versions paddleocr",
+      "contract_marker": "Candidate local OCR/layout adapter: prefer explicit `--tool paddleocr`; Python API `PPStructureV3().predict(...)` exposes page markdown and `concatenate_markdown_pages(...)` for multi-page PDFs.",
+      "sources": [
+        "https://www.paddleocr.ai/latest/en/version3.x/installation.html",
+        "https://paddlepaddle.github.io/PaddleOCR/main/en/version3.x/pipeline_usage/PP-StructureV3.html",
+        "https://pypi.org/project/paddleocr/"
+      ],
+      "local_references": [
+        "README.md",
+        "skills/carrel/scripts/carrel_core/setup_env.py",
+        "skills/carrel/references/workflows/ingestion.md",
+        "skills/carrel/references/contracts/optional-adapters.md"
+      ],
+      "refresh_checks": [
+        "Confirm current paddleocr and paddlepaddle versions and wheel sizes before recommending install.",
+        "Confirm `doc-parser` dependency group and model download behavior.",
+        "Confirm Markdown extraction API names before adding a deterministic adapter."
+      ],
+      "rationale": "Evaluated local OCR path for scanned PDFs; not a LiteParse replacement because install and model runtime are materially heavier."
+    },
+    {
       "id": "groq",
       "kind": "cloud-api",
       "display_name": "Groq Speech to Text",

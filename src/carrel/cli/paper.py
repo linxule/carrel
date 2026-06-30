@@ -39,6 +39,8 @@ def _convert_policy_decision(
             available_tools.append(ConvertTool.LITEPARSE)
         if os.environ.get("MINERU_API_KEY"):
             available_tools.append(ConvertTool.MINERU)
+        if os.environ.get("MISTRAL_API_KEY"):
+            available_tools.append(ConvertTool.MISTRAL_OCR)
     return select_tool(
         requested_tool=tool,
         available_tools=available_tools,
@@ -74,7 +76,7 @@ def convert_command(
                 metadata={"dry_run": True},
             )
             if fmt == OutputFormat.HUMAN:
-                locality = "cloud" if result.tool == ConvertTool.MINERU else "local"
+                locality = "cloud" if result.tool in {ConvertTool.MINERU, ConvertTool.MISTRAL_OCR} else "local"
                 console.print(
                     f"Would convert {file_path.name} -> papers/<extracted-name>/paper.md "
                     f"({result.tool.value}, {locality})\n"

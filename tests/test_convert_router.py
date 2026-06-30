@@ -14,10 +14,18 @@ from carrel.models import (
 )
 
 
-def make_tools(*, lit: bool = False, mineru_key: bool = False) -> ToolAvailability:
+def make_tools(
+    *,
+    lit: bool = False,
+    mineru_key: bool = False,
+    mistral_key: bool = False,
+) -> ToolAvailability:
     return ToolAvailability(
         binaries={"lit": BinaryInfo(installed=lit)},
-        api_keys={"mineru": ApiKeyStatus(configured=mineru_key, env_var="MINERU_API_KEY")},
+        api_keys={
+            "mineru": ApiKeyStatus(configured=mineru_key, env_var="MINERU_API_KEY"),
+            "mistral": ApiKeyStatus(configured=mistral_key, env_var="MISTRAL_API_KEY"),
+        },
         mcp_servers=[],
     )
 
@@ -62,6 +70,28 @@ def test_convert_router_uses_mineru_when_low_sensitivity_allows_cloud_fallback()
         cloud_consent=True,
     )
     assert tool == ConvertTool.MINERU
+
+
+def test_convert_router_uses_mistral_ocr_when_low_sensitivity_allows_cloud_fallback() -> None:
+    tool = select_convert_tool(
+        file=Path("paper.pdf"),
+        sensitivity=Sensitivity.LOW,
+        hardware=HardwareCapability.MEDIUM,
+        tools=make_tools(mistral_key=True),
+        cloud_consent=True,
+    )
+    assert tool == ConvertTool.MISTRAL_OCR
+
+
+def test_convert_router_honors_explicit_mistral_ocr_request() -> None:
+    tool = select_convert_tool(
+        file=Path("paper.pdf"),
+        sensitivity=Sensitivity.MEDIUM,
+        hardware=HardwareCapability.MEDIUM,
+        tools=make_tools(lit=True),
+        explicit_tool=ConvertTool.MISTRAL_OCR,
+    )
+    assert tool == ConvertTool.MISTRAL_OCR
 
 
 def test_convert_router_errors_when_medium_sensitivity_needs_explicit_cloud_override() -> None:

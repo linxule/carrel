@@ -34,6 +34,8 @@ def select_convert_tool(
             available_tools.append(ConvertTool.LITEPARSE)
         if tools.api_keys.get("mineru") and tools.api_keys["mineru"].configured:
             available_tools.append(ConvertTool.MINERU)
+        if tools.api_keys.get("mistral") and tools.api_keys["mistral"].configured:
+            available_tools.append(ConvertTool.MISTRAL_OCR)
 
     decision = select_tool(
         requested_tool=explicit_tool,

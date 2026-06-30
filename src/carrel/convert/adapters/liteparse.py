@@ -29,7 +29,10 @@ async def convert_with_liteparse(file: Path, timeout: int = 30) -> tuple[str, di
     except asyncio.TimeoutError as exc:
         proc.kill()
         await proc.communicate()
-        raise ConversionError("liteparse timed out", hint="Retry with a smaller file or try --tool mineru") from exc
+        raise ConversionError(
+            "liteparse timed out",
+            hint="Retry with a smaller file or try --tool mineru / --tool mistral_ocr when cloud OCR is allowed.",
+        ) from exc
 
     if proc.returncode != 0:
         raise ConversionError(

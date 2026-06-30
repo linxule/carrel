@@ -311,7 +311,7 @@ Single file `_meta/pending-decisions.md`, initialized by `/carrel-automate`. The
 Items deferred from automated processing. Resolve in an interactive session.
 
 - [ ] **2026-04-04 inbox**: `interview-p7.m4a` — audio file, needs speaker count and sensitivity level before transcription
-- [ ] **2026-04-04 inbox**: `scan-2026.pdf` — appears to be scanned, needs cloud OCR (mineru). Your sensitivity is set to medium — confirm cloud processing?
+- [ ] **2026-04-04 inbox**: `scan-2026.pdf` — appears to be scanned, needs cloud OCR (`mistral_ocr` or `mineru`). Your sensitivity is set to medium — confirm cloud processing?
 - [x] **2026-04-03 inbox**: `slides.pptx` — resolved: converted with markitdown _(marked resolved by researcher on 2026-04-03)_
 ```
 

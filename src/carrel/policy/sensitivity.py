@@ -17,7 +17,7 @@ NETWORK_TOOLS: dict[PolicyClass, set[PolicyTool]] = {
     "transcribe": {TranscribeTool.YOUTUBE_CAPTIONS},
 }
 CLOUD_TOOLS: dict[PolicyClass, set[PolicyTool]] = {
-    "convert": {ConvertTool.MINERU},
+    "convert": {ConvertTool.MINERU, ConvertTool.MISTRAL_OCR},
     "transcribe": {TranscribeTool.GROQ, TranscribeTool.GEMINI},
 }
 

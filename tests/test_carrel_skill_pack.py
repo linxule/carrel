@@ -124,6 +124,8 @@ def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
         "coli",
         "gws",
         "mineru",
+        "mistral-ocr",
+        "paddleocr",
         "groq",
         "gemini",
         "youtube-transcript-api",

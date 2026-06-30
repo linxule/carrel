@@ -25,6 +25,8 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 | defuddle | ✅ Full | ✅ Full | ✅ Full | `npm install -g defuddle` |
 | gws | ✅ Full | ✅ Full | ✅ Full | `npm install -g @googleworkspace/cli`; Windows OAuth has a documented workaround |
 | mineru | ✅ Full | ✅ Full | ✅ Full | Cloud service; requires `MINERU_API_KEY` |
+| mistral_ocr | ✅ Full | ✅ Full | ✅ Full | Cloud OCR service; requires `MISTRAL_API_KEY` |
+| paddleocr | ⚠️ Optional | ⚠️ Optional | ⚠️ Optional | Local OCR candidate for scanned PDFs; heavy Python/model install, not a default |
 | markitdown | ✅ Full | ✅ Full | ✅ Full | Bundled with Carrel's Python environment |
 
 ## What's Included
@@ -179,6 +181,7 @@ During setup, Carrel may add project-level MCPs based on the interview:
 |-----|------|----------|
 | [vox-mcp](https://github.com/linxule/vox-mcp) | Researcher wants access to other AI models (Gemini, GPT, Grok, etc.) | At least one provider key (e.g., `OPENROUTER_API_KEY` or `GEMINI_API_KEY`) |
 | mineru-mcp | Complex PDFs with tables/figures | `MINERU_API_KEY` |
+| Mistral OCR adapter | Scanned or layout-heavy PDFs when cloud OCR is acceptable | `MISTRAL_API_KEY` |
 | [zotero-mcp](https://github.com/54yyyu/zotero-mcp) | Researcher uses Zotero | `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID` |
 
 See `docs/api-keys-guide.md` for setup instructions.

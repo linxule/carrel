@@ -3,12 +3,12 @@ from __future__ import annotations
 import io
 import json
 import zipfile
-from pathlib import Path
 
 import pytest
 
 from carrel.convert.adapters.defuddle import capture_with_defuddle
 from carrel.convert.adapters.liteparse import convert_with_liteparse
+from carrel.convert.adapters.mistral_ocr import convert_with_mistral_ocr
 from carrel.convert.adapters.mineru import convert_with_mineru
 from carrel.errors import ConversionError, TranscriptionError
 from carrel.transcribe.adapters.gemini import transcribe_with_gemini
@@ -123,6 +123,89 @@ async def test_convert_with_mineru_uses_v4_upload_poll_and_result_zip(tmp_path, 
     assert calls[0][2]["json"]["files"][0]["name"] == "paper.pdf"
     assert calls[1] == ("put", "https://upload.example/paper", {"content": b"pdf"})
     assert calls[2][1] == "https://api.mineru.net/api/v4/extract-results/batch/batch-1"
+
+
+@pytest.mark.asyncio
+async def test_convert_with_mistral_ocr_rejects_invalid_json(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(b"pdf")
+    monkeypatch.setattr("carrel.convert.adapters.mistral_ocr.httpx.AsyncClient", _FakeAsyncClient)
+
+    with pytest.raises(ConversionError) as exc:
+        await convert_with_mistral_ocr(source, api_key="configured")
+
+    assert exc.value.message == "mistral ocr returned invalid JSON"
+    assert "HTML error page" in exc.value.hint
+
+
+@pytest.mark.asyncio
+async def test_convert_with_mistral_ocr_uploads_file_and_reads_page_markdown(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(b"pdf")
+    calls: list[tuple[str, str, dict]] = []
+
+    class FakeMistralClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, url: str, **kwargs):
+            calls.append(("post", url, kwargs))
+            if url.endswith("/files"):
+                return _JsonResponse({"id": "file-1"})
+            return _JsonResponse(
+                {
+                    "model": "mistral-ocr-latest",
+                    "pages": [
+                        {"index": 0, "markdown": "# Page 1\n\nBody"},
+                        {"index": 1, "markdown": "## Page 2"},
+                    ],
+                    "usage_info": {"pages_processed": 2, "doc_size_bytes": 3},
+                }
+            )
+
+        async def get(self, url: str, **kwargs):
+            calls.append(("get", url, kwargs))
+            return _JsonResponse({"url": "https://signed.example/paper.pdf"})
+
+        async def delete(self, url: str, **kwargs):
+            calls.append(("delete", url, kwargs))
+            return _JsonResponse({"deleted": True})
+
+    monkeypatch.setattr("carrel.convert.adapters.mistral_ocr.httpx.AsyncClient", FakeMistralClient)
+
+    markdown, metadata = await convert_with_mistral_ocr(source, api_key="configured")
+
+    assert markdown == "# Page 1\n\nBody\n\n## Page 2"
+    assert metadata["model"] == "mistral-ocr-latest"
+    assert metadata["file_id"] == "file-1"
+    assert metadata["pages"] == 2
+    assert metadata["usage_info"] == {"pages_processed": 2, "doc_size_bytes": 3}
+    assert "provider_response" not in metadata
+    assert calls[0][0:2] == ("post", "https://api.mistral.ai/v1/files")
+    assert calls[0][2]["data"] == {"purpose": "ocr"}
+    assert calls[1] == (
+        "get",
+        "https://api.mistral.ai/v1/files/file-1/url",
+        {"headers": {"Authorization": "Bearer configured"}, "params": {"expiry": 24}},
+    )
+    assert calls[2][0:2] == ("post", "https://api.mistral.ai/v1/ocr")
+    assert calls[2][2]["json"]["document"] == {
+        "type": "document_url",
+        "document_url": "https://signed.example/paper.pdf",
+    }
+    assert calls[2][2]["json"]["table_format"] == "markdown"
+    assert calls[2][2]["json"]["include_image_base64"] is False
+    assert calls[3] == (
+        "delete",
+        "https://api.mistral.ai/v1/files/file-1",
+        {"headers": {"Authorization": "Bearer configured"}},
+    )
 
 
 @pytest.mark.asyncio

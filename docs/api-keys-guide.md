@@ -25,6 +25,25 @@ Claude will add it to your project configuration. The key stays on your computer
 
 **Privacy note:** MineRU is a cloud service. Your documents are sent to their servers for processing. If you work with sensitive data (interview transcripts, IRB-protected materials), use the default local converter instead.
 
+## Mistral OCR (Scanned PDF Conversion)
+
+Mistral OCR converts scanned or layout-heavy PDFs to Markdown through Mistral's cloud OCR service.
+
+**When you need it:** When a PDF is image-only, scanned, or has layout that the local converter cannot preserve.
+
+**How to get a key:**
+1. Go to [console.mistral.ai](https://console.mistral.ai)
+2. Create or open a workspace
+3. Create an API key
+4. Store it as `MISTRAL_API_KEY`
+
+**How to use it:**
+Tell Claude: *"Use Mistral OCR for this PDF."*
+
+Claude should run the conversion with `--tool mistral_ocr` only when sensitivity policy allows cloud processing.
+
+**Privacy note:** Mistral OCR is a cloud service. Your PDF is uploaded to Mistral for processing. Do not use it for high-sensitivity vaults or protected materials unless your research governance explicitly allows it.
+
 ## Zotero (Reference Library)
 
 Connects Claude to your Zotero reference library so it can search your papers, read annotations, and help with citations.

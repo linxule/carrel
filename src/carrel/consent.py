@@ -7,6 +7,7 @@ from carrel.models import ConvertTool, ResearcherProfile, Sensitivity, Transcrib
 # that still need a coarse cloud gate during the transition.
 CLOUD_TOOLS = {
     ConvertTool.MINERU.value,
+    ConvertTool.MISTRAL_OCR.value,
     TranscribeTool.GROQ.value,
     TranscribeTool.GEMINI.value,
     "gws",

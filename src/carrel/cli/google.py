@@ -40,6 +40,8 @@ def _google_export_policy_decision(
             available_tools.append(ConvertTool.LITEPARSE)
         if os.environ.get("MINERU_API_KEY"):
             available_tools.append(ConvertTool.MINERU)
+        if os.environ.get("MISTRAL_API_KEY"):
+            available_tools.append(ConvertTool.MISTRAL_OCR)
     return select_tool(
         requested_tool=tool,
         available_tools=available_tools,

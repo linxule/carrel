@@ -41,6 +41,11 @@ TOOL_COMMAND_EXAMPLES = {
         "carrel paper convert paper.pdf --tool mineru --force",
         "carrel google export https://docs.google.com/document/d/... --tool mineru",
     ],
+    "mistral_ocr": [
+        "carrel paper convert scanned.pdf --tool mistral_ocr",
+        "carrel paper convert tables.pdf --tool mistral_ocr --force",
+        "carrel google export https://docs.google.com/document/d/... --export-format pdf --tool mistral_ocr",
+    ],
     "markdownify": [
         "carrel paper convert report.docx --tool markdownify",
         "carrel paper convert slides.pptx --tool markdownify",
@@ -141,7 +146,9 @@ def _render_common_workflows(profile: ResearcherProfile) -> str:
     if profile.wiki_enabled:
         workflows.append("- Knowledge wiki: ask Claude about your field map; pages live in `wiki/`.")
     if profile.cloud_consent:
-        workflows.append("- Cloud tools are enabled: `mineru`, `groq`, and `gemini` can be selected when useful.")
+        workflows.append(
+            "- Cloud tools are enabled: `mineru`, `mistral_ocr`, `groq`, and `gemini` can be selected when useful."
+        )
     else:
         workflows.append("- Cloud tools are disabled by default: keep workflows local unless you explicitly opt in.")
     if prefs.get("many_papers") or prefs.get("literature_review"):

@@ -233,12 +233,13 @@ def cmd_env_doctor(args) -> int:
         "binaries": binaries,
         "api_keys": {
             "mineru": bool(os.environ.get("MINERU_API_KEY")),
+            "mistral": bool(os.environ.get("MISTRAL_API_KEY")),
             "groq": bool(os.environ.get("GROQ_API_KEY")),
             "gemini": bool(os.environ.get("GEMINI_API_KEY")),
         },
         "optional_adapters": {
             "capture": ["defuddle", "markitdown"],
-            "convert": ["lit", "markitdown", "mineru"],
+            "convert": ["lit", "markitdown", "mineru", "mistral_ocr", "paddleocr"],
             "transcribe": ["coli", "groq", "gemini"],
             "google": ["gws"],
         },
