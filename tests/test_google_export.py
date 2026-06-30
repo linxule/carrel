@@ -184,6 +184,32 @@ def test_google_export_failure_keeps_raw_file(tmp_path, monkeypatch) -> None:
     assert exported_path.exists()
 
 
+def test_google_export_blocks_high_sensitivity_before_export(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:  # noqa: ARG001
+        raise AssertionError("export should not run for high sensitivity")
+
+    monkeypatch.setattr("carrel.cli.google.export_from_google_workspace", fake_export)
+
+    result = runner.invoke(
+        app,
+        [
+            "google",
+            "export",
+            "https://docs.google.com/document/d/doc123/edit",
+            "--vault",
+            str(vault),
+            "--sensitivity",
+            "high",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "HIGH sensitivity blocks Google Workspace export" in result.output
+
+
 def test_google_export_without_gws_shows_install_hint(tmp_path, monkeypatch) -> None:
     vault = tmp_path / "vault"
     _init_vault(vault)

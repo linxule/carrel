@@ -5,9 +5,9 @@ from carrel.env.platform import Platform, detect_platform
 
 INSTALLS: dict[str, dict[Platform, str | None]] = {
     "liteparse": {
-        Platform.MACOS: "bun add -g @llamaindex/liteparse",
-        Platform.LINUX: "bun add -g @llamaindex/liteparse",
-        Platform.WINDOWS: "bun add -g @llamaindex/liteparse",
+        Platform.MACOS: "npm install -g @llamaindex/liteparse",
+        Platform.LINUX: "npm install -g @llamaindex/liteparse",
+        Platform.WINDOWS: "npm install -g @llamaindex/liteparse",
     },
     "gws": {
         Platform.MACOS: "npm install -g @googleworkspace/cli",
@@ -25,14 +25,14 @@ INSTALLS: dict[str, dict[Platform, str | None]] = {
         Platform.WINDOWS: "winget install Gyan.FFmpeg",
     },
     "coli": {
-        Platform.MACOS: "bun add -g @marswave/coli",
-        Platform.LINUX: "bun add -g @marswave/coli",
-        Platform.WINDOWS: "bun add -g @marswave/coli",
+        Platform.MACOS: "npm install -g @marswave/coli",
+        Platform.LINUX: "npm install -g @marswave/coli",
+        Platform.WINDOWS: "npm install -g @marswave/coli",
     },
     "defuddle": {
-        Platform.MACOS: "bun add -g defuddle",
-        Platform.LINUX: "bun add -g defuddle",
-        Platform.WINDOWS: "bun add -g defuddle",
+        Platform.MACOS: "npm install -g defuddle",
+        Platform.LINUX: "npm install -g defuddle",
+        Platform.WINDOWS: "npm install -g defuddle",
     },
     "bun": {
         Platform.MACOS: "curl -fsSL https://bun.sh/install | bash",
@@ -45,9 +45,9 @@ INSTALLS: dict[str, dict[Platform, str | None]] = {
         Platform.WINDOWS: "winget install Zotero.Zotero",
     },
     "markitdown": {
-        Platform.MACOS: "uv add markitdown",
-        Platform.LINUX: "uv add markitdown",
-        Platform.WINDOWS: "uv add markitdown",
+        Platform.MACOS: "uv add 'markitdown[docx,pptx,xlsx]>=0.1.6'",
+        Platform.LINUX: "uv add 'markitdown[docx,pptx,xlsx]>=0.1.6'",
+        Platform.WINDOWS: "uv add 'markitdown[docx,pptx,xlsx]>=0.1.6'",
     },
     "youtube-transcript-api": {
         Platform.MACOS: "uv add youtube-transcript-api",

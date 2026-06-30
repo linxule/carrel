@@ -50,9 +50,10 @@ python3 scripts/carrel.py transcript create <source> --vault <vault>
 ```
 
 For local media, prefer `coli`. For YouTube URLs, use host/connector caption
-access and pass the transcript with `--content`. Cloud adapters are
-policy-gated and require a host adapter; the bundled stdlib runtime files
-supplied transcript text or calls local `coli`.
+access and pass the transcript with `--content`. Caption fetches are network
+access and are blocked for high sensitivity. Cloud adapters are policy-gated
+and require a host adapter; the bundled stdlib runtime files supplied
+transcript text or calls local `coli`.
 
 For folder sweeps:
 

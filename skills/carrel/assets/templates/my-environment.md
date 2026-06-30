@@ -7,7 +7,7 @@
 | Tool | Status | What it does |
 |------|--------|-------------|
 | liteparse | {{status}} | Converts PDFs to text (local, private) |
-| markitdown | {{status}} | Converts Word, PowerPoint, Excel (local) |
+| markitdown | {{status}} | Converts Office files when installed with docx/pptx/xlsx extras (local) |
 | defuddle | {{status}} | Saves web articles as clean text (local) |
 | coli | {{status}} | Transcribes audio recordings (local, private) |
 | Obsidian | {{status}} | Your research notebook (GUI) |
@@ -18,8 +18,8 @@
 |---------|--------|-------------|
 | mineru | {{status}} | Better PDF conversion for complex tables/figures |
 | groq | {{status}} | Faster audio transcription |
-| gemini | {{status}} | YouTube video transcription, multi-model access |
-| vox | {{status}} | Access to other AI models (Gemini, GPT, Grok) |
+| gemini | {{status}} | Cloud YouTube/video transcription and model access |
+| vox | {{status}} | Host MCP only: access to other AI models when configured outside the portable runtime |
 | zotero | {{status}} | Search your Zotero reference library |
 | gws | {{status}} | Import Google Docs and Sheets |
 

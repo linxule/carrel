@@ -106,7 +106,17 @@ from carrel.policy.sensitivity import PolicyDecision, select_tool
             True,
             "transcribe",
             TranscribeTool.YOUTUBE_CAPTIONS,
-            "Local tool selected by default",
+            "Network caption tool selected by default",
+        ),
+        (
+            "high network captions blocked",
+            TranscribeTool.YOUTUBE_CAPTIONS,
+            [TranscribeTool.YOUTUBE_CAPTIONS, TranscribeTool.GEMINI],
+            Sensitivity.HIGH,
+            True,
+            "transcribe",
+            None,
+            "HIGH sensitivity blocks network caption fetches",
         ),
         (
             "medium default missing local",

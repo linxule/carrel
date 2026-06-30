@@ -10,7 +10,11 @@ PolicyClass = Literal["convert", "transcribe"]
 
 LOCAL_TOOLS: dict[PolicyClass, set[PolicyTool]] = {
     "convert": {ConvertTool.LITEPARSE, ConvertTool.MARKDOWNIFY, ConvertTool.DEFUDDLE},
-    "transcribe": {TranscribeTool.COLI, TranscribeTool.YOUTUBE_CAPTIONS},
+    "transcribe": {TranscribeTool.COLI},
+}
+NETWORK_TOOLS: dict[PolicyClass, set[PolicyTool]] = {
+    "convert": set(),
+    "transcribe": {TranscribeTool.YOUTUBE_CAPTIONS},
 }
 CLOUD_TOOLS: dict[PolicyClass, set[PolicyTool]] = {
     "convert": {ConvertTool.MINERU},
@@ -38,9 +42,15 @@ def _is_cloud(tool: PolicyTool, tool_class: PolicyClass) -> bool:
     return tool in CLOUD_TOOLS[tool_class]
 
 
+def _is_network(tool: PolicyTool, tool_class: PolicyClass) -> bool:
+    return tool in NETWORK_TOOLS[tool_class]
+
+
 def _first_available(available_tools: list[PolicyTool], *, tool_class: PolicyClass, locality: str) -> PolicyTool | None:
     if locality == "local":
         candidates = LOCAL_TOOLS[tool_class]
+    elif locality == "network":
+        candidates = NETWORK_TOOLS[tool_class]
     else:
         candidates = CLOUD_TOOLS[tool_class]
     for tool in available_tools:
@@ -80,11 +90,36 @@ def select_tool(
     tool_class: PolicyClass,
 ) -> PolicyDecision:
     local_tool = _first_available(available_tools, tool_class=tool_class, locality="local")
+    network_tool = _first_available(available_tools, tool_class=tool_class, locality="network")
     cloud_tool = _first_available(available_tools, tool_class=tool_class, locality="cloud")
     local_available = local_tool is not None
     cloud_available = cloud_tool is not None
 
     if requested_tool is not None:
+        if _is_network(requested_tool, tool_class):
+            if sensitivity == Sensitivity.HIGH:
+                return _decision(
+                    requested_tool=requested_tool,
+                    selected_tool=None,
+                    sensitivity=sensitivity,
+                    cloud_consent=cloud_consent,
+                    tool_class=tool_class,
+                    local_available=local_available,
+                    cloud_available=cloud_available,
+                    rationale="HIGH sensitivity blocks network caption fetches",
+                )
+            if requested_tool in available_tools:
+                return _decision(
+                    requested_tool=requested_tool,
+                    selected_tool=requested_tool,
+                    sensitivity=sensitivity,
+                    cloud_consent=cloud_consent,
+                    tool_class=tool_class,
+                    local_available=local_available,
+                    cloud_available=cloud_available,
+                    rationale="Requested network tool is available; preference honored",
+                )
+
         if _is_cloud(requested_tool, tool_class):
             if sensitivity == Sensitivity.HIGH:
                 return _decision(
@@ -174,6 +209,29 @@ def select_tool(
             local_available=local_available,
             cloud_available=cloud_available,
             rationale="Local tool selected by default",
+        )
+
+    if network_tool is not None:
+        if sensitivity == Sensitivity.HIGH:
+            return _decision(
+                requested_tool=requested_tool,
+                selected_tool=None,
+                sensitivity=sensitivity,
+                cloud_consent=cloud_consent,
+                tool_class=tool_class,
+                local_available=local_available,
+                cloud_available=cloud_available,
+                rationale="HIGH sensitivity blocks network caption fetches",
+            )
+        return _decision(
+            requested_tool=requested_tool,
+            selected_tool=network_tool,
+            sensitivity=sensitivity,
+            cloud_consent=cloud_consent,
+            tool_class=tool_class,
+            local_available=local_available,
+            cloud_available=cloud_available,
+            rationale="Network caption tool selected by default",
         )
 
     if sensitivity == Sensitivity.HIGH:

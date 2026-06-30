@@ -19,12 +19,15 @@ Python 3.10 or newer is required.
 
 | Harness | Compatibility | Adapter work |
 | --- | --- | --- |
-| Codex CLI and Codex desktop | High | Copy or symlink the full folder into a Codex skill location. |
-| Claude Code | High | Copy or symlink the full folder into a Claude Code skill location; optional slash commands should call this runtime. |
-| Claude desktop/chat | Partial | Can use the instructions as a skill-like artifact, but local vault filesystem writes require a connector, extension, or code-execution adapter. |
-| Kimi Code | Likely high | Use if the installed Kimi surface can read local skill folders and run shell commands; otherwise wrap as a plugin/marketplace adapter. |
-| Kimi desktop/chat | Uncertain | Do not assume local `SKILL.md` folder loading or local filesystem script execution without confirming the active app. |
-| Other local agent harnesses | Medium-high | Needs local file access, shell execution, Python 3.10+, and a way to pass the skill directory path. |
+| Codex CLI, IDE, and Codex desktop | High | Install the full folder as `.agents/skills/carrel`, `~/.agents/skills/carrel`, or a Codex plugin skill; symlinked skill folders are supported. `agents/openai.yaml` is Codex-facing metadata. |
+| Claude Code | High | Install the full folder as `.claude/skills/carrel` or `~/.claude/skills/carrel`; optional slash commands and hooks should call this runtime. |
+| Claude app/API | Partial | Upload as a custom Agent Skill zip for cloud/container execution; local vault writes require uploaded/downloaded files, a connector, or a desktop/Cowork flow. |
+| Claude Desktop/Cowork | Partial | Local vault access requires connected folders, desktop extensions, local MCP, or Cowork. Do not assume local `SKILL.md` folder discovery like Claude Code. |
+| Kimi Code CLI | High | Install the full folder under `.kimi-code/skills/carrel`, `.agents/skills/carrel`, `~/.kimi-code/skills/carrel`, or `~/.agents/skills/carrel`; plugin packaging can point at `./skills/`. |
+| Kimi app / Kimi Work | Partial | Good fit for instruction/document skills, but not a verified host for bundled local scripts. Use Kimi Code or another local harness when `scripts/carrel.py` must write a vault. |
+| OpenCode | High | Install under `.agents/skills/carrel`, `.opencode/skills/carrel`, `~/.agents/skills/carrel`, or `~/.config/opencode/skills/carrel`; ensure read/bash/skill permissions allow `scripts/carrel.py`. |
+| Gemini CLI | High where Agent Skills are enabled | Install under `.agents/skills/carrel` or `.gemini/skills/carrel`; skill activation must be allowed to access bundled scripts/assets. |
+| Other local harnesses | Unknown until verified | Require explicit support for `SKILL.md` discovery, bundled files, local shell execution, Python 3.10+, and a stable skill-dir path. |
 
 Cloud provider calls (`mineru`, `groq`, `gemini`) are not implemented in the
 portable stdlib runtime. Host adapters may add them behind the same routing

@@ -20,9 +20,9 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 |------|:-----:|:-----:|:-------:|-------|
 | Install script | ✅ Full | ✅ Full | ✅ Full | `install.sh` on macOS/Linux, `install.ps1` on Windows |
 | Obsidian | ✅ Full | ✅ Full | ✅ Full | Native app on all three platforms; install commands differ by OS |
-| liteparse | ✅ Full | ✅ Full | ✅ Full | `bun add -g @llamaindex/liteparse` on all three platforms |
-| coli | ✅ Full | ✅ Full | ✅ Full | Requires Bun and `ffmpeg` |
-| defuddle | ✅ Full | ✅ Full | ✅ Full | Bun-based CLI |
+| liteparse | ✅ Full | ✅ Full | ✅ Full | `npm install -g @llamaindex/liteparse` on all three platforms |
+| coli | ✅ Full | ✅ Full | ✅ Full | `npm install -g @marswave/coli`; some media formats may still need `ffmpeg` |
+| defuddle | ✅ Full | ✅ Full | ✅ Full | `npm install -g defuddle` |
 | gws | ✅ Full | ✅ Full | ✅ Full | `npm install -g @googleworkspace/cli`; Windows OAuth has a documented workaround |
 | mineru | ✅ Full | ✅ Full | ✅ Full | Cloud service; requires `MINERU_API_KEY` |
 | markitdown | ✅ Full | ✅ Full | ✅ Full | Bundled with Carrel's Python environment |

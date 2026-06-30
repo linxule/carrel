@@ -34,7 +34,7 @@ def capture_url_with_adapter(url: str, *, title: str | None = None) -> tuple[str
     for tool, command in [("defuddle", "defuddle"), ("markitdown", "markitdown")]:
         if not shutil.which(command):
             continue
-        argv = [command, "parse", url] if tool == "defuddle" else [command, url]
+        argv = [command, "parse", url, "--markdown"] if tool == "defuddle" else [command, url]
         proc = run_adapter(argv, timeout=60, label=tool)
         if proc.stdout.strip():
             return proc.stdout, {"title": title or url, "domain": ""}, tool
@@ -43,7 +43,11 @@ def capture_url_with_adapter(url: str, *, title: str | None = None) -> tuple[str
 
 def convert_with_adapter(file_path: Path, tool: str) -> tuple[str, dict]:
     if tool == "liteparse":
-        proc = run_adapter(["lit", "parse", str(file_path)], timeout=30, label="liteparse")
+        proc = run_adapter(
+            ["lit", "parse", str(file_path), "--format", "markdown"],
+            timeout=30,
+            label="liteparse",
+        )
         text = proc.stdout.strip()
         metadata = {"pages": None}
         if text.startswith("{"):

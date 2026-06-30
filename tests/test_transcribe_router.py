@@ -55,6 +55,17 @@ def test_transcribe_router_falls_back_to_local_youtube_captions() -> None:
     assert tool == TranscribeTool.YOUTUBE_CAPTIONS
 
 
+def test_transcribe_router_blocks_youtube_caption_fetch_for_high_sensitivity() -> None:
+    with pytest.raises(CarrelError) as exc:
+        select_transcribe_tool(
+            source="https://youtu.be/abc123",
+            sensitivity=Sensitivity.HIGH,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(),
+        )
+    assert exc.value.message == "HIGH sensitivity blocks network caption fetches"
+
+
 def test_transcribe_router_prefers_coli_for_audio_files() -> None:
     tool = select_transcribe_tool(
         source="recording.m4a",

@@ -14,6 +14,8 @@ async def convert_with_liteparse(file: Path, timeout: int = 30) -> tuple[str, di
             "lit",
             "parse",
             str(file),
+            "--format",
+            "markdown",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

@@ -387,6 +387,7 @@ def test_carrel_skill_runtime_uses_defuddle_parse_for_capture(tmp_path) -> None:
     assert log.read_text(encoding="utf-8").splitlines() == [
         "parse",
         "https://example.com/post",
+        "--markdown",
     ]
     assert "Captured by defuddle" in (vault / "inbox" / "adapter-capture.md").read_text(encoding="utf-8")
 

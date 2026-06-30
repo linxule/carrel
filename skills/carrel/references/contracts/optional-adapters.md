@@ -10,11 +10,18 @@ Carrel's portable runtime is stdlib-first. External adapters are optional.
 - `coli`: local audio transcription.
 - `gws`: Google Workspace export.
 
+## Network Tool Adapters
+
+- YouTube caption fetches: retrieve transcript metadata from YouTube by video
+  ID. Treat this as network access, not local processing; high sensitivity
+  blocks it.
+
 ## Cloud Tool Adapters
 
 - `MINERU_API_KEY`: cloud PDF conversion.
 - `GROQ_API_KEY`: cloud audio transcription.
-- `GEMINI_API_KEY`: cloud transcription.
+- `GEMINI_API_KEY`: cloud transcription and video understanding. YouTube URL
+  transcription sends the URL to Google; it is not just local caption retrieval.
 
 Cloud adapters must follow the routing policy. High sensitivity blocks cloud
 processing even if credentials are present. The bundled stdlib runtime reports

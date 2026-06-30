@@ -69,9 +69,15 @@ def export_command(
         vault_path = resolve_vault(vault)
         profile = read_profile(vault_path)
         _, _, export_path = export_target_for(url, export_format, vault_path)
+        effective_sensitivity = sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM)
         if explain:
             console.print(_google_export_policy_decision(export_path, profile, sensitivity, tool))
             return
+        if effective_sensitivity == Sensitivity.HIGH:
+            raise CarrelError(
+                "HIGH sensitivity blocks Google Workspace export",
+                hint="Export locally yourself or lower sensitivity explicitly before contacting Google Drive.",
+            )
         started = time.perf_counter()
         async def _export_and_convert():
             exported = await export_from_google_workspace(url, vault_path, export_format)

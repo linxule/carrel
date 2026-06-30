@@ -16,7 +16,7 @@ MineRU converts complex PDFs (with tables, figures, formulas) more accurately th
 1. Go to [mineru.net](https://mineru.net)
 2. Create an account
 3. Find your API key in your account settings
-4. Free tier includes 2,000 pages per day
+4. Free tier quotas change over time; check your MinerU account dashboard before relying on a daily page limit.
 
 **How to set it up:**
 Tell Claude: *"I have a MineRU API key. Help me set it up."*
@@ -95,7 +95,7 @@ Tell Claude: *"I have API keys for [list providers]. Help me set up Vox with all
 
 ### How Claude Stores Your Keys
 
-When you give Claude an API key, it saves it to your computer's configuration so it persists across sessions. The key never leaves your machine — it's used locally to connect to the AI provider's servers.
+When you give Claude an API key, it saves it to your computer's configuration so it persists across sessions. The key should stay local at rest, but prompts, URLs, documents, or excerpts are sent to the selected provider when you use that provider.
 
 If you're on a **shared computer**, tell Claude: *"Store this key in my shell profile instead of the project config."* This keeps the key tied to your user account rather than the project folder.
 
