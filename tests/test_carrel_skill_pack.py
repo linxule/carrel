@@ -111,6 +111,16 @@ def test_carrel_skill_host_compatibility_contract_documents_adapter_boundary() -
     assert "Cloud provider calls" in body
 
 
+def test_carrel_skill_external_help_points_to_source_manifest() -> None:
+    skill_body = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    body = (SKILL / "references" / "contracts" / "external-help.md").read_text(encoding="utf-8")
+    assert "references/contracts/external-help.md" in skill_body
+    assert "external-refresh.json" in body
+    assert "`sources`" in body
+    assert "mistral-ocr" in body
+    assert "paddleocr" in body
+
+
 def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
     manifest_path = SKILL / "references" / "contracts" / "external-refresh.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

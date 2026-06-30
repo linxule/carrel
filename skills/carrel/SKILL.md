@@ -49,6 +49,8 @@ offer the relevant setup path instead of treating the skill as unavailable.
   `references/contracts/optional-adapters.md`.
 - For scheduled upstream refresh of external packages, API endpoints, and host
   harness claims, read `references/contracts/external-refresh.json`.
+- For source-link lookup and deciding when to visit upstream docs beyond the
+  captured skill contracts, read `references/contracts/external-help.md`.
 - For research partner, wiki, and vault-note behavior, read
   `references/workflows/research-and-vault.md`.
 
