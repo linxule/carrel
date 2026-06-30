@@ -17,9 +17,16 @@ def _copy_skill(tmp_path: Path) -> Path:
     return target
 
 
-def _run(skill: Path, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+def _run(
+    skill: Path,
+    *args: str,
+    input_text: str | None = None,
+    env_extra: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = ""
+    if env_extra:
+        env.update(env_extra)
     return subprocess.run(
         [sys.executable, str(skill / "scripts" / "carrel.py"), *args],
         input=input_text,
@@ -28,6 +35,7 @@ def _run(skill: Path, *args: str, input_text: str | None = None) -> subprocess.C
         cwd=skill.parent,
         env=env,
         check=False,
+        timeout=15,
     )
 
 
@@ -38,8 +46,53 @@ def test_carrel_skill_pack_layout_and_metadata() -> None:
     assert (SKILL / "scripts" / "carrel.py").exists()
     assert (SKILL / "scripts" / "carrel_core" / "runtime.py").exists()
     assert (SKILL / "references" / "contracts" / "vault-contract.md").exists()
+    assert (SKILL / "references" / "contracts" / "surface-map.md").exists()
     assert (SKILL / "references" / "workflows" / "ingestion.md").exists()
     assert (SKILL / "assets" / "templates" / "agent-context.md").exists()
+
+
+def test_carrel_skill_pack_surface_map_covers_legacy_cli_families() -> None:
+    surface_map = (SKILL / "references" / "contracts" / "surface-map.md").read_text(encoding="utf-8")
+    for phrase in [
+        "vault init",
+        "env doctor",
+        "env validate",
+        "env fix",
+        "paper convert",
+        "capture url",
+        "transcript create",
+        "google export",
+        "batch convert",
+        "batch transcribe",
+        "trust check",
+        "automate configure",
+        "vault new",
+        "vault search",
+        "vault status",
+        "vault organize",
+        "vault cheatsheet",
+        "vault dashboard",
+        "vault automation-prompt",
+        "env profile",
+        "paper list",
+        "transcript list",
+        "migrate apply",
+        "setup-state advance",
+        "vault check-sync",
+        "vault add-markers",
+        "Slash commands and hooks",
+    ]:
+        assert phrase in surface_map
+
+
+def test_carrel_skill_runtime_modules_stay_small() -> None:
+    modules = sorted((SKILL / "scripts" / "carrel_core").glob("*.py"))
+    oversized = {
+        module.name: len(module.read_text(encoding="utf-8").splitlines())
+        for module in modules
+        if module.name != "cli.py" and len(module.read_text(encoding="utf-8").splitlines()) > 400
+    }
+    assert oversized == {}
 
 
 def test_carrel_skill_pack_has_no_required_claude_plugin_dependency() -> None:
@@ -74,6 +127,19 @@ def test_carrel_skill_runtime_initializes_portable_vault(tmp_path) -> None:
     profile = json.loads((vault / ".carrel" / "environment.json").read_text(encoding="utf-8"))
     assert profile["sensitivity"] == "medium"
     assert profile["cloud_consent"] is False
+
+
+def test_carrel_skill_runtime_rejects_symlink_write_escape(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    (vault / ".carrel" / "agent-context.md").symlink_to(tmp_path / "outside-context.md")
+
+    result = _run(skill, "vault", "init", str(vault), "--format", "json")
+
+    assert result.returncode == 1
+    assert "Path escapes vault root" in result.stderr
+    assert not (tmp_path / "outside-context.md").exists()
 
 
 def test_carrel_skill_runtime_validate_and_fix_environment(tmp_path) -> None:
@@ -112,7 +178,10 @@ def test_carrel_skill_runtime_validate_and_fix_environment(tmp_path) -> None:
     assert fixed_payload["collaborators"] is True
     assert fixed_payload["team_context"] == "Lab group"
     assert fixed_payload["model_teammates"] == {"analysis": "active"}
-    assert fixed_payload["claude_code_familiarity"] == "some"
+    assert "legacy_setting" not in fixed_payload
+    assert "claude_code_familiarity" not in fixed_payload
+    assert fixed_payload["_unknown_keys"]["legacy_setting"] is True
+    assert fixed_payload["_unknown_keys"]["claude_code_familiarity"] == "some"
     assert (vault / ".carrel" / "environment.json.bak").exists()
 
 
@@ -237,6 +306,35 @@ def test_carrel_skill_runtime_doctor_google_batch_trust_and_automation(tmp_path)
     assert configured["gap_analysis"] is True
 
 
+def test_carrel_skill_runtime_local_markitdown_adapter_is_bounded_and_used(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    source = tmp_path / "paper.docx"
+    source.write_text("fake docx", encoding="utf-8")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    adapter = bin_dir / "markitdown"
+    adapter.write_text("#!/bin/sh\nprintf 'Converted by adapter\\n'\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    _run(skill, "vault", "init", str(vault))
+
+    result = _run(
+        skill,
+        "convert",
+        "file",
+        str(source),
+        "--vault",
+        str(vault),
+        env_extra={"PATH": f"{bin_dir}:{os.environ.get('PATH', '')}"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    paper = vault / "papers" / "paper" / "paper.md"
+    body = paper.read_text(encoding="utf-8")
+    assert "Converted by adapter" in body
+    assert 'convert_tool: "markdownify"' in body
+
+
 def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
     skill = _copy_skill(tmp_path)
     vault = tmp_path / "vault"
@@ -245,6 +343,10 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
     (meta / "friction-log").mkdir()
     (meta / "friction-log" / "2026-01-01.md").write_text(
         "Alice at Acme Lab hit a problem.",
+        encoding="utf-8",
+    )
+    (meta / "friction_log.md").write_text(
+        "Alice reported legacy flat log trouble.",
         encoding="utf-8",
     )
     redact = tmp_path / "redact.txt"
@@ -288,9 +390,29 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
     digest = meta / f"feedback-digest-{date.today().isoformat()}.md"
     assert digest.exists()
     assert "Alice" not in digest.read_text(encoding="utf-8")
+    assert "legacy flat log trouble" in digest.read_text(encoding="utf-8")
     handbook = Path(json.loads(share.stdout)["path"])
     assert handbook.exists()
     assert "researcher-field-omitted" in share.stdout
+
+
+def test_carrel_skill_runtime_feedback_rejects_symlinked_sources(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "leak.md").write_text("outside secret", encoding="utf-8")
+    _run(skill, "vault", "init", str(vault))
+    reflections = vault / "_meta" / "reflections"
+    reflections.rmdir()
+    reflections.symlink_to(outside)
+    redact = tmp_path / "redact.txt"
+    redact.write_text("secret\n", encoding="utf-8")
+
+    result = _run(skill, "feedback", "export", "--vault", str(vault), "--redact-list", str(redact))
+
+    assert result.returncode == 1
+    assert "Path escapes vault root" in result.stderr
 
 
 def test_carrel_skill_runtime_policy_blocks_high_sensitivity_cloud(tmp_path) -> None:

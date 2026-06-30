@@ -16,5 +16,5 @@ consultative behavior and write a pending decision instead of acting.
 Automation configuration is persisted with:
 
 ```bash
-python scripts/carrel.py automation configure --vault <vault> --enabled true --trust-level consultative
+python3 scripts/carrel.py automation configure --vault <vault> --enabled true --trust-level consultative --schedule daily --review-cadence quarterly
 ```

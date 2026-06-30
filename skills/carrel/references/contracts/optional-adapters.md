@@ -17,7 +17,9 @@ Carrel's portable runtime is stdlib-first. External adapters are optional.
 - `GEMINI_API_KEY`: YouTube or cloud transcription.
 
 Cloud adapters must follow the routing policy. High sensitivity blocks cloud
-processing even if credentials are present.
+processing even if credentials are present. The bundled stdlib runtime reports
+cloud availability for routing, but provider API execution belongs in a host
+adapter unless a bounded local command wrapper is added here deliberately.
 
 ## Host Adapters
 

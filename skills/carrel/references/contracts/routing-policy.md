@@ -18,5 +18,5 @@ selected only when policy allows.
 - Transcribe local: `coli`, `youtube_captions`
 - Transcribe cloud: `groq`, `gemini`
 
-Use `python scripts/carrel.py policy explain ...` to make the deterministic
+Use `python3 scripts/carrel.py policy explain ...` to make the deterministic
 selection visible before a write.

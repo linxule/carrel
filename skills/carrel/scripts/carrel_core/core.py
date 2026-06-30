@@ -47,6 +47,45 @@ def atomic_write(path: Path, text: str) -> None:
     tmp.replace(path)
 
 
+def assert_safe_write_target(vault: Path, path: Path) -> None:
+    root = vault.expanduser().resolve()
+    if path.is_symlink():
+        raise CarrelError(
+            "Path escapes vault root",
+            hint=f"Refusing to write through symlink {path}",
+        )
+    resolved_parent = path.parent.resolve(strict=False)
+    try:
+        resolved_parent.relative_to(root)
+    except ValueError as exc:
+        raise CarrelError(
+            "Path escapes vault root",
+            hint=f"Refusing to write outside {root}",
+        ) from exc
+
+
+def assert_safe_read_target(vault: Path, path: Path) -> None:
+    root = vault.expanduser().resolve()
+    candidate = path.resolve(strict=False)
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise CarrelError(
+            "Path escapes vault root",
+            hint=f"Refusing to read outside {root}",
+        ) from exc
+
+
+def safe_atomic_write(vault: Path, path: Path, text: str) -> None:
+    assert_safe_write_target(vault, path)
+    atomic_write(path, text)
+
+
+def safe_read_text(vault: Path, path: Path, **kwargs) -> str:
+    assert_safe_read_target(vault, path)
+    return path.read_text(**kwargs)
+
+
 def safe_vault_join(vault: Path, *parts: str) -> Path:
     root = vault.expanduser().resolve()
     candidate = root.joinpath(*parts).resolve(strict=False)
@@ -67,7 +106,11 @@ def slugify(value: str, *, fallback: str = "untitled") -> str:
 
 def source_hash(source: str | Path) -> str:
     if isinstance(source, Path) and source.exists():
-        return hashlib.sha256(source.read_bytes()).hexdigest()
+        digest = hashlib.sha256()
+        with source.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
     return hashlib.sha256(str(source).encode("utf-8")).hexdigest()
 
 
@@ -115,7 +158,7 @@ def require_profile(vault: Path) -> dict:
 
 def write_profile(vault: Path, profile: dict) -> Path:
     path = safe_vault_join(vault, ".carrel", "environment.json")
-    atomic_write(path, json.dumps(profile, indent=2, sort_keys=True) + "\n")
+    safe_atomic_write(vault, path, json.dumps(profile, indent=2, sort_keys=True) + "\n")
     return path
 
 

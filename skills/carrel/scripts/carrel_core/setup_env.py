@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from .constants import ADAPTER_PROFILE_KEYS, DEFAULT_PROFILE, SENSITIVITY, TRUST_LEVELS
-from .core import CarrelError, default_profile, safe_vault_join, write_profile
+from .core import CarrelError, default_profile, safe_atomic_write, safe_vault_join, write_profile
 
 
 def copy_templates(vault: Path, skill_root: Path) -> list[str]:
@@ -21,9 +21,11 @@ def copy_templates(vault: Path, skill_root: Path) -> list[str]:
         if not item.is_file():
             continue
         target = template_dir / item.name
+        if target.is_symlink():
+            raise CarrelError("Path escapes vault root", hint=f"Refusing template symlink {target}")
         if target.exists():
             continue
-        target.write_text(item.read_text(encoding="utf-8"), encoding="utf-8")
+        safe_atomic_write(vault, target, item.read_text(encoding="utf-8"))
         copied.append(item.name)
     return copied
 
@@ -79,10 +81,12 @@ def materialize_obsidian_config(vault: Path, skill_root: Path) -> list[str]:
         if "/" in filename or "\\" in filename or filename.startswith("."):
             continue
         target = obsidian_dir / filename
+        if target.is_symlink():
+            raise CarrelError("Path escapes vault root", hint=f"Refusing Obsidian symlink {target}")
         if target.exists():
             continue
         text = value if isinstance(value, str) else json.dumps(value, indent=2, sort_keys=True)
-        target.write_text(text.rstrip() + "\n", encoding="utf-8")
+        safe_atomic_write(vault, target, text.rstrip() + "\n")
         written.append(filename)
     return written
 
@@ -102,8 +106,10 @@ def cmd_vault_init(args) -> int:
         write_profile(vault, default_profile())
     context_asset = skill_root / "assets" / "templates" / "agent-context.md"
     context_path = safe_vault_join(vault, ".carrel", "agent-context.md")
+    if context_path.is_symlink():
+        raise CarrelError("Path escapes vault root", hint=f"Refusing context symlink {context_path}")
     if not context_path.exists():
-        context_path.write_text(context_asset.read_text(encoding="utf-8"), encoding="utf-8")
+        safe_atomic_write(vault, context_path, context_asset.read_text(encoding="utf-8"))
     payload = {
         "vault": str(vault),
         "profile": str(profile_path),
@@ -176,6 +182,14 @@ def cmd_env_fix(args) -> int:
         raise CarrelError("Invalid environment.json", hint=exc.msg) from exc
     if not isinstance(payload, dict):
         raise CarrelError("Invalid environment.json", hint="Profile must be a JSON object")
+    unknown_keys = {
+        key: value
+        for key, value in payload.items()
+        if key not in DEFAULT_PROFILE and key not in ADAPTER_PROFILE_KEYS
+    }
+    existing_unknown = payload.get("_unknown_keys", {})
+    if isinstance(existing_unknown, dict):
+        unknown_keys = {**existing_unknown, **unknown_keys}
     fixed = default_profile()
     fixed.update(
         {
@@ -184,6 +198,7 @@ def cmd_env_fix(args) -> int:
             if key in DEFAULT_PROFILE or key in ADAPTER_PROFILE_KEYS
         }
     )
+    fixed["_unknown_keys"] = unknown_keys
     current_automation = payload.get("automation", {})
     fixed["automation"] = {
         **DEFAULT_PROFILE["automation"],
@@ -193,8 +208,8 @@ def cmd_env_fix(args) -> int:
     result = {"changed": changed, "path": str(path), "dry_run": args.dry_run}
     if changed and not args.dry_run:
         if path.exists():
-            backup = path.with_suffix(".json.bak")
-            backup.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+            backup = safe_vault_join(args.vault, ".carrel", "environment.json.bak")
+            safe_atomic_write(args.vault, backup, path.read_text(encoding="utf-8"))
             result["backup"] = str(backup)
         write_profile(args.vault, fixed)
     print(json.dumps(result) if args.format == "json" else ("updated" if changed else "ok"))

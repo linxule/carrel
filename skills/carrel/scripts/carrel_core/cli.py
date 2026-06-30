@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     google_export = google_sub.add_parser("export")
     google_export.add_argument("url")
     google_export.add_argument("--vault", type=Path, required=True)
-    google_export.add_argument("--export-format", choices=["docx", "pdf", "txt", "html"], default="docx")
+    google_export.add_argument("--export-format", choices=["docx", "pdf", "txt", "html"], default="txt")
     google_export.add_argument("--keep-export", action="store_true")
     google_export.add_argument("--tool")
     google_export.add_argument("--sensitivity", choices=sorted(SENSITIVITY))

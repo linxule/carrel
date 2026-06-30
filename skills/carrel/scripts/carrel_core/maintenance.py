@@ -10,10 +10,11 @@ from pathlib import Path
 from .constants import TRUST_ACTIONS, TRUST_LEVELS
 from .core import (
     CarrelError,
-    atomic_write,
     current_trust,
     read_profile,
     require_profile,
+    safe_atomic_write,
+    safe_read_text,
     safe_vault_join,
     slugify,
     trust_allowed,
@@ -27,9 +28,9 @@ def cmd_reflection_append(args) -> int:
         raise CarrelError("Empty reflection body received on stdin")
     target = safe_vault_join(args.vault, "_meta", "reflections", f"reflection-{date.today().isoformat()}.md")
     existed = target.exists()
-    previous = target.read_text(encoding="utf-8") if target.exists() else f"# Reflection - {date.today().isoformat()}\n"
+    previous = safe_read_text(args.vault, target, encoding="utf-8") if target.exists() else f"# Reflection - {date.today().isoformat()}\n"
     stamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    atomic_write(target, f"{previous.rstrip()}\n\n## {stamp}\n\n{body}\n")
+    safe_atomic_write(args.vault, target, f"{previous.rstrip()}\n\n## {stamp}\n\n{body}\n")
     print(json.dumps({"path": str(target), "action": "appended" if existed else "created"}))
     return 0
 
@@ -41,10 +42,10 @@ def cmd_mirror_write(args) -> int:
     target = safe_vault_join(args.vault, "_meta", "mirror", f"{date.today().strftime('%Y-%m')}.md")
     existed = target.exists()
     new_hash = hashlib.sha256(body.encode("utf-8")).hexdigest()
-    if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() == new_hash and not args.force:
+    if target.exists() and hashlib.sha256(safe_read_text(args.vault, target, encoding="utf-8").encode("utf-8")).hexdigest() == new_hash and not args.force:
         print(json.dumps({"path": str(target), "action": "skipped"}))
         return 0
-    atomic_write(target, body)
+    safe_atomic_write(args.vault, target, body)
     print(json.dumps({"path": str(target), "action": "updated" if existed else "created"}))
     return 0
 
@@ -63,16 +64,25 @@ def apply_redactions(text: str, terms: list[str]) -> str:
 
 def cmd_feedback_export(args) -> int:
     terms = read_redactions(args.redact_list)
-    meta = args.vault / "_meta"
+    meta = safe_vault_join(args.vault, "_meta")
     sources = []
     for folder in ["friction-log", "capability-log", "reflections"]:
-        sources.extend(sorted((meta / folder).glob("*.md")))
+        folder_path = safe_vault_join(args.vault, "_meta", folder)
+        if folder_path.is_dir():
+            for source in sorted(folder_path.glob("*.md")):
+                safe_read_text(args.vault, source, encoding="utf-8")
+                sources.append(source)
+    for flat in ["friction_log.md", "capability-log.md"]:
+        flat_path = safe_vault_join(args.vault, "_meta", flat)
+        if flat_path.is_file():
+            safe_read_text(args.vault, flat_path, encoding="utf-8")
+            sources.append(flat_path)
     parts = [f"# Feedback Digest - {date.today().isoformat()}\n"]
     for source in sources:
         parts.append(f"\n## {source.name}\n\n")
-        parts.append(apply_redactions(source.read_text(encoding="utf-8"), terms))
+        parts.append(apply_redactions(safe_read_text(args.vault, source, encoding="utf-8"), terms))
     target = safe_vault_join(args.vault, "_meta", f"feedback-digest-{date.today().isoformat()}.md")
-    atomic_write(target, "\n".join(parts).rstrip() + "\n")
+    safe_atomic_write(args.vault, target, "\n".join(parts).rstrip() + "\n")
     print(json.dumps({"path": str(target), "sources": [str(path) for path in sources], "redacted_terms": len(terms)}))
     return 0
 
@@ -98,6 +108,22 @@ def cmd_share_generate(args) -> int:
         "- transcripts/",
         "- _meta/",
     ]
+    if args.mode == "full" and args.sensitivity != "high":
+        friction = []
+        for source in [
+            safe_vault_join(args.vault, "_meta", "friction_log.md"),
+            *sorted(safe_vault_join(args.vault, "_meta", "friction-log").glob("*.md")),
+        ]:
+            if source.is_file():
+                text = safe_read_text(args.vault, source, encoding="utf-8")
+                friction.append(text[:400].rstrip())
+        if friction:
+            body.extend(["", "## Friction & Workarounds"])
+            body.extend(friction)
+            if args.sensitivity == "medium":
+                redactions.append("friction-excerpt-truncated")
+    elif args.mode == "full":
+        redactions.append("friction-log-omitted")
     if args.sensitivity != "high":
         threads = sorted((args.vault / "notes" / "threads").glob("*.md"))
         if threads:
@@ -107,7 +133,7 @@ def cmd_share_generate(args) -> int:
         if args.sensitivity == "medium":
             redactions.append("threads-contents-omitted")
     target = safe_vault_join(args.vault, "_meta", "handbook", f"{date.today().isoformat()}-for-{slugify(args.name)}.md")
-    atomic_write(target, "\n".join(body).rstrip() + "\n")
+    safe_atomic_write(args.vault, target, "\n".join(body).rstrip() + "\n")
     print(json.dumps({"path": str(target), "sensitivity": args.sensitivity, "redactions_applied": redactions}))
     return 0
 
@@ -156,7 +182,7 @@ def cmd_trust_show(args) -> int:
 
 def cmd_automation_configure(args) -> int:
     profile = require_profile(args.vault)
-    required, allowed = trust_allowed("automation:write-prompt", current_trust(args.vault))
+    required, allowed = trust_allowed("automation:propose", current_trust(args.vault))
     if not allowed:
         raise CarrelError(
             "Automation configuration is not allowed at current trust level",

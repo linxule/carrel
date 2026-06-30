@@ -12,13 +12,13 @@ task needs deeper workflow or contract context.
 
 ## Quick Start
 
-Run the bundled runtime with Python from this skill folder:
+Run the bundled runtime with Python 3 from this skill folder:
 
 ```bash
-python scripts/carrel.py vault init <vault>
-python scripts/carrel.py env validate --vault <vault> --format json
-python scripts/carrel.py env doctor --format json
-python scripts/carrel.py capture url https://example.com/article --vault <vault>
+python3 scripts/carrel.py vault init <vault>
+python3 scripts/carrel.py env validate --vault <vault> --format json
+python3 scripts/carrel.py env doctor --project-path <vault> --format json
+python3 scripts/carrel.py capture url https://example.com/article --vault <vault>
 ```
 
 The runtime is stdlib-first. External tools such as `lit`, `markitdown`,
@@ -41,6 +41,8 @@ offer the relevant setup path instead of treating the skill as unavailable.
 - For trust-gated operations, read `references/contracts/trust-levels.md`.
 - For deciding whether behavior belongs in the runtime or agent proposal, read
   `references/contracts/determinism-boundary.md`.
+- For legacy CLI parity and portable-skill disposition, read
+  `references/contracts/surface-map.md`.
 - For optional external tools and host adapters, read
   `references/contracts/optional-adapters.md`.
 - For research partner, wiki, and vault-note behavior, read

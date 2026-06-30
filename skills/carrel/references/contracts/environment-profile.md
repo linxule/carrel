@@ -18,15 +18,15 @@ can read. Keep it host-neutral.
 
 ## Repair
 
-`python scripts/carrel.py env validate --vault <vault> --format json` returns:
+`python3 scripts/carrel.py env validate --vault <vault> --format json` returns:
 
 - `0` for valid profile.
 - `1` for invalid JSON or invalid field values.
 - `2` for drift such as unknown or missing top-level keys.
 
-`python scripts/carrel.py env fix --vault <vault>` preserves known values,
-fills missing defaults, drops unknown top-level keys, and writes a backup before
-changing an existing profile.
+`python3 scripts/carrel.py env fix --vault <vault>` preserves known values,
+fills missing defaults, moves unknown top-level keys into `_unknown_keys`, and
+writes a backup before changing an existing profile.
 
 ## Host Context
 

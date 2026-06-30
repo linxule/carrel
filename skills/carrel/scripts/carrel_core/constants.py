@@ -87,6 +87,7 @@ DEFAULT_PROFILE = {
     "collaborators": None,
     "team_context": None,
     "model_teammates": {},
+    "_unknown_keys": {},
 }
 
-ADAPTER_PROFILE_KEYS = {"claude_code_familiarity"}
+ADAPTER_PROFILE_KEYS: set[str] = set()
