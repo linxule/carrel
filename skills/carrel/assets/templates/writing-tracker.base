@@ -1,0 +1,52 @@
+# carrel-template: writing-tracker v0.3.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+properties:
+  - name: section
+    type: text
+  - name: status
+    type: text
+  - name: word-count
+    type: number
+  - name: due-date
+    type: date
+  - name: blockers
+    type: text
+
+formulas:
+  - name: days-until-due
+    formula: "if(due-date != \"\", (due-date - now()).days, \"\")"
+  - name: progress
+    formula: "if(status == \"done\", \"complete\", if(status == \"reviewing\", \"almost\", if(status == \"drafting\", \"in progress\", \"not started\")))"
+
+filter: "file.folder = \"drafts\""
+
+sort:
+  - property: due-date
+    direction: asc
+
+views:
+  - type: table
+    name: "All Sections"
+    sort:
+      - property: due-date
+        direction: asc
+
+  - type: table
+    name: "In Progress"
+    filter: "status == \"drafting\" || status == \"reviewing\""
+
+  - type: table
+    name: "Blocked"
+    filter: "blockers != \"\""
+
+  - type: list
+    name: "By Status"
+    group: status
+
+summaries:
+  - property: word-count
+    function: Sum
+  - property: section
+    function: Count

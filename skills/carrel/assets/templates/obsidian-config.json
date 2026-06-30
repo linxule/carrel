@@ -1,0 +1,34 @@
+{
+  "description": "Obsidian .obsidian/ configuration files for a new Carrel vault",
+  "files": {
+    "app.json": {
+      "newFileLocation": "folder",
+      "newFileFolderPath": "inbox",
+      "attachmentFolderPath": "inbox",
+      "readableLineLength": true,
+      "showLineNumber": false,
+      "spellcheck": true,
+      "strictLineBreaks": false,
+      "promptDelete": true
+    },
+    "core-plugins.json": [
+      "file-explorer", "global-search", "switcher", "graph",
+      "backlink", "outgoing-link", "tag-pane", "properties",
+      "page-preview", "templates", "note-composer", "command-palette",
+      "editor-status", "bookmarks", "outline", "word-count", "file-recovery"
+    ],
+    "community-plugins.json": [],
+    "templates.json": {
+      "folder": "_templates",
+      "dateFormat": "YYYY-MM-DD",
+      "timeFormat": "HH:mm"
+    },
+    "appearance.json": {},
+    "workspace.json": "see obsidian-setup.md for full workspace config"
+  },
+  "recommended_community_plugins": [
+    { "id": "calendar", "purpose": "Visual date-based note navigation" },
+    { "id": "dataview", "purpose": "Query notes like a database" },
+    { "id": "periodic-notes", "purpose": "Daily/weekly/monthly notes with templates" }
+  ]
+}
