@@ -20,6 +20,10 @@ def copy_templates(vault: Path, skill_root: Path) -> list[str]:
     for item in sorted(source.iterdir()):
         if not item.is_file():
             continue
+        if item.name in {"agent-context.md", "vault-scaffold.json", "obsidian-config.json"}:
+            continue
+        if item.suffix not in {".md", ".base"}:
+            continue
         target = template_dir / item.name
         if target.is_symlink():
             raise CarrelError("Path escapes vault root", hint=f"Refusing template symlink {target}")
@@ -235,7 +239,7 @@ def cmd_env_doctor(args) -> int:
         "optional_adapters": {
             "capture": ["defuddle", "markitdown"],
             "convert": ["lit", "markitdown", "mineru"],
-            "transcribe": ["coli", "groq", "gemini", "youtube_captions"],
+            "transcribe": ["coli", "groq", "gemini"],
             "google": ["gws"],
         },
     }

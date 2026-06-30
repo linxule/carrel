@@ -34,7 +34,8 @@ def capture_url_with_adapter(url: str, *, title: str | None = None) -> tuple[str
     for tool, command in [("defuddle", "defuddle"), ("markitdown", "markitdown")]:
         if not shutil.which(command):
             continue
-        proc = run_adapter([command, url], timeout=60, label=tool)
+        argv = [command, "parse", url] if tool == "defuddle" else [command, url]
+        proc = run_adapter(argv, timeout=60, label=tool)
         if proc.stdout.strip():
             return proc.stdout, {"title": title or url, "domain": ""}, tool
     raise CarrelError("No capture adapter available", hint="Install defuddle/markitdown or pass --content.")

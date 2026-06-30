@@ -195,17 +195,9 @@ def available_tools(tool_class: str) -> set[str]:
             tools.add("liteparse")
         if shutil.which("markitdown"):
             tools.add("markdownify")
-        if os.environ.get("MINERU_API_KEY"):
-            tools.add("mineru")
     elif tool_class == "transcribe":
         if shutil.which("coli"):
             tools.add("coli")
-        if shutil.which("youtube-transcript-api"):
-            tools.add("youtube_captions")
-        if os.environ.get("GROQ_API_KEY"):
-            tools.add("groq")
-        if os.environ.get("GEMINI_API_KEY"):
-            tools.add("gemini")
     return tools
 
 

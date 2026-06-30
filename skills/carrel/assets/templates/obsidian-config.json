@@ -24,7 +24,7 @@
       "timeFormat": "HH:mm"
     },
     "appearance.json": {},
-    "workspace.json": "see obsidian-setup.md for full workspace config"
+    "workspace.json": {}
   },
   "recommended_community_plugins": [
     { "id": "calendar", "purpose": "Visual date-based note navigation" },

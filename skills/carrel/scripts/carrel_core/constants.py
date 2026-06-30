@@ -17,7 +17,7 @@ TRUST_ACTIONS = {
 
 LOCAL_TOOLS = {
     "convert": {"liteparse", "markdownify", "provided"},
-    "transcribe": {"coli", "youtube_captions", "provided"},
+    "transcribe": {"coli", "provided"},
 }
 CLOUD_TOOLS = {
     "convert": {"mineru"},

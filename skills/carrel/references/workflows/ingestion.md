@@ -49,9 +49,10 @@ from a trusted local path.
 python3 scripts/carrel.py transcript create <source> --vault <vault>
 ```
 
-For local media, prefer `coli`. For YouTube URLs, prefer existing captions when
-available. Cloud adapters are policy-gated and require a host adapter; the
-bundled stdlib runtime files supplied transcript text or calls local `coli`.
+For local media, prefer `coli`. For YouTube URLs, use host/connector caption
+access and pass the transcript with `--content`. Cloud adapters are
+policy-gated and require a host adapter; the bundled stdlib runtime files
+supplied transcript text or calls local `coli`.
 
 For folder sweeps:
 

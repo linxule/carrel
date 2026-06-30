@@ -18,7 +18,7 @@ Run the bundled runtime with Python 3 from this skill folder:
 python3 scripts/carrel.py vault init <vault>
 python3 scripts/carrel.py env validate --vault <vault> --format json
 python3 scripts/carrel.py env doctor --project-path <vault> --format json
-python3 scripts/carrel.py capture url https://example.com/article --vault <vault>
+python3 scripts/carrel.py capture url https://example.com/article --vault <vault> --content "Article body"
 ```
 
 The runtime is stdlib-first. External tools such as `lit`, `markitdown`,
@@ -43,6 +43,8 @@ offer the relevant setup path instead of treating the skill as unavailable.
   `references/contracts/determinism-boundary.md`.
 - For legacy CLI parity and portable-skill disposition, read
   `references/contracts/surface-map.md`.
+- For cross-harness install and invocation notes, read
+  `references/contracts/host-compatibility.md`.
 - For optional external tools and host adapters, read
   `references/contracts/optional-adapters.md`.
 - For research partner, wiki, and vault-note behavior, read

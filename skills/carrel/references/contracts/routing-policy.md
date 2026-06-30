@@ -15,7 +15,7 @@ selected only when policy allows.
 - Convert local: `liteparse`, `markdownify`
 - Convert cloud: `mineru`
 - Capture local: `defuddle`, `markitdown`
-- Transcribe local: `coli`, `youtube_captions`
+- Transcribe local: `coli`
 - Transcribe cloud: `groq`, `gemini`
 
 Use `python3 scripts/carrel.py policy explain ...` to make the deterministic

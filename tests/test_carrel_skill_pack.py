@@ -43,10 +43,14 @@ def test_carrel_skill_pack_layout_and_metadata() -> None:
     skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     assert skill_md.startswith("---\nname: carrel\n")
     assert "description:" in skill_md
+    openai_yaml = (SKILL / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    assert "interface:\n" in openai_yaml
+    assert 'default_prompt: "Use $carrel' in openai_yaml
     assert (SKILL / "scripts" / "carrel.py").exists()
     assert (SKILL / "scripts" / "carrel_core" / "runtime.py").exists()
     assert (SKILL / "references" / "contracts" / "vault-contract.md").exists()
     assert (SKILL / "references" / "contracts" / "surface-map.md").exists()
+    assert (SKILL / "references" / "contracts" / "host-compatibility.md").exists()
     assert (SKILL / "references" / "workflows" / "ingestion.md").exists()
     assert (SKILL / "assets" / "templates" / "agent-context.md").exists()
 
@@ -95,6 +99,17 @@ def test_carrel_skill_runtime_modules_stay_small() -> None:
     assert oversized == {}
 
 
+def test_carrel_skill_host_compatibility_contract_documents_adapter_boundary() -> None:
+    body = (SKILL / "references" / "contracts" / "host-compatibility.md").read_text(encoding="utf-8")
+    assert "entire `carrel/` skill folder" in body
+    assert "Python 3.10" in body
+    assert "python3 <skill-dir>/scripts/carrel.py" in body
+    assert "Codex CLI" in body
+    assert "Claude Code" in body
+    assert "Kimi Code" in body
+    assert "Cloud provider calls" in body
+
+
 def test_carrel_skill_pack_has_no_required_claude_plugin_dependency() -> None:
     scanned = []
     for root in ["SKILL.md", "references", "scripts"]:
@@ -121,8 +136,12 @@ def test_carrel_skill_runtime_initializes_portable_vault(tmp_path) -> None:
     assert Path(payload["profile"]) == vault / ".carrel" / "environment.json"
     assert Path(payload["context"]) == vault / ".carrel" / "agent-context.md"
     assert (vault / "_templates" / "paper.md").exists()
+    assert not (vault / "_templates" / "agent-context.md").exists()
+    assert not (vault / "_templates" / "vault-scaffold.json").exists()
+    assert not (vault / "_templates" / "obsidian-config.json").exists()
     assert (vault / "_meta" / "local").is_dir()
     assert (vault / ".obsidian" / "app.json").exists()
+    json.loads((vault / ".obsidian" / "workspace.json").read_text(encoding="utf-8"))
     assert not (vault / "CLAUDE.md").exists()
     profile = json.loads((vault / ".carrel" / "environment.json").read_text(encoding="utf-8"))
     assert profile["sensitivity"] == "medium"
@@ -333,6 +352,43 @@ def test_carrel_skill_runtime_local_markitdown_adapter_is_bounded_and_used(tmp_p
     body = paper.read_text(encoding="utf-8")
     assert "Converted by adapter" in body
     assert 'convert_tool: "markdownify"' in body
+
+
+def test_carrel_skill_runtime_uses_defuddle_parse_for_capture(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    bin_dir = tmp_path / "bin"
+    log = tmp_path / "defuddle-argv.txt"
+    bin_dir.mkdir()
+    adapter = bin_dir / "defuddle"
+    adapter.write_text(
+        "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$DEFUDDLE_LOG\"\nprintf 'Captured by defuddle\\n'\n",
+        encoding="utf-8",
+    )
+    adapter.chmod(0o755)
+    _run(skill, "vault", "init", str(vault))
+
+    result = _run(
+        skill,
+        "capture",
+        "url",
+        "https://example.com/post",
+        "--vault",
+        str(vault),
+        "--title",
+        "Adapter Capture",
+        env_extra={
+            "PATH": f"{bin_dir}:{os.environ.get('PATH', '')}",
+            "DEFUDDLE_LOG": str(log),
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert log.read_text(encoding="utf-8").splitlines() == [
+        "parse",
+        "https://example.com/post",
+    ]
+    assert "Captured by defuddle" in (vault / "inbox" / "adapter-capture.md").read_text(encoding="utf-8")
 
 
 def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
