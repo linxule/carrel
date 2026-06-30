@@ -47,6 +47,8 @@ offer the relevant setup path instead of treating the skill as unavailable.
   `references/contracts/host-compatibility.md`.
 - For optional external tools and host adapters, read
   `references/contracts/optional-adapters.md`.
+- For scheduled upstream refresh of external packages, API endpoints, and host
+  harness claims, read `references/contracts/external-refresh.json`.
 - For research partner, wiki, and vault-note behavior, read
   `references/workflows/research-and-vault.md`.
 

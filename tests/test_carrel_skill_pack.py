@@ -51,6 +51,7 @@ def test_carrel_skill_pack_layout_and_metadata() -> None:
     assert (SKILL / "references" / "contracts" / "vault-contract.md").exists()
     assert (SKILL / "references" / "contracts" / "surface-map.md").exists()
     assert (SKILL / "references" / "contracts" / "host-compatibility.md").exists()
+    assert (SKILL / "references" / "contracts" / "external-refresh.json").exists()
     assert (SKILL / "references" / "workflows" / "ingestion.md").exists()
     assert (SKILL / "assets" / "templates" / "agent-context.md").exists()
 
@@ -108,6 +109,50 @@ def test_carrel_skill_host_compatibility_contract_documents_adapter_boundary() -
     assert "Claude Code" in body
     assert "Kimi Code" in body
     assert "Cloud provider calls" in body
+
+
+def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
+    manifest_path = SKILL / "references" / "contracts" / "external-refresh.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["manifest_version"] == 1
+    assert manifest["refresh_cadence"] == "monthly"
+    entries = manifest["entries"]
+    required_ids = {
+        "liteparse",
+        "markitdown",
+        "defuddle",
+        "coli",
+        "gws",
+        "mineru",
+        "groq",
+        "gemini",
+        "youtube-transcript-api",
+        "codex-skills",
+        "claude-code-skills",
+        "claude-app-desktop",
+        "kimi-code-skills",
+        "opencode-skills",
+        "gemini-cli-skills",
+        "obsidian",
+        "zotero",
+        "vox-openrouter",
+    }
+    ids = {entry["id"] for entry in entries}
+    assert required_ids <= ids
+    assert len(ids) == len(entries)
+
+    for entry in entries:
+        for field in manifest["entry_required_fields"]:
+            assert field in entry, entry["id"]
+        assert entry["sources"], entry["id"]
+        assert entry["local_references"], entry["id"]
+        assert entry["refresh_checks"], entry["id"]
+        assert entry["contract_marker"], entry["id"]
+        for local_ref in entry["local_references"]:
+            assert (Path(__file__).resolve().parents[1] / local_ref).exists(), (
+                entry["id"],
+                local_ref,
+            )
 
 
 def test_carrel_skill_pack_has_no_required_claude_plugin_dependency() -> None:
