@@ -1,5 +1,9 @@
 # Setup And Repair
 
+Use this workflow for deterministic vault scaffolding and profile repair. If
+the researcher is new, preferences are incomplete, or setup requires an
+interview, read `references/workflows/onboarding.md` first.
+
 Use `vault init` to create a portable vault. The runtime creates the folder
 layout, copies assets from `assets/templates/`, writes
 `.carrel/environment.json`, and writes `.carrel/agent-context.md`.

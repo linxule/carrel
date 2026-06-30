@@ -155,7 +155,8 @@
       "rationale": "Optional Google Docs/Sheets/Slides export path.",
       "skill_references": [
         "scripts/carrel_core/ingestion.py",
-        "references/workflows/ingestion.md"
+        "references/workflows/ingestion.md",
+        "references/workflows/onboarding.md"
       ],
       "repo_references": [
         "README.md",
@@ -183,6 +184,7 @@
       "rationale": "Cloud PDF conversion for complex tables, figures, and scans.",
       "skill_references": [
         "references/workflows/ingestion.md",
+        "references/workflows/onboarding.md",
         "references/contracts/optional-adapters.md"
       ],
       "repo_references": [
@@ -213,6 +215,7 @@
       "rationale": "Cloud OCR option for scanned and layout-heavy PDFs when explicit cloud routing is acceptable.",
       "skill_references": [
         "references/workflows/ingestion.md",
+        "references/workflows/onboarding.md",
         "references/contracts/optional-adapters.md"
       ],
       "repo_references": [
@@ -266,6 +269,7 @@
       ],
       "rationale": "Cloud audio transcription fallback.",
       "skill_references": [
+        "references/workflows/onboarding.md",
         "references/contracts/optional-adapters.md"
       ],
       "repo_references": [
@@ -292,6 +296,7 @@
       "rationale": "Cloud YouTube/video transcription and multimodal model access.",
       "skill_references": [
         "assets/templates/my-environment.md",
+        "references/workflows/onboarding.md",
         "references/contracts/optional-adapters.md"
       ],
       "repo_references": [
@@ -482,7 +487,8 @@
       "rationale": "Human-facing GUI for the research vault.",
       "skill_references": [
         "assets/templates/my-environment.md",
-        "assets/templates/obsidian-config.json"
+        "assets/templates/obsidian-config.json",
+        "references/workflows/onboarding.md"
       ],
       "repo_references": [
         "README.md",

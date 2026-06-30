@@ -52,6 +52,7 @@ def test_carrel_skill_pack_layout_and_metadata() -> None:
     assert (SKILL / "references" / "contracts" / "surface-map.md").exists()
     assert (SKILL / "references" / "contracts" / "host-compatibility.md").exists()
     assert (SKILL / "references" / "contracts" / "external-refresh.json").exists()
+    assert (SKILL / "references" / "workflows" / "onboarding.md").exists()
     assert (SKILL / "references" / "workflows" / "ingestion.md").exists()
     assert (SKILL / "assets" / "templates" / "agent-context.md").exists()
 
@@ -119,6 +120,21 @@ def test_carrel_skill_external_help_points_to_source_manifest() -> None:
     assert "`sources`" in body
     assert "mistral-ocr" in body
     assert "paddleocr" in body
+
+
+def test_carrel_skill_onboarding_is_host_neutral_and_script_bounded() -> None:
+    skill_body = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    body = (SKILL / "references" / "workflows" / "onboarding.md").read_text(encoding="utf-8")
+    assert "references/workflows/onboarding.md" in skill_body
+    assert "preferences.agent_host" in body
+    assert "preferences.agent_experience" in body
+    assert ".carrel/agent-context.md" in body
+    assert "CLAUDE.md" not in body
+    assert "claude_code_familiarity" not in body
+    assert "/carrel-" not in body
+    assert "vault init" in body
+    assert "env validate" in body
+    assert "env fix --dry-run" in body
 
 
 def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:

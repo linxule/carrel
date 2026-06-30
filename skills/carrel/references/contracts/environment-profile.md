@@ -16,6 +16,19 @@ can read. Keep it host-neutral.
 - `automation`: object containing `enabled`, `trust_level`, `schedule`, and
   `review_cadence`.
 
+## Onboarding Preferences
+
+Store host-neutral onboarding details in `preferences` rather than adding
+host-specific top-level keys. Useful keys include:
+
+- `agent_host`: app or CLI the researcher is using.
+- `agent_experience`: new, some, or experienced.
+- `timestamp_precision`: `text_only`, `rough`, or `precise`.
+- `google_workspace`: `none`, `docs`, `sheets`, `slides`, or `mixed`.
+- `cloud_storage`: durable storage location such as local, gdrive, dropbox, or
+  onedrive.
+- `note_platform`: obsidian, markdown, word, docs, or other.
+
 ## Repair
 
 `python3 scripts/carrel.py env validate --vault <vault> --format json` returns:

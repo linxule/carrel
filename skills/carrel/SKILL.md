@@ -30,7 +30,9 @@ treating the skill as unavailable.
 
 ## Workflow Routing
 
-- For first-time setup or vault repair, read
+- For first-time onboarding, setup interviews, or researcher profile updates, read
+  `references/workflows/onboarding.md`.
+- For vault scaffolding, existing vault setup, or vault repair, read
   `references/workflows/setup-and-repair.md`.
 - For document conversion, transcription, web capture, and Google export, read
   `references/workflows/ingestion.md`.
