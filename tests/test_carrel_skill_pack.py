@@ -43,6 +43,7 @@ def test_carrel_skill_pack_layout_and_metadata() -> None:
     skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     assert skill_md.startswith("---\nname: carrel\n")
     assert "description:" in skill_md
+    assert len(skill_md.splitlines()) < 500
     openai_yaml = (SKILL / "agents" / "openai.yaml").read_text(encoding="utf-8")
     assert "interface:\n" in openai_yaml
     assert 'default_prompt: "Use $carrel' in openai_yaml
@@ -55,6 +56,41 @@ def test_carrel_skill_pack_layout_and_metadata() -> None:
     assert (SKILL / "references" / "workflows" / "onboarding.md").exists()
     assert (SKILL / "references" / "workflows" / "ingestion.md").exists()
     assert (SKILL / "assets" / "templates" / "agent-context.md").exists()
+
+
+def test_carrel_skill_pack_has_no_generated_files() -> None:
+    banned = []
+    for item in SKILL.rglob("*"):
+        if "__pycache__" in item.parts or item.suffix == ".pyc":
+            banned.append(str(item.relative_to(SKILL)))
+    assert banned == []
+
+
+def test_carrel_skill_workflow_references_are_routed_and_previewable() -> None:
+    skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    workflows = sorted((SKILL / "references" / "workflows").glob("*.md"))
+    assert workflows
+    for workflow in workflows:
+        rel = workflow.relative_to(SKILL).as_posix()
+        body = workflow.read_text(encoding="utf-8")
+        assert rel in skill_md
+        if len(body.splitlines()) > 100:
+            assert "## Contents" in body
+
+
+def test_carrel_skill_runtime_commands_listed_in_skill_parse(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    runtime_section = skill_md.split("## Runtime Boundary", 1)[1].split("## Host Adapters", 1)[0]
+    commands = [
+        line.removeprefix("- `").removesuffix("`")
+        for line in runtime_section.splitlines()
+        if line.startswith("- `") and line.endswith("`")
+    ]
+    assert commands
+    for command in commands:
+        result = _run(skill, *command.split(), "--help")
+        assert result.returncode == 0, (command, result.stderr)
 
 
 def test_carrel_skill_pack_surface_map_covers_legacy_cli_families() -> None:
@@ -89,6 +125,27 @@ def test_carrel_skill_pack_surface_map_covers_legacy_cli_families() -> None:
         "Slash commands and hooks",
     ]:
         assert phrase in surface_map
+
+
+def test_carrel_skill_legacy_only_surfaces_are_rejected_by_portable_runtime(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    surface_map = (SKILL / "references" / "contracts" / "surface-map.md").read_text(encoding="utf-8")
+    legacy_commands = [
+        ("automate", "configure"),
+        ("setup-state", "advance"),
+        ("migrate", "apply"),
+        ("vault", "check-sync"),
+        ("vault", "add-markers"),
+        ("vault", "new"),
+        ("vault", "dashboard"),
+        ("vault", "automation-prompt"),
+        ("paper", "list"),
+        ("transcript", "list"),
+    ]
+    for command in legacy_commands:
+        assert " ".join(command) in surface_map
+        result = _run(skill, *command, "--help")
+        assert result.returncode != 0, command
 
 
 def test_carrel_skill_runtime_modules_stay_small() -> None:
@@ -420,6 +477,10 @@ def test_carrel_skill_runtime_doctor_google_batch_trust_and_automation(tmp_path)
     assert configured["enabled"] is True
     assert configured["schedule"] == "weekdays"
     assert configured["gap_analysis"] is True
+    assert configured["last_reviewed"] == date.today().isoformat()
+    assert (vault / "_meta" / "pending-decisions.md").exists()
+    assert (vault / "_meta" / "pending-approvals.md").exists()
+    assert (vault / "_meta" / "automation-prompt.md").exists()
 
 
 def test_carrel_skill_runtime_local_markitdown_adapter_is_bounded_and_used(tmp_path) -> None:
@@ -504,7 +565,7 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
         encoding="utf-8",
     )
     redact = tmp_path / "redact.txt"
-    redact.write_text("Alice\nAcme Lab\n", encoding="utf-8")
+    redact.write_text("Alice -> Researcher\nAcme Lab\n", encoding="utf-8")
 
     reflection = _run(
         skill,
@@ -533,6 +594,9 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
         "New RA",
         "--sensitivity",
         "high",
+        "--from-stdin",
+        "--canonical",
+        input_text="# Approved Handbook\n\nUse this lab process.",
     )
 
     assert reflection.returncode == 0, reflection.stderr
@@ -544,10 +608,15 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
     digest = meta / f"feedback-digest-{date.today().isoformat()}.md"
     assert digest.exists()
     assert "Alice" not in digest.read_text(encoding="utf-8")
+    assert "Researcher" in digest.read_text(encoding="utf-8")
+    assert "Acme Lab" not in digest.read_text(encoding="utf-8")
     assert "legacy flat log trouble" in digest.read_text(encoding="utf-8")
     handbook = Path(json.loads(share.stdout)["path"])
     assert handbook.exists()
-    assert "researcher-field-omitted" in share.stdout
+    assert handbook.read_text(encoding="utf-8").startswith("# Approved Handbook")
+    canonical = Path(json.loads(share.stdout)["canonical_path"])
+    assert canonical == meta / "lab-handbook.md"
+    assert canonical.read_text(encoding="utf-8") == handbook.read_text(encoding="utf-8")
 
 
 def test_carrel_skill_runtime_feedback_rejects_symlinked_sources(tmp_path) -> None:

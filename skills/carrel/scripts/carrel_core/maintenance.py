@@ -50,15 +50,26 @@ def cmd_mirror_write(args) -> int:
     return 0
 
 
-def read_redactions(path: Path) -> list[str]:
+def read_redactions(path: Path) -> list[tuple[str, str]]:
     if not path.exists():
         raise CarrelError("Redact list not found", hint=str(path))
-    return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    redactions: list[tuple[str, str]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        value = line.strip()
+        if not value or value.startswith("#"):
+            continue
+        if "->" in value:
+            source, replacement = [part.strip() for part in value.split("->", 1)]
+            if source:
+                redactions.append((source, replacement or "[REDACTED]"))
+        else:
+            redactions.append((value, "[REDACTED]"))
+    return redactions
 
 
-def apply_redactions(text: str, terms: list[str]) -> str:
-    for term in terms:
-        text = re.sub(re.escape(term), "[REDACTED]", text, flags=re.IGNORECASE)
+def apply_redactions(text: str, redactions: list[tuple[str, str]]) -> str:
+    for term, replacement in redactions:
+        text = re.sub(re.escape(term), replacement, text, flags=re.IGNORECASE)
     return text
 
 
@@ -92,49 +103,60 @@ def cmd_share_generate(args) -> int:
         raise CarrelError("Invalid collaborator name")
     profile = read_profile(args.vault)
     redactions: list[str] = []
-    if args.sensitivity == "high":
-        researcher = "Researcher details omitted for high sensitivity."
-        redactions.extend(["researcher-field-omitted", "threads-section-omitted"])
+    if args.from_stdin:
+        supplied = sys.stdin.read().strip()
+        if not supplied:
+            raise CarrelError("Empty collaborator handbook received on stdin")
+        body = [supplied]
     else:
-        researcher = f"Researcher: {profile.get('name') or 'Researcher'}\nField: {profile.get('field') or 'unspecified'}"
-    body = [
-        f"# Collaborator Handbook for {args.name}",
-        "",
-        researcher,
-        "",
-        "## Vault Layout",
-        "- papers/",
-        "- notes/",
-        "- transcripts/",
-        "- _meta/",
-    ]
-    if args.mode == "full" and args.sensitivity != "high":
-        friction = []
-        for source in [
-            safe_vault_join(args.vault, "_meta", "friction_log.md"),
-            *sorted(safe_vault_join(args.vault, "_meta", "friction-log").glob("*.md")),
-        ]:
-            if source.is_file():
-                text = safe_read_text(args.vault, source, encoding="utf-8")
-                friction.append(text[:400].rstrip())
-        if friction:
-            body.extend(["", "## Friction & Workarounds"])
-            body.extend(friction)
+        if args.sensitivity == "high":
+            researcher = "Researcher details omitted for high sensitivity."
+            redactions.extend(["researcher-field-omitted", "threads-section-omitted"])
+        else:
+            researcher = f"Researcher: {profile.get('name') or 'Researcher'}\nField: {profile.get('field') or 'unspecified'}"
+        body = [
+            f"# Collaborator Handbook for {args.name}",
+            "",
+            researcher,
+            "",
+            "## Vault Layout",
+            "- papers/",
+            "- notes/",
+            "- transcripts/",
+            "- _meta/",
+        ]
+        if args.mode == "full" and args.sensitivity != "high":
+            friction = []
+            for source in [
+                safe_vault_join(args.vault, "_meta", "friction_log.md"),
+                *sorted(safe_vault_join(args.vault, "_meta", "friction-log").glob("*.md")),
+            ]:
+                if source.is_file():
+                    text = safe_read_text(args.vault, source, encoding="utf-8")
+                    friction.append(text[:400].rstrip())
+            if friction:
+                body.extend(["", "## Friction & Workarounds"])
+                body.extend(friction)
+                if args.sensitivity == "medium":
+                    redactions.append("friction-excerpt-truncated")
+        elif args.mode == "full":
+            redactions.append("friction-log-omitted")
+        if args.sensitivity != "high":
+            threads = sorted((args.vault / "notes" / "threads").glob("*.md"))
+            if threads:
+                body.extend(["", "## Active Threads"])
+                for thread in threads:
+                    body.append(f"- {thread.name}")
             if args.sensitivity == "medium":
-                redactions.append("friction-excerpt-truncated")
-    elif args.mode == "full":
-        redactions.append("friction-log-omitted")
-    if args.sensitivity != "high":
-        threads = sorted((args.vault / "notes" / "threads").glob("*.md"))
-        if threads:
-            body.extend(["", "## Active Threads"])
-            for thread in threads:
-                body.append(f"- {thread.name}")
-        if args.sensitivity == "medium":
-            redactions.append("threads-contents-omitted")
+                redactions.append("threads-contents-omitted")
     target = safe_vault_join(args.vault, "_meta", "handbook", f"{date.today().isoformat()}-for-{slugify(args.name)}.md")
     safe_atomic_write(args.vault, target, "\n".join(body).rstrip() + "\n")
-    print(json.dumps({"path": str(target), "sensitivity": args.sensitivity, "redactions_applied": redactions}))
+    canonical_path = None
+    if args.canonical:
+        canonical = safe_vault_join(args.vault, "_meta", "lab-handbook.md")
+        safe_atomic_write(args.vault, canonical, "\n".join(body).rstrip() + "\n")
+        canonical_path = str(canonical)
+    print(json.dumps({"path": str(target), "canonical_path": canonical_path, "sensitivity": args.sensitivity, "redactions_applied": redactions}))
     return 0
 
 
@@ -194,6 +216,7 @@ def cmd_automation_configure(args) -> int:
     automation["schedule"] = args.schedule
     automation["review_cadence"] = args.review_cadence
     automation["model"] = args.model
+    automation["last_reviewed"] = date.today().isoformat()
     optional_flags = {
         "inbox_processing": args.inbox_processing,
         "vault_health": args.vault_health,
@@ -208,5 +231,38 @@ def cmd_automation_configure(args) -> int:
             automation[key] = value == "true"
     profile["automation"] = automation
     path = write_profile(args.vault, profile)
-    print(json.dumps({"path": str(path), "automation": automation}))
+    pending_decisions = safe_vault_join(args.vault, "_meta", "pending-decisions.md")
+    if not pending_decisions.exists():
+        safe_atomic_write(args.vault, pending_decisions, "# Pending Decisions\n\nItems deferred from automated processing.\n")
+    pending_approvals = safe_vault_join(args.vault, "_meta", "pending-approvals.md")
+    if not pending_approvals.exists():
+        safe_atomic_write(args.vault, pending_approvals, "# Pending Approvals\n\nProposed actions awaiting researcher approval.\n")
+    automation_prompt = safe_vault_join(args.vault, "_meta", "automation-prompt.md")
+    if not automation_prompt.exists():
+        safe_atomic_write(
+            args.vault,
+            automation_prompt,
+            "\n".join(
+                [
+                    "# Carrel Automation Prompt",
+                    "",
+                    "Find the vault root by locating `.carrel/environment.json`.",
+                    "Read `.carrel/environment.json` and `.carrel/agent-context.md` before acting.",
+                    "Run unattended: do not ask questions; write uncertain items to `_meta/pending-decisions.md`.",
+                    "Respect the configured sensitivity, cloud consent, and trust level.",
+                ]
+            )
+            + "\n",
+        )
+    print(
+        json.dumps(
+            {
+                "path": str(path),
+                "automation": automation,
+                "pending_decisions": str(pending_decisions),
+                "pending_approvals": str(pending_approvals),
+                "automation_prompt": str(automation_prompt),
+            }
+        )
+    )
     return 0

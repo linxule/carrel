@@ -2,6 +2,20 @@
 
 Carrel's portable runtime is stdlib-first. External adapters are optional.
 
+## Setup Plan Rules
+
+During onboarding or repair, present optional tools as capability choices, not
+installation blockers.
+
+- State the research use case first: scanned PDFs, local transcription, Google
+  export, web cleanup, or model-teammate review.
+- Check sensitivity and cloud consent before naming cloud routes.
+- Keep volatile install click-paths, marketplace steps, and host-specific
+  command names in adapter docs or upstream source links.
+- Store durable choices in `.carrel/environment.json` under
+  `tools_configured`, `preferences`, or `model_teammates`.
+- Re-run `env doctor` after a local install and summarize only what changed.
+
 ## Local Tool Adapters
 
 - `liteparse`: PDF conversion through the `lit` executable.
@@ -45,3 +59,7 @@ unless a bounded local command wrapper is added here deliberately.
 Host adapters may add slash commands, lifecycle hooks, or generated memory
 files. They must call or preserve the portable runtime contracts rather than
 making host-specific files canonical.
+
+Model teammate installation is adapter-specific. Portable Carrel should only
+record which teammates are available, what they are trusted to review, and what
+sensitivity levels block their use.

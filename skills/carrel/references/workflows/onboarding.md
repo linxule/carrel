@@ -6,6 +6,16 @@ returning researcher. The interview is the portable replacement for the legacy
 plugin setup flow: keep the conversation in the agent, then use the runtime for
 deterministic vault writes and validation.
 
+## Contents
+
+- Mode Detection
+- Interview Style
+- First-Time Flow
+- Setup Plan Rules
+- Audit Presentation
+- Agent Context
+- Returning Users
+
 ## Mode Detection
 
 Inspect `.carrel/environment.json` and `.carrel/agent-context.md` if they exist.
@@ -77,6 +87,20 @@ Cover these areas naturally:
 7. If validation reports drift, run `env fix --dry-run` first, explain the
    proposed repair, then run `env fix` only after approval unless the user
    already asked for repair.
+
+## Audit Presentation
+
+Show setup audits as a decision tree, not as a raw dump.
+
+1. Start with the current readiness state: ready, usable with caveats, blocked,
+   or needs repair.
+2. Separate local capabilities from cloud capabilities.
+3. Name the next action the researcher can approve: initialize, repair profile,
+   install optional adapter, or defer.
+4. Keep ambiguous or missing information as explicit questions. Do not invent
+   sensitivity, collaborator, or tool-install facts.
+5. When a setup step is adapter-specific, point to the relevant adapter/source
+   link instead of making the portable workflow depend on that host.
 
 ## Setup Plan Rules
 

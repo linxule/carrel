@@ -33,3 +33,14 @@ in the skill pack rather than in host-specific commands.
 Treat multi-model teammates as host adapters. Record durable preferences in the
 profile or context file, but do not require any one host's plugin ecosystem for
 portable Carrel behavior.
+
+Use cases that belong in portable Carrel:
+
+- second-pass literature synthesis;
+- adversarial review of claims or coding decisions;
+- long-context pass over a source bundle;
+- collaborator-facing clarity review.
+
+Before sending material to another model, apply the same sensitivity and cloud
+consent gates as any other adapter. Keep install commands and provider-specific
+routing outside the portable workflow.

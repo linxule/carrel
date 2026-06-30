@@ -2,6 +2,34 @@
 
 Use runtime commands for deterministic writes.
 
+## Batch Protocol
+
+For interactive batch conversion or transcription, do not start with the
+runtime sweep. First inventory the folder:
+
+- count supported and unsupported file types;
+- identify likely PDFs, scans, media, Google exports, and web captures;
+- flag anything that may be high sensitivity;
+- say which local tools are available from `env doctor`;
+- summarize the proposed route and ask before processing.
+
+Stop before cloud processing when sensitivity is high or uncertain. Explicit
+tool requests count as consent only when sensitivity is low or medium; high
+sensitivity still blocks cloud tools.
+
+Use `--dry-run` to preview a batch and `--force` only when the researcher
+explicitly wants an existing artifact replaced. If a run aborts, resume by
+rerunning the same command without force; idempotent source hashes skip already
+converted items. Unattended runs should write blocked items to
+`_meta/pending-decisions.md` instead of asking questions.
+
+After a batch, report processed, skipped, failed, and pending-decision counts.
+Name the destination folders and any files that need human review.
+
+Converted papers are not notes. Conversion creates source artifacts under
+`papers/` or transcripts under `transcripts/`. Analytical notes, literature
+threads, and field-map pages require a separate agent workflow.
+
 ## Web Capture
 
 ```bash

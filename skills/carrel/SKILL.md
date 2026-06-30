@@ -36,8 +36,17 @@ treating the skill as unavailable.
   `references/workflows/setup-and-repair.md`.
 - For document conversion, transcription, web capture, and Google export, read
   `references/workflows/ingestion.md`.
-- For automation, reflection, collaborator handoff, feedback export, and mirror
-  synthesis, read `references/workflows/maintenance.md`.
+- For automation setup, unattended runs, pending decisions, and morning briefs,
+  read `references/workflows/automation.md`.
+- For reflection, feedback export, and mirror synthesis, read
+  `references/workflows/reflection-and-feedback.md`.
+- For collaborator handoff, read `references/workflows/collaborator-handoff.md`.
+- For field-map or knowledge-wiki work, read
+  `references/workflows/field-map.md`.
+- For note creation, Obsidian-facing vault work, analytical threads, and
+  databases, read `references/workflows/vault-ops.md`.
+- For a compact maintenance command overview, read
+  `references/workflows/maintenance.md`.
 - For the persisted file layout, read `references/contracts/vault-contract.md`.
 - For local/cloud routing, read `references/contracts/routing-policy.md`.
 - For profile fields and repair behavior, read

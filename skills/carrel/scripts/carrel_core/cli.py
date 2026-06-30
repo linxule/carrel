@@ -171,6 +171,8 @@ def build_parser() -> argparse.ArgumentParser:
     share_generate.add_argument("--for", dest="name", required=True)
     share_generate.add_argument("--sensitivity", choices=sorted(SENSITIVITY), default="medium")
     share_generate.add_argument("--mode", choices=["quick", "full"], default="quick")
+    share_generate.add_argument("--from-stdin", action="store_true")
+    share_generate.add_argument("--canonical", action="store_true")
     share_generate.set_defaults(func=cmd_share_generate)
 
     trust = sub.add_parser("trust")

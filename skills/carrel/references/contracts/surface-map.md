@@ -23,7 +23,8 @@ idempotency, policy gates, structured output, or dated artifact paths.
 | `vault feedback export` | `feedback export` | Writes dated redacted digest. |
 | `vault mirror` | `mirror write` | Writes monthly mirror from supplied synthesis. |
 | `vault reflect-log` | `reflection append` | Appends dated reflection entries. |
-| `vault share generate` | `share generate` | Writes collaborator handoff with sensitivity redactions. |
+| `vault share generate` | `share generate` | Writes collaborator handoff with sensitivity redactions; accepts agent-synthesized stdin and optional canonical handbook writes. |
+| automation prompt seed | `automation configure` | Initializes pending decision, pending approval, and automation prompt files idempotently. |
 
 ## Agent Workflows
 
@@ -43,6 +44,13 @@ for final persistence.
 | `env profile` | Agent reads `.carrel/environment.json` directly when profile display is needed. |
 | `paper list`, `transcript list` | Agent lists `papers/*/paper.md` or `transcripts/*.md` directly. |
 | wiki/research partner workflows | Agent proposes and writes only after approval unless the trust profile allows the action. |
+| setup interview | `references/workflows/onboarding.md`; the agent converses, audits, and summarizes before deterministic writes. |
+| automation behavior | `references/workflows/automation.md`; runtime stores settings, while the host schedules runs. |
+| collaborator refinement loop | `references/workflows/collaborator-handoff.md`; runtime persists final approved handbooks. |
+| field map and knowledge wiki | `references/workflows/field-map.md`; field-map writes require trust checks and logs. |
+| note templates and Obsidian conventions | `references/workflows/vault-ops.md` and `assets/templates/`; agent judgment chooses the note shape. |
+| reflection conversation and mirror synthesis | `references/workflows/reflection-and-feedback.md`; runtime stores final reflection, mirror, and digest artifacts. |
+| interactive batch protocol | `references/workflows/ingestion.md`; runtime owns file conversion and transcript persistence only. |
 
 ## Host Or Adapter Surfaces
 
@@ -54,6 +62,17 @@ Keep these outside the portable core.
 | `setup-state advance`, `complete`, `show`, `reset` | Host adapter setup flow only. Portable setup state is `.carrel/environment.json` plus `.carrel/agent-context.md`. |
 | `vault check-sync`, `vault add-markers` | Claude adapter only because they manage `CLAUDE.md` markers. |
 | Slash commands and hooks | Host adapter only. They should call the bundled runtime or read these references. |
+| Claude Desktop scheduling walkthroughs | Adapter documentation only. Portable automation produces prompt files and contracts, not click-path setup. |
+| marketplace/plugin state | Adapter only. Portable Carrel is the skill folder plus bundled scripts. |
+| model teammate install commands | Adapter only. Portable Carrel records `model_teammates`, sensitivity gates, and research use cases. |
+
+## Asset And Template Surfaces
+
+Keep reusable but judgment-light scaffolds in `assets/templates/`: paper,
+transcript, agent context, vault scaffold, Obsidian configuration, and other
+starter text. Do not encode one-off dashboards, custom trackers, or literature
+wiki pages as runtime commands unless they become repeatable deterministic
+artifacts.
 
 ## Completeness Rule
 
