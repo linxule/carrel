@@ -1,0 +1,186 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sys
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+from .constants import TRUST_ACTIONS, TRUST_LEVELS
+from .core import (
+    CarrelError,
+    atomic_write,
+    current_trust,
+    read_profile,
+    require_profile,
+    safe_vault_join,
+    slugify,
+    trust_allowed,
+    write_profile,
+)
+
+
+def cmd_reflection_append(args) -> int:
+    body = sys.stdin.read().rstrip()
+    if not body:
+        raise CarrelError("Empty reflection body received on stdin")
+    target = safe_vault_join(args.vault, "_meta", "reflections", f"reflection-{date.today().isoformat()}.md")
+    existed = target.exists()
+    previous = target.read_text(encoding="utf-8") if target.exists() else f"# Reflection - {date.today().isoformat()}\n"
+    stamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    atomic_write(target, f"{previous.rstrip()}\n\n## {stamp}\n\n{body}\n")
+    print(json.dumps({"path": str(target), "action": "appended" if existed else "created"}))
+    return 0
+
+
+def cmd_mirror_write(args) -> int:
+    body = sys.stdin.read()
+    if not body.strip():
+        raise CarrelError("Empty mirror body received on stdin")
+    target = safe_vault_join(args.vault, "_meta", "mirror", f"{date.today().strftime('%Y-%m')}.md")
+    existed = target.exists()
+    new_hash = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() == new_hash and not args.force:
+        print(json.dumps({"path": str(target), "action": "skipped"}))
+        return 0
+    atomic_write(target, body)
+    print(json.dumps({"path": str(target), "action": "updated" if existed else "created"}))
+    return 0
+
+
+def read_redactions(path: Path) -> list[str]:
+    if not path.exists():
+        raise CarrelError("Redact list not found", hint=str(path))
+    return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def apply_redactions(text: str, terms: list[str]) -> str:
+    for term in terms:
+        text = re.sub(re.escape(term), "[REDACTED]", text, flags=re.IGNORECASE)
+    return text
+
+
+def cmd_feedback_export(args) -> int:
+    terms = read_redactions(args.redact_list)
+    meta = args.vault / "_meta"
+    sources = []
+    for folder in ["friction-log", "capability-log", "reflections"]:
+        sources.extend(sorted((meta / folder).glob("*.md")))
+    parts = [f"# Feedback Digest - {date.today().isoformat()}\n"]
+    for source in sources:
+        parts.append(f"\n## {source.name}\n\n")
+        parts.append(apply_redactions(source.read_text(encoding="utf-8"), terms))
+    target = safe_vault_join(args.vault, "_meta", f"feedback-digest-{date.today().isoformat()}.md")
+    atomic_write(target, "\n".join(parts).rstrip() + "\n")
+    print(json.dumps({"path": str(target), "sources": [str(path) for path in sources], "redacted_terms": len(terms)}))
+    return 0
+
+
+def cmd_share_generate(args) -> int:
+    if ".." in args.name or "/" in args.name or "\\" in args.name:
+        raise CarrelError("Invalid collaborator name")
+    profile = read_profile(args.vault)
+    redactions: list[str] = []
+    if args.sensitivity == "high":
+        researcher = "Researcher details omitted for high sensitivity."
+        redactions.extend(["researcher-field-omitted", "threads-section-omitted"])
+    else:
+        researcher = f"Researcher: {profile.get('name') or 'Researcher'}\nField: {profile.get('field') or 'unspecified'}"
+    body = [
+        f"# Collaborator Handbook for {args.name}",
+        "",
+        researcher,
+        "",
+        "## Vault Layout",
+        "- papers/",
+        "- notes/",
+        "- transcripts/",
+        "- _meta/",
+    ]
+    if args.sensitivity != "high":
+        threads = sorted((args.vault / "notes" / "threads").glob("*.md"))
+        if threads:
+            body.extend(["", "## Active Threads"])
+            for thread in threads:
+                body.append(f"- {thread.name}")
+        if args.sensitivity == "medium":
+            redactions.append("threads-contents-omitted")
+    target = safe_vault_join(args.vault, "_meta", "handbook", f"{date.today().isoformat()}-for-{slugify(args.name)}.md")
+    atomic_write(target, "\n".join(body).rstrip() + "\n")
+    print(json.dumps({"path": str(target), "sensitivity": args.sensitivity, "redactions_applied": redactions}))
+    return 0
+
+
+def cmd_trust_check(args) -> int:
+    trust = args.trust_level or current_trust(args.vault)
+    required, allowed = trust_allowed(args.action, trust)
+    payload = {
+        "action": args.action,
+        "required_trust": required,
+        "trust_level": trust,
+        "allowed": allowed,
+    }
+    if args.format == "json":
+        print(json.dumps(payload))
+    elif allowed:
+        print(f"allowed: {args.action}")
+    else:
+        print(f"Action '{args.action}' requires trust level '{required}'; current is '{trust}'", file=sys.stderr)
+    return 0 if allowed else 1
+
+
+def cmd_trust_list(args) -> int:
+    trust = args.trust_level or current_trust(args.vault)
+    payload = {}
+    for action in sorted(TRUST_ACTIONS):
+        required, allowed = trust_allowed(action, trust)
+        payload[action] = {"required_trust": required, "allowed": allowed}
+    if args.format == "json":
+        print(json.dumps(payload))
+    else:
+        for action, item in payload.items():
+            marker = "yes" if item["allowed"] else "no"
+            print(f"{action}: {marker} (requires {item['required_trust']})")
+    return 0
+
+
+def cmd_trust_show(args) -> int:
+    trust = current_trust(args.vault)
+    if args.format == "json":
+        print(json.dumps({"trust_level": trust}))
+    else:
+        print(f"trust_level: {trust}")
+    return 0
+
+
+def cmd_automation_configure(args) -> int:
+    profile = require_profile(args.vault)
+    required, allowed = trust_allowed("automation:write-prompt", current_trust(args.vault))
+    if not allowed:
+        raise CarrelError(
+            "Automation configuration is not allowed at current trust level",
+            hint=f"Requires {required}; update trust through setup or an explicit profile edit.",
+        )
+    automation = dict(profile.get("automation", {}))
+    automation["enabled"] = args.enabled == "true"
+    automation["trust_level"] = args.trust_level
+    automation["schedule"] = args.schedule
+    automation["review_cadence"] = args.review_cadence
+    automation["model"] = args.model
+    optional_flags = {
+        "inbox_processing": args.inbox_processing,
+        "vault_health": args.vault_health,
+        "cross_linking_suggestions": args.cross_linking,
+        "gap_analysis": args.gap_analysis,
+        "draft_feedback": args.draft_feedback,
+        "reflection_synthesis": args.reflection_synthesis,
+        "wiki_maintenance": args.wiki_maintenance,
+    }
+    for key, value in optional_flags.items():
+        if value is not None:
+            automation[key] = value == "true"
+    profile["automation"] = automation
+    path = write_profile(args.vault, profile)
+    print(json.dumps({"path": str(path), "automation": automation}))
+    return 0

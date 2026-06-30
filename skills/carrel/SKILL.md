@@ -39,6 +39,8 @@ offer the relevant setup path instead of treating the skill as unavailable.
 - For profile fields and repair behavior, read
   `references/contracts/environment-profile.md`.
 - For trust-gated operations, read `references/contracts/trust-levels.md`.
+- For deciding whether behavior belongs in the runtime or agent proposal, read
+  `references/contracts/determinism-boundary.md`.
 - For optional external tools and host adapters, read
   `references/contracts/optional-adapters.md`.
 - For research partner, wiki, and vault-note behavior, read
