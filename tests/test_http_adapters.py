@@ -4,6 +4,7 @@ import io
 import json
 import zipfile
 
+import httpx
 import pytest
 
 from carrel.convert.adapters.defuddle import capture_with_defuddle
@@ -37,10 +38,10 @@ class _FakeAsyncClient:
 
 
 class _JsonResponse:
-    def __init__(self, payload: dict | None = None, *, status_code: int = 200, content: bytes = b""):
+    def __init__(self, payload: dict | None = None, *, status_code: int = 200, content: bytes | None = None):
         self._payload = payload or {}
         self.status_code = status_code
-        self.content = content
+        self.content = content if content is not None else (b"{}" if payload is not None else b"")
 
     def json(self):
         return self._payload
@@ -186,9 +187,10 @@ async def test_convert_with_mistral_ocr_uploads_file_and_reads_page_markdown(tmp
     assert metadata["file_id"] == "file-1"
     assert metadata["pages"] == 2
     assert metadata["usage_info"] == {"pages_processed": 2, "doc_size_bytes": 3}
+    assert metadata["cleanup"] == {"deleted": True, "status_code": 200}
     assert "provider_response" not in metadata
     assert calls[0][0:2] == ("post", "https://api.mistral.ai/v1/files")
-    assert calls[0][2]["data"] == {"purpose": "ocr"}
+    assert calls[0][2]["data"] == {"purpose": "ocr", "visibility": "user"}
     assert calls[1] == (
         "get",
         "https://api.mistral.ai/v1/files/file-1/url",
@@ -206,6 +208,68 @@ async def test_convert_with_mistral_ocr_uploads_file_and_reads_page_markdown(tmp
         "https://api.mistral.ai/v1/files/file-1",
         {"headers": {"Authorization": "Bearer configured"}},
     )
+
+
+@pytest.mark.asyncio
+async def test_convert_with_mistral_ocr_wraps_transport_errors(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(b"pdf")
+
+    class TimeoutMistralClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, *args, **kwargs):  # noqa: ARG002
+            raise httpx.ConnectTimeout("timeout")
+
+    monkeypatch.setattr("carrel.convert.adapters.mistral_ocr.httpx.AsyncClient", TimeoutMistralClient)
+
+    with pytest.raises(ConversionError) as exc:
+        await convert_with_mistral_ocr(source, api_key="configured")
+
+    assert exc.value.message == "mistral ocr request failed"
+    assert "connectivity" in exc.value.hint
+
+
+@pytest.mark.asyncio
+async def test_convert_with_mistral_ocr_fails_when_cleanup_is_not_confirmed(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(b"pdf")
+
+    class CleanupFailureMistralClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, url: str, **kwargs):  # noqa: ARG002
+            if url.endswith("/files"):
+                return _JsonResponse({"id": "file-1"})
+            return _JsonResponse({"pages": [{"markdown": "Body"}]})
+
+        async def get(self, *args, **kwargs):  # noqa: ARG002
+            return _JsonResponse({"url": "https://signed.example/paper.pdf"})
+
+        async def delete(self, *args, **kwargs):  # noqa: ARG002
+            return _JsonResponse({"deleted": False}, status_code=200)
+
+    monkeypatch.setattr("carrel.convert.adapters.mistral_ocr.httpx.AsyncClient", CleanupFailureMistralClient)
+
+    with pytest.raises(ConversionError) as exc:
+        await convert_with_mistral_ocr(source, api_key="configured")
+
+    assert exc.value.message == "mistral ocr cleanup failed"
+    assert "did not confirm deletion" in exc.value.hint
 
 
 @pytest.mark.asyncio

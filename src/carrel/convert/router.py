@@ -7,6 +7,11 @@ from carrel.env.install import install_command_for
 from carrel.models import ConvertTool, HardwareCapability, Sensitivity, ToolAvailability
 from carrel.policy.sensitivity import select_tool
 
+CONVERT_CLOUD_ENV_VARS = {
+    ConvertTool.MINERU: "MINERU_API_KEY",
+    ConvertTool.MISTRAL_OCR: "MISTRAL_API_KEY",
+}
+
 
 def select_convert_tool(
     file: Path,
@@ -46,6 +51,11 @@ def select_convert_tool(
     )
     if decision.selected_tool is not None:
         return decision.selected_tool
+    if explicit_tool in CONVERT_CLOUD_ENV_VARS:
+        raise CarrelError(
+            decision.rationale,
+            hint=f"Configure {CONVERT_CLOUD_ENV_VARS[explicit_tool]} or choose an available local tool.",
+        )
 
     raise CarrelError(
         decision.rationale,

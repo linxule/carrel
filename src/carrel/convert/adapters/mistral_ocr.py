@@ -19,31 +19,42 @@ async def convert_with_mistral_ocr(file: Path, api_key: str, timeout: int = 120)
             "mistral ocr file too large",
             hint="Mistral OCR accepts PDFs up to 512 MB; split or compress the file before retrying.",
         )
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        file_id = await _upload_file(client, file, headers)
-        try:
-            signed_url = await _signed_url(client, file_id, headers)
-            ocr_response = await client.post(
-                f"{MISTRAL_API_BASE}/ocr",
-                headers={**headers, "Content-Type": "application/json"},
-                json={
-                    "model": MISTRAL_OCR_MODEL,
-                    "document": {"type": "document_url", "document_url": signed_url},
-                    "table_format": "markdown",
-                    "include_image_base64": False,
-                },
-            )
-            payload = _json_or_raise(ocr_response)
-            markdown = _markdown_from_payload(payload)
-            usage_info = payload.get("usage_info") if isinstance(payload.get("usage_info"), dict) else {}
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            file_id = await _upload_file(client, file, headers)
+            try:
+                signed_url = await _signed_url(client, file_id, headers)
+                ocr_response = await client.post(
+                    f"{MISTRAL_API_BASE}/ocr",
+                    headers={**headers, "Content-Type": "application/json"},
+                    json={
+                        "model": MISTRAL_OCR_MODEL,
+                        "document": {"type": "document_url", "document_url": signed_url},
+                        "table_format": "markdown",
+                        "include_image_base64": False,
+                    },
+                )
+                payload = _json_or_raise(ocr_response)
+                markdown = _markdown_from_payload(payload)
+                usage_info = (
+                    payload.get("usage_info") if isinstance(payload.get("usage_info"), dict) else {}
+                )
+            except Exception:
+                await _delete_file(client, file_id, headers, raise_on_failure=False)
+                raise
+            cleanup = await _delete_file(client, file_id, headers)
             return markdown, {
                 "model": payload.get("model") if isinstance(payload.get("model"), str) else MISTRAL_OCR_MODEL,
                 "file_id": file_id,
                 "pages": _usage_pages(usage_info) or _page_count(payload),
                 "usage_info": usage_info,
+                "cleanup": cleanup,
             }
-        finally:
-            await _delete_file(client, file_id, headers)
+    except httpx.HTTPError as exc:
+        raise ConversionError(
+            "mistral ocr request failed",
+            hint="Mistral OCR request could not complete. Check connectivity, MISTRAL_API_KEY, and provider status.",
+        ) from exc
 
 
 async def _upload_file(client: httpx.AsyncClient, file: Path, headers: dict[str, str]) -> str:
@@ -51,7 +62,7 @@ async def _upload_file(client: httpx.AsyncClient, file: Path, headers: dict[str,
         response = await client.post(
             f"{MISTRAL_API_BASE}/files",
             headers=headers,
-            data={"purpose": "ocr"},
+            data={"purpose": "ocr", "visibility": "user"},
             files={"file": (file.name, handle, "application/pdf")},
         )
     payload = _json_or_raise(response)
@@ -80,11 +91,45 @@ async def _signed_url(client: httpx.AsyncClient, file_id: str, headers: dict[str
     return url
 
 
-async def _delete_file(client: httpx.AsyncClient, file_id: str, headers: dict[str, str]) -> None:
+async def _delete_file(
+    client: httpx.AsyncClient,
+    file_id: str,
+    headers: dict[str, str],
+    *,
+    raise_on_failure: bool = True,
+) -> dict[str, bool | str | int | None]:
     try:
-        await client.delete(f"{MISTRAL_API_BASE}/files/{file_id}", headers=headers)
-    except (httpx.HTTPError, RuntimeError):
-        return
+        response = await client.delete(f"{MISTRAL_API_BASE}/files/{file_id}", headers=headers)
+    except (httpx.HTTPError, RuntimeError) as exc:
+        if raise_on_failure:
+            raise ConversionError(
+                "mistral ocr cleanup failed",
+                hint=(
+                    "OCR succeeded, but Carrel could not confirm deletion of the uploaded file. "
+                    "Delete it from Mistral manually or retry cleanup."
+                ),
+            ) from exc
+        return {"deleted": False, "status_code": None, "warning": "cleanup request failed"}
+    if response.status_code >= 400:
+        if raise_on_failure:
+            raise ConversionError(
+                "mistral ocr cleanup failed",
+                hint=(
+                    f"Mistral returned HTTP {response.status_code} while deleting the uploaded file. "
+                    "Delete it from Mistral manually before treating this run as complete."
+                ),
+            )
+        return {"deleted": False, "status_code": response.status_code, "warning": "cleanup returned error"}
+    payload = _json_or_empty(response)
+    deleted = payload.get("deleted") if payload else True
+    if deleted is not True:
+        if raise_on_failure:
+            raise ConversionError(
+                "mistral ocr cleanup failed",
+                hint="Mistral did not confirm deletion of the uploaded file; delete it manually.",
+            )
+        return {"deleted": False, "status_code": response.status_code, "warning": "cleanup not confirmed"}
+    return {"deleted": True, "status_code": response.status_code}
 
 
 def _json_or_raise(response: httpx.Response) -> dict[str, Any]:
@@ -103,6 +148,16 @@ def _json_or_raise(response: httpx.Response) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ConversionError("mistral ocr returned invalid JSON", hint="Expected a JSON object response.")
     return payload
+
+
+def _json_or_empty(response: httpx.Response) -> dict[str, Any]:
+    if not response.content:
+        return {}
+    try:
+        payload = response.json()
+    except ValueError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _markdown_from_payload(payload: dict[str, Any]) -> str:

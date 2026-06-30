@@ -28,10 +28,23 @@ def test_transcribe_router_respects_explicit_tool() -> None:
         source="audio.wav",
         sensitivity=Sensitivity.MEDIUM,
         hardware=HardwareCapability.MEDIUM,
-        tools=make_tools(),
+        tools=make_tools(groq_key=True),
         explicit_tool=TranscribeTool.GROQ,
     )
     assert tool == TranscribeTool.GROQ
+
+
+def test_transcribe_router_rejects_explicit_cloud_without_api_key() -> None:
+    with pytest.raises(CarrelError) as exc:
+        select_transcribe_tool(
+            source="audio.wav",
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(),
+            explicit_tool=TranscribeTool.GROQ,
+    )
+    assert exc.value.message == "Requested cloud tool is not available; configure credentials and retry"
+    assert exc.value.hint == "Configure GROQ_API_KEY or choose an available local/network tool."
 
 
 def test_transcribe_router_prefers_youtube_captions_over_gemini_by_default() -> None:

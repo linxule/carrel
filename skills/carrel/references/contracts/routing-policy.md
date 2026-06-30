@@ -12,8 +12,7 @@ selected only when policy allows.
 
 ## Tool Classes
 
-- Convert local: `liteparse`, `markdownify`; `paddleocr` only if a host adds an
-  explicit local OCR adapter.
+- Convert local: `liteparse`, `markdownify`
 - Convert cloud: `mineru`, `mistral_ocr`
 - Capture local: `defuddle`, `markitdown`
 - Transcribe local: `coli`
@@ -21,3 +20,6 @@ selected only when policy allows.
 
 Use `python3 scripts/carrel.py policy explain ...` to make the deterministic
 selection visible before a write.
+
+`paddleocr` is tracked as a candidate local OCR adapter, but current runtimes do
+not accept it as a `--tool` value.

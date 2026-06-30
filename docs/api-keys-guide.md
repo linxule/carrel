@@ -42,7 +42,7 @@ Tell Claude: *"Use Mistral OCR for this PDF."*
 
 Claude should run the conversion with `--tool mistral_ocr` only when sensitivity policy allows cloud processing.
 
-**Privacy note:** Mistral OCR is a cloud service. Your PDF is uploaded to Mistral for processing. Do not use it for high-sensitivity vaults or protected materials unless your research governance explicitly allows it.
+**Privacy note:** Mistral OCR is a cloud service. Your PDF is uploaded to Mistral for processing. Carrel never routes high-sensitivity vaults to Mistral or MinerU. If governance permits cloud OCR for a specific file, reclassify that file/workflow outside the high-sensitivity path or use a separate local/export process.
 
 ## Zotero (Reference Library)
 

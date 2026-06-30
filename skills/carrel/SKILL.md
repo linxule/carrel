@@ -12,7 +12,7 @@ task needs deeper workflow or contract context.
 
 ## Quick Start
 
-Run the bundled runtime with Python 3 from this skill folder:
+Run the bundled runtime with Python 3.10 or newer from this skill folder:
 
 ```bash
 python3 scripts/carrel.py vault init <vault>
@@ -21,10 +21,12 @@ python3 scripts/carrel.py env doctor --project-path <vault> --format json
 python3 scripts/carrel.py capture url https://example.com/article --vault <vault> --content "Article body"
 ```
 
-The runtime is stdlib-first. External tools such as `lit`, `markitdown`,
-`defuddle`, `coli`, `gws`, MinerU, Groq, Gemini, and YouTube transcript APIs are
-optional adapters. If an adapter is missing, report the missing capability and
-offer the relevant setup path instead of treating the skill as unavailable.
+The runtime is stdlib-first. Public tool ids include `liteparse`,
+`markdownify`, `defuddle`, `coli`, `gws`, `mineru`, `mistral_ocr`, `groq`,
+`gemini`, and YouTube caption support. Executable names such as `lit` and
+`markitdown` are adapter implementation details. If an adapter is missing,
+report the missing capability and offer the relevant setup path instead of
+treating the skill as unavailable.
 
 ## Workflow Routing
 

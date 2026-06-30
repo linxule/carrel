@@ -148,6 +148,7 @@ def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
         "obsidian",
         "zotero",
         "vox-openrouter",
+        "diagnostic-tools",
     }
     ids = {entry["id"] for entry in entries}
     assert required_ids <= ids
@@ -157,14 +158,37 @@ def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
         for field in manifest["entry_required_fields"]:
             assert field in entry, entry["id"]
         assert entry["sources"], entry["id"]
-        assert entry["local_references"], entry["id"]
+        assert entry["skill_references"] or entry["repo_references"], entry["id"]
         assert entry["refresh_checks"], entry["id"]
         assert entry["contract_marker"], entry["id"]
-        for local_ref in entry["local_references"]:
-            assert (Path(__file__).resolve().parents[1] / local_ref).exists(), (
+        for skill_ref in entry["skill_references"]:
+            assert (SKILL / skill_ref).exists(), (
                 entry["id"],
-                local_ref,
+                skill_ref,
             )
+        for repo_ref in entry["repo_references"]:
+            assert (Path(__file__).resolve().parents[1] / repo_ref).exists(), (
+                entry["id"],
+                repo_ref,
+            )
+
+
+def test_carrel_skill_env_doctor_separates_tool_ids_executables_and_candidates(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+
+    result = _run(skill, "env", "doctor", "--format", "json")
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["optional_adapters"]["convert"] == [
+        "liteparse",
+        "markdownify",
+        "mineru",
+        "mistral_ocr",
+    ]
+    assert payload["adapter_executables"]["liteparse"] == "lit"
+    assert payload["adapter_executables"]["markdownify"] == "markitdown"
+    assert payload["tracked_candidates"]["convert"] == ["paddleocr"]
 
 
 def test_carrel_skill_pack_has_no_required_claude_plugin_dependency() -> None:
@@ -549,6 +573,25 @@ def test_carrel_skill_runtime_policy_blocks_high_sensitivity_cloud(tmp_path) -> 
     )
     assert result.returncode == 1
     payload = json.loads(result.stdout)
+    assert payload["selected_tool"] is None
+    assert "HIGH sensitivity blocks cloud tools" in payload["rationale"]
+
+    mistral = _run(
+        skill,
+        "policy",
+        "explain",
+        "--tool-class",
+        "convert",
+        "--requested-tool",
+        "mistral_ocr",
+        "--available-tools",
+        "mistral_ocr",
+        "--sensitivity",
+        "high",
+        "--cloud-consent",
+    )
+    assert mistral.returncode == 1
+    payload = json.loads(mistral.stdout)
     assert payload["selected_tool"] is None
     assert "HIGH sensitivity blocks cloud tools" in payload["rationale"]
 

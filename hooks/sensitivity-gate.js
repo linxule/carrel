@@ -8,7 +8,7 @@
  * replace policy.sensitivity:select_tool — that stays the authoritative
  * enforcement at the CLI boundary. This hook is a UX checkpoint.
  *
- * Triggers only on `carrel (paper|transcript|capture|google) <verb> ... --tool (mineru|groq|gemini)`.
+ * Triggers only on `carrel (paper|transcript|capture|google) <verb> ... --tool (mineru|mistral_ocr|groq|gemini)`.
  * Silent pass-through on anything else, on `# bypass-gate` comment, and on any error.
  */
 
@@ -22,7 +22,7 @@ function debug(msg) {
 
 // `capture` deliberately excluded — `carrel capture` has no --tool flag today.
 // `google` retained even though its cloud-route is implicit, in case --tool is added later.
-const GATE_REGEX = /\bcarrel\s+(paper|transcript|google)\s+\S+\s+.*--tool\s+(mineru|groq|gemini)\b/;
+const GATE_REGEX = /\bcarrel\s+(paper|transcript|google)\s+\S+\s+.*--tool\s+(mineru|mistral_ocr|groq|gemini)\b/;
 
 function readStdin() {
   try {

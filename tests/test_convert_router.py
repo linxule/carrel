@@ -35,7 +35,7 @@ def test_convert_router_respects_explicit_tool() -> None:
         file=Path("paper.pdf"),
         sensitivity=Sensitivity.MEDIUM,
         hardware=HardwareCapability.MEDIUM,
-        tools=make_tools(),
+        tools=make_tools(mineru_key=True),
         explicit_tool=ConvertTool.MINERU,
     )
     assert tool == ConvertTool.MINERU
@@ -88,10 +88,23 @@ def test_convert_router_honors_explicit_mistral_ocr_request() -> None:
         file=Path("paper.pdf"),
         sensitivity=Sensitivity.MEDIUM,
         hardware=HardwareCapability.MEDIUM,
-        tools=make_tools(lit=True),
+        tools=make_tools(lit=True, mistral_key=True),
         explicit_tool=ConvertTool.MISTRAL_OCR,
     )
     assert tool == ConvertTool.MISTRAL_OCR
+
+
+def test_convert_router_rejects_explicit_mistral_ocr_without_api_key() -> None:
+    with pytest.raises(CarrelError) as exc:
+        select_convert_tool(
+            file=Path("paper.pdf"),
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(lit=True),
+            explicit_tool=ConvertTool.MISTRAL_OCR,
+        )
+    assert exc.value.message == "Requested cloud tool is not available; configure credentials and retry"
+    assert exc.value.hint == "Configure MISTRAL_API_KEY or choose an available local tool."
 
 
 def test_convert_router_errors_when_medium_sensitivity_needs_explicit_cloud_override() -> None:

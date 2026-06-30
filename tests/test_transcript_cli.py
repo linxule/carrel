@@ -24,7 +24,12 @@ def _init_vault(path: Path) -> None:
     (path / "transcripts").mkdir(parents=True)
 
 
-def _audit_result(*, coli_installed: bool = False, gemini_key: bool = False) -> AuditResult:
+def _audit_result(
+    *,
+    coli_installed: bool = False,
+    groq_key: bool = False,
+    gemini_key: bool = False,
+) -> AuditResult:
     return AuditResult(
         os="macOS",
         platform=Platform.MACOS,
@@ -33,7 +38,7 @@ def _audit_result(*, coli_installed: bool = False, gemini_key: bool = False) -> 
         tools=ToolAvailability(
             binaries={"coli": BinaryInfo(installed=coli_installed)},
             api_keys={
-                "groq": ApiKeyStatus(configured=False, env_var="GROQ_API_KEY"),
+                "groq": ApiKeyStatus(configured=groq_key, env_var="GROQ_API_KEY"),
                 "gemini": ApiKeyStatus(configured=gemini_key, env_var="GEMINI_API_KEY"),
             },
             mcp_servers=[],
@@ -47,7 +52,7 @@ def test_transcript_create_falls_back_to_youtube_captions(tmp_path, monkeypatch)
     _init_vault(vault)
 
     async def fake_audit(project_path: Path | None = None) -> AuditResult:  # noqa: ARG001
-        return _audit_result(gemini_key=False)
+        return _audit_result(gemini_key=True)
 
     async def fake_youtube(url: str) -> tuple[str, dict]:
         assert url == "https://www.youtube.com/watch?v=abc123"
@@ -81,7 +86,7 @@ def test_transcript_create_with_explicit_gemini_uses_gemini_adapter(tmp_path, mo
     calls: list[str] = []
 
     async def fake_audit(project_path: Path | None = None) -> AuditResult:  # noqa: ARG001
-        return _audit_result(gemini_key=False)
+        return _audit_result(gemini_key=True)
 
     async def fake_gemini(url: str, api_key: str, prompt: str = "", timeout: int = 300) -> str:
         calls.append(url)
@@ -166,7 +171,7 @@ def test_transcript_create_uses_300_second_default_for_groq(tmp_path, monkeypatc
     source.write_bytes(b"audio")
 
     async def fake_audit(project_path: Path | None = None) -> AuditResult:  # noqa: ARG001
-        return _audit_result(gemini_key=False)
+        return _audit_result(groq_key=True)
 
     async def fake_groq(file: Path, api_key: str, timeout: int = 120) -> str:
         assert file == source.resolve()

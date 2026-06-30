@@ -73,7 +73,7 @@ Keep the narrative guidance in `CLAUDE.md`, but preserve the marker block so `ca
 
 ### Phase 5: Optional MCPs [skippable]
 
-If the decision tree indicates mineru or zotero, add to project `.mcp.json` and guide through API key setup. Tool recommendations in this phase are platform-gated: use the install row that matches the `audit.platform` value you extracted in Phase 2. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF processing). Skip if you're not sure — you can add any of them later."
+If the decision tree indicates mineru, mistral_ocr, or zotero, guide through API key setup and add project MCPs only for tools that actually require MCP configuration. Tool recommendations in this phase are platform-gated: use the install row that matches the `audit.platform` value you extracted in Phase 2. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF/OCR processing). Skip if you're not sure — you can add any of them later."
 
 After this phase (whether you configured anything or skipped), run:
 

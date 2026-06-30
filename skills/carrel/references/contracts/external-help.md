@@ -22,13 +22,14 @@ For each changed upstream contract:
 1. Check the entry's `sources`.
 2. Run `version_probe` when it exists.
 3. Compare the live contract with `contract_marker`.
-4. Update affected files listed in `local_references`.
+4. Update affected files listed in `skill_references` and, when working in the
+   source repo, `repo_references`.
 5. Update `observed_version`, `last_reviewed`, `refresh_checks`, and tests when
    the contract changes.
 
 If a new package, API, or host adapter is added, create an entry before wiring
 it into skill prose. Every entry must include actionable `sources`,
-`local_references`, `refresh_checks`, and `rationale`.
+`skill_references`, `repo_references`, `refresh_checks`, and `rationale`.
 
 ## Current OCR Pointers
 

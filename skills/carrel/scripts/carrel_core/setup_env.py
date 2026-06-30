@@ -238,10 +238,20 @@ def cmd_env_doctor(args) -> int:
             "gemini": bool(os.environ.get("GEMINI_API_KEY")),
         },
         "optional_adapters": {
-            "capture": ["defuddle", "markitdown"],
-            "convert": ["lit", "markitdown", "mineru", "mistral_ocr", "paddleocr"],
+            "capture": ["defuddle", "markdownify"],
+            "convert": ["liteparse", "markdownify", "mineru", "mistral_ocr"],
             "transcribe": ["coli", "groq", "gemini"],
             "google": ["gws"],
+        },
+        "adapter_executables": {
+            "liteparse": "lit",
+            "markdownify": "markitdown",
+            "defuddle": "defuddle",
+            "coli": "coli",
+            "gws": "gws",
+        },
+        "tracked_candidates": {
+            "convert": ["paddleocr"],
         },
     }
     if args.format == "json":

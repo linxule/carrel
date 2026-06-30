@@ -6,6 +6,11 @@ from carrel.models import HardwareCapability, Sensitivity, ToolAvailability, Tra
 from carrel.policy.sensitivity import select_tool
 from carrel.transcribe.youtube_url import is_youtube_url
 
+TRANSCRIBE_CLOUD_ENV_VARS = {
+    TranscribeTool.GROQ: "GROQ_API_KEY",
+    TranscribeTool.GEMINI: "GEMINI_API_KEY",
+}
+
 
 def select_transcribe_tool(
     source: str,
@@ -49,6 +54,11 @@ def select_transcribe_tool(
     )
     if decision.selected_tool is not None:
         return decision.selected_tool
+    if explicit_tool in TRANSCRIBE_CLOUD_ENV_VARS:
+        raise CarrelError(
+            decision.rationale,
+            hint=f"Configure {TRANSCRIBE_CLOUD_ENV_VARS[explicit_tool]} or choose an available local/network tool.",
+        )
 
     if not is_yt:
         raise CarrelError(

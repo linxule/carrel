@@ -132,6 +132,17 @@ def select_tool(
                     cloud_available=cloud_available,
                     rationale="HIGH sensitivity blocks cloud tools regardless of consent",
                 )
+            if requested_tool not in available_tools:
+                return _decision(
+                    requested_tool=requested_tool,
+                    selected_tool=None,
+                    sensitivity=sensitivity,
+                    cloud_consent=cloud_consent,
+                    tool_class=tool_class,
+                    local_available=local_available,
+                    cloud_available=cloud_available,
+                    rationale="Requested cloud tool is not available; configure credentials and retry",
+                )
             return _decision(
                 requested_tool=requested_tool,
                 selected_tool=requested_tool,

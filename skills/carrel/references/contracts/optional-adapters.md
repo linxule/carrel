@@ -4,15 +4,20 @@ Carrel's portable runtime is stdlib-first. External adapters are optional.
 
 ## Local Tool Adapters
 
-- `lit`: PDF conversion through liteparse.
-- `paddleocr`: optional local OCR/layout candidate for scanned or
-  layout-heavy PDFs. Do not make it a default or bundled dependency without a
-  separate install/runtime decision; it is heavier than liteparse and may
-  download models unless preseeded.
-- `markitdown`: non-PDF conversion and web fallback.
+- `liteparse`: PDF conversion through the `lit` executable.
+- `markdownify`: non-PDF conversion and web fallback through the `markitdown`
+  executable.
 - `defuddle`: web article extraction.
 - `coli`: local audio transcription.
 - `gws`: Google Workspace export.
+
+## Tracked Candidates
+
+- `paddleocr`: evaluated local OCR/layout candidate for scanned or
+  layout-heavy PDFs. Current Carrel runtimes do not accept `--tool paddleocr`.
+  Do not make it a default or bundled dependency without a separate
+  install/runtime decision; it is heavier than liteparse and may download models
+  unless preseeded.
 
 ## Network Tool Adapters
 

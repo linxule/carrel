@@ -13,7 +13,8 @@ from a project or vault directory, call the runtime by absolute path:
 python3 <skill-dir>/scripts/carrel.py env validate --vault <vault> --format json
 ```
 
-Python 3.10 or newer is required.
+Python 3.10 or newer is required. Before invoking the runtime on an unfamiliar
+host, run `python3 --version` and stop if it reports an older interpreter.
 
 ## Harness Notes
 

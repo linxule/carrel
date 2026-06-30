@@ -235,9 +235,9 @@ Interview: "What kinds of files do you work with most?"
   bun add -g @llamaindex/liteparse
   Handles most academic papers well. Fast (~500 pages/2 sec). Sensitive-data safe.
 
-→ COMPLEX PDFs (scanned, tables, multi-column, figures, formulas):
+→ COMPLEX PDFs (tables, multi-column, figures, formulas):
   + NOT SENSITIVE:
-    - Offer mineru as a higher-quality cloud option for complex cases
+    - Offer mineru as a higher-quality cloud option for complex table/formula cases
     - "For papers with dense tables and figures, there's a cloud service that
       handles them much better. It requires a free account."
     - MINERU_API_KEY from mineru.net (free signup)
@@ -247,6 +247,14 @@ Interview: "What kinds of files do you work with most?"
   + SENSITIVE (IRB data, confidential docs):
     - liteparse only — no cloud
     - "Everything stays on your machine."
+
+→ SCANNED OR IMAGE-ONLY PDFs:
+  + NOT SENSITIVE:
+    - Offer mistral_ocr as cloud OCR for scanned/layout-heavy PDFs
+    - MISTRAL_API_KEY from console.mistral.ai
+    - Researcher uses: carrel paper convert scan.pdf --tool mistral_ocr
+  + SENSITIVE (IRB data, confidential docs):
+    - keep local; do not use cloud OCR under high sensitivity
 
 → markitdown handles Word, PowerPoint, Excel, EPUB, Jupyter — not PDF.
   Routing is automatic; researchers don't need to know which tool handles what.
@@ -492,7 +500,8 @@ Quick reference for when to push vs. when to offer:
 | coli | Zero | Whenever audio is involved |
 | defuddle | Zero | Whenever web is involved |
 | youtube-transcript-api | Zero | Auto-installed with carrel |
-| Gemini key | Low | YouTube cloud, complex PDFs (non-sensitive) |
+| Gemini key | Low | YouTube/video cloud and model access |
 | Groq key | Low | Audio cloud, large batches |
-| mineru key | Medium | Complex PDFs only, non-sensitive |
+| mineru key | Medium | Complex table/formula PDFs only, non-sensitive |
+| Mistral key | Medium | Scanned/layout-heavy PDF OCR only, non-sensitive |
 | Google Workspace (gws) | HIGH | Only if they live in Google Docs; warn about setup time |
