@@ -3,6 +3,15 @@
 Use this workflow for end-of-session reflection, friction capture, feedback
 digest generation, and research mirror synthesis.
 
+## Proactive Trigger
+
+No hook fires this automatically outside Claude Code. Offer reflection when
+the researcher signals a natural session end — "ok, I'm done for today",
+"let's reflect", "wrap up", "what did we do today" — or when they report a
+frustration worth capturing even without a full reflection. Don't wait to be
+asked every session; a hookless host has no other cue that a session is
+ending.
+
 ## Session Reflection
 
 Keep reflection under two minutes. Ask one to three questions, depending on

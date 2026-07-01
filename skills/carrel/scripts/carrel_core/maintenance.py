@@ -67,10 +67,12 @@ def read_redactions(path: Path) -> list[tuple[str, str]]:
     return redactions
 
 
-def apply_redactions(text: str, redactions: list[tuple[str, str]]) -> str:
+def apply_redactions(text: str, redactions: list[tuple[str, str]]) -> tuple[str, dict[str, int]]:
+    counts: dict[str, int] = {}
     for term, replacement in redactions:
-        text = re.sub(re.escape(term), replacement, text, flags=re.IGNORECASE)
-    return text
+        text, count = re.subn(re.escape(term), replacement, text, flags=re.IGNORECASE)
+        counts[term] = counts.get(term, 0) + count
+    return text, counts
 
 
 def cmd_feedback_export(args) -> int:
@@ -89,12 +91,27 @@ def cmd_feedback_export(args) -> int:
             safe_read_text(args.vault, flat_path, encoding="utf-8")
             sources.append(flat_path)
     parts = [f"# Feedback Digest - {date.today().isoformat()}\n"]
+    total_counts: dict[str, int] = {term: 0 for term, _ in terms}
     for source in sources:
         parts.append(f"\n## {source.name}\n\n")
-        parts.append(apply_redactions(safe_read_text(args.vault, source, encoding="utf-8"), terms))
+        redacted, counts = apply_redactions(safe_read_text(args.vault, source, encoding="utf-8"), terms)
+        parts.append(redacted)
+        for term, count in counts.items():
+            total_counts[term] = total_counts.get(term, 0) + count
+    zero_match_terms = [term for term, count in total_counts.items() if count == 0]
     target = safe_vault_join(args.vault, "_meta", f"feedback-digest-{date.today().isoformat()}.md")
     safe_atomic_write(args.vault, target, "\n".join(parts).rstrip() + "\n")
-    print(json.dumps({"path": str(target), "sources": [str(path) for path in sources], "redacted_terms": len(terms)}))
+    print(
+        json.dumps(
+            {
+                "path": str(target),
+                "sources": [str(path) for path in sources],
+                "redaction_rules": len(terms),
+                "redactions_applied": sum(total_counts.values()),
+                "zero_match_terms": zero_match_terms,
+            }
+        )
+    )
     return 0
 
 

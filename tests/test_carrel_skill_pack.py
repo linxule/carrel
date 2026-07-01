@@ -352,10 +352,124 @@ def test_carrel_skill_runtime_validate_and_fix_environment(tmp_path) -> None:
     assert fixed_payload["team_context"] == "Lab group"
     assert fixed_payload["model_teammates"] == {"analysis": "active"}
     assert "legacy_setting" not in fixed_payload
-    assert "claude_code_familiarity" not in fixed_payload
+    # claude_code_familiarity is now a recognized DEFAULT_PROFILE field (matches
+    # ResearcherProfile), so env fix preserves it as a top-level value instead
+    # of demoting it into _unknown_keys.
+    assert fixed_payload["claude_code_familiarity"] == "some"
     assert fixed_payload["_unknown_keys"]["legacy_setting"] is True
-    assert fixed_payload["_unknown_keys"]["claude_code_familiarity"] == "some"
+    assert "claude_code_familiarity" not in fixed_payload["_unknown_keys"]
     assert (vault / ".carrel" / "environment.json.bak").exists()
+
+
+def test_carrel_skill_runtime_fix_resets_invalid_enum_values(tmp_path) -> None:
+    """env fix must actually repair out-of-domain enum values, not pass them
+    through unchanged. Locks the fix for a bug dogfooding found: the
+    documented repair loop (validate -> fix --dry-run -> fix -> validate)
+    used to complete "successfully" while sensitivity/trust_level stayed
+    invalid."""
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+    env_path = vault / ".carrel" / "environment.json"
+    payload = json.loads(env_path.read_text(encoding="utf-8"))
+    payload["sensitivity"] = "extreme"
+    payload["automation"]["trust_level"] = "omniscient"
+    payload["automation"]["model"] = "gpt-5"
+    payload["automation"]["schedule"] = "hourly"
+    payload["automation"]["review_cadence"] = "never"
+    env_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    validate = _run(skill, "env", "validate", "--vault", str(vault), "--format", "json")
+    assert validate.returncode == 1
+    body = json.loads(validate.stdout)
+    assert body["status"] == "invalid"
+    error_paths = {item["path"] for item in body["errors"]}
+    assert {
+        "sensitivity",
+        "automation.trust_level",
+        "automation.model",
+        "automation.schedule",
+        "automation.review_cadence",
+    } <= error_paths
+
+    fixed = _run(skill, "env", "fix", "--vault", str(vault), "--format", "json")
+    assert fixed.returncode == 0, fixed.stderr
+    fix_result = json.loads(fixed.stdout)
+    assert set(fix_result["reset_invalid_fields"]) == {
+        "sensitivity",
+        "automation.trust_level",
+        "automation.model",
+        "automation.schedule",
+        "automation.review_cadence",
+    }
+    fixed_payload = json.loads(env_path.read_text(encoding="utf-8"))
+    assert fixed_payload["sensitivity"] == "medium"
+    assert fixed_payload["automation"]["trust_level"] == "advisory"
+    assert fixed_payload["automation"]["model"] == "sonnet"
+    assert fixed_payload["automation"]["schedule"] == "daily"
+    assert fixed_payload["automation"]["review_cadence"] == "quarterly"
+
+    revalidate = _run(skill, "env", "validate", "--vault", str(vault), "--format", "json")
+    assert revalidate.returncode == 0
+    assert json.loads(revalidate.stdout)["status"] == "valid"
+
+
+def test_carrel_skill_runtime_fix_reports_structurally_invalid_automation(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+    env_path = vault / ".carrel" / "environment.json"
+    payload = json.loads(env_path.read_text(encoding="utf-8"))
+    payload["automation"] = "not-an-object"
+    env_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    fixed = _run(skill, "env", "fix", "--vault", str(vault), "--format", "json")
+    assert fixed.returncode == 0, fixed.stderr
+    fix_result = json.loads(fixed.stdout)
+    assert "automation" in fix_result["reset_invalid_fields"]
+    fixed_payload = json.loads(env_path.read_text(encoding="utf-8"))
+    assert isinstance(fixed_payload["automation"], dict)
+    assert fixed_payload["automation"]["trust_level"] == "advisory"
+
+
+def test_carrel_skill_default_profile_matches_researcher_profile_schema(tmp_path) -> None:
+    """Guard against silent schema drift between the two engines.
+
+    Every `ResearcherProfile` field (by its serialization alias) must have a
+    home in the portable `DEFAULT_PROFILE` or be explicitly tolerated via
+    `ADAPTER_PROFILE_KEYS` — otherwise a future Pydantic model field addition
+    (as happened with `claude_code_familiarity`) silently falls into
+    `_unknown_keys` on the portable side, and `env validate`/`env fix` produce
+    misleading drift for vaults touched by the full plugin.
+    """
+    import sys as _sys
+
+    skill = _copy_skill(tmp_path)
+    scripts_dir = str(skill / "scripts")
+    added = scripts_dir not in _sys.path
+    if added:
+        _sys.path.insert(0, scripts_dir)
+    try:
+        from carrel_core.constants import ADAPTER_PROFILE_KEYS, DEFAULT_PROFILE
+    finally:
+        if added:
+            _sys.path.remove(scripts_dir)
+        _sys.modules.pop("carrel_core.constants", None)
+        _sys.modules.pop("carrel_core", None)
+
+    from carrel.models import ResearcherProfile
+
+    profile_field_names: set[str] = set()
+    for name, field in ResearcherProfile.model_fields.items():
+        profile_field_names.add(field.serialization_alias or field.alias or name)
+
+    tracked = set(DEFAULT_PROFILE) | ADAPTER_PROFILE_KEYS
+    missing = profile_field_names - tracked
+    assert missing == set(), (
+        f"ResearcherProfile field(s) {sorted(missing)} have no home in the "
+        "portable DEFAULT_PROFILE or ADAPTER_PROFILE_KEYS — add them to one "
+        "or the other so env validate/env fix stay in sync."
+    )
 
 
 def test_carrel_skill_runtime_ingestion_artifacts_and_idempotency(tmp_path) -> None:

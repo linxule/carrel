@@ -17,7 +17,7 @@ Run the bundled runtime with Python 3.10 or newer from this skill folder:
 ```bash
 python3 scripts/carrel.py vault init <vault>
 python3 scripts/carrel.py env validate --vault <vault> --format json
-python3 scripts/carrel.py env doctor --project-path <vault> --format json
+python3 scripts/carrel.py env doctor --vault <vault> --format json
 python3 scripts/carrel.py capture url https://example.com/article --vault <vault> --content "Article body"
 ```
 
@@ -65,6 +65,9 @@ treating the skill as unavailable.
 - For source-link lookup and deciding when to visit upstream docs beyond the
   captured skill contracts, read `references/contracts/external-help.md`.
 - For research partner, wiki, and vault-note behavior, read
+  `references/workflows/research-and-vault.md`.
+- For model teammate (Codex, Gemini, Kimi) preferences and the sensitivity gate
+  before delegating to another model, read
   `references/workflows/research-and-vault.md`.
 
 ## Runtime Boundary

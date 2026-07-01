@@ -63,7 +63,7 @@ Cover these areas naturally:
 1. Open with what Carrel will set up: a research vault that agents can use for
    source ingestion, notes, transcripts, privacy-aware routing, reflection, and
    collaborator handoff.
-2. Run `python3 scripts/carrel.py env doctor --project-path <vault> --format json`
+2. Run `python3 scripts/carrel.py env doctor --vault <vault> --format json`
    when a vault path is known. Translate findings into plain language; do not
    paste raw audit output unless asked.
 3. Interview the researcher. Summarize what you heard and ask for confirmation
@@ -87,6 +87,13 @@ Cover these areas naturally:
 7. If validation reports drift, run `env fix --dry-run` first, explain the
    proposed repair, then run `env fix` only after approval unless the user
    already asked for repair.
+8. Once the profile is written and validated, draft `_meta/my-environment.md`
+   from `assets/templates/my-environment.md`: list configured tools, tools the
+   researcher deferred ("Available but Not Configured" — Zotero, mineru,
+   mistral_ocr, gws, groq, or anything noted as "available later"), and which
+   `.base` trackers were installed. This is the researcher's living view of
+   their environment; update it whenever tools, cloud services, or preferences
+   change.
 
 ## Audit Presentation
 

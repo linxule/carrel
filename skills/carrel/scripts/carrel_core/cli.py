@@ -3,7 +3,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .constants import SENSITIVITY, TRUST_LEVELS
+from .constants import (
+    AUTOMATION_MODELS,
+    AUTOMATION_REVIEW_CADENCES,
+    AUTOMATION_SCHEDULES,
+    SENSITIVITY,
+    TRUST_LEVELS,
+)
 from .ingestion import (
     cmd_batch_convert,
     cmd_batch_transcribe,
@@ -49,7 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     env_fix.add_argument("--format", choices=["human", "json"], default="human")
     env_fix.set_defaults(func=cmd_env_fix)
     env_doctor = env_sub.add_parser("doctor")
-    env_doctor.add_argument("--project-path", type=Path)
+    env_doctor.add_argument("--vault", type=Path)
     env_doctor.add_argument("--format", choices=["human", "json"], default="human")
     env_doctor.set_defaults(func=cmd_env_doctor)
 
@@ -199,9 +205,9 @@ def build_parser() -> argparse.ArgumentParser:
     automation_configure.add_argument("--vault", type=Path, required=True)
     automation_configure.add_argument("--enabled", choices=["true", "false"], required=True)
     automation_configure.add_argument("--trust-level", choices=sorted(TRUST_LEVELS), required=True)
-    automation_configure.add_argument("--schedule", choices=["daily", "weekdays", "weekly"], required=True)
-    automation_configure.add_argument("--review-cadence", choices=["monthly", "quarterly", "biannual"], required=True)
-    automation_configure.add_argument("--model", choices=["sonnet", "opus"], default="sonnet")
+    automation_configure.add_argument("--schedule", choices=sorted(AUTOMATION_SCHEDULES), required=True)
+    automation_configure.add_argument("--review-cadence", choices=sorted(AUTOMATION_REVIEW_CADENCES), required=True)
+    automation_configure.add_argument("--model", choices=sorted(AUTOMATION_MODELS), default="sonnet")
     automation_configure.add_argument("--inbox-processing", choices=["true", "false"])
     automation_configure.add_argument("--vault-health", choices=["true", "false"])
     automation_configure.add_argument("--cross-linking", choices=["true", "false"])

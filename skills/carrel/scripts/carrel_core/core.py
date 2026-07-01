@@ -105,6 +105,14 @@ def slugify(value: str, *, fallback: str = "untitled") -> str:
 
 
 def source_hash(source: str | Path) -> str:
+    # Intentionally more lenient than src/carrel/source_hash.py's
+    # hash_source(): a Path that exists hashes file bytes; anything else
+    # (a Path that doesn't exist, a URL string, or an arbitrary identifier
+    # string) hashes the text form. This is load-bearing, not an oversight —
+    # ingestion.py's --content flows pass bare, non-existent, non-URL source
+    # identifiers (e.g. `transcript create recording.m4a --content "..."`)
+    # and rely on this falling through to a string hash rather than raising
+    # FileNotFoundError the way the full plugin's stricter hash_source() would.
     if isinstance(source, Path) and source.exists():
         digest = hashlib.sha256()
         with source.open("rb") as handle:
@@ -182,9 +190,24 @@ def select_tool(
     if sensitivity == "high":
         return {"selected_tool": None, "rationale": "HIGH sensitivity requires local; local tool missing; install and retry"}
     if sensitivity == "medium":
-        return {"selected_tool": None, "rationale": "Local tool missing; to use cloud, run with an explicit cloud tool"}
+        return {
+            "selected_tool": None,
+            "rationale": (
+                "Local tool missing; this stdlib runtime does not execute cloud "
+                "tools directly, supply --content or use a host adapter"
+            ),
+        }
     if cloud_consent and cloud:
         return {"selected_tool": sorted(cloud)[0], "rationale": "No local tool available; cloud consent enabled so routing to cloud"}
+    if cloud_consent:
+        return {
+            "selected_tool": None,
+            "rationale": (
+                "No local tool available; cloud consent is enabled but no cloud "
+                "adapter is available in this runtime (cloud execution requires a "
+                "host adapter)"
+            ),
+        }
     return {"selected_tool": None, "rationale": "Local tool missing; cloud consent is not enabled"}
 
 

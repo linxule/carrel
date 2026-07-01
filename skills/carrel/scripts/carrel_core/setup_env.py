@@ -6,7 +6,16 @@ import shutil
 import sys
 from pathlib import Path
 
-from .constants import ADAPTER_PROFILE_KEYS, DEFAULT_PROFILE, SENSITIVITY, TRUST_LEVELS
+from .constants import (
+    ADAPTER_PROFILE_KEYS,
+    AUTOMATION_MODELS,
+    AUTOMATION_REVIEW_CADENCES,
+    AUTOMATION_SCHEDULES,
+    DEFAULT_PROFILE,
+    SENSITIVITY,
+    TRUST_LEVELS,
+    VERSION,
+)
 from .core import CarrelError, default_profile, safe_atomic_write, safe_vault_join, write_profile
 
 
@@ -147,6 +156,20 @@ def validate_profile_payload(payload: dict) -> tuple[list[dict], list[dict]]:
         trust = automation.get("trust_level", "advisory")
         if trust not in TRUST_LEVELS:
             errors.append({"path": "automation.trust_level", "message": "trust_level is invalid"})
+        model = automation.get("model", "sonnet")
+        if model not in AUTOMATION_MODELS:
+            errors.append({"path": "automation.model", "message": "model must be sonnet or opus"})
+        schedule = automation.get("schedule", "daily")
+        if schedule not in AUTOMATION_SCHEDULES:
+            errors.append({"path": "automation.schedule", "message": "schedule must be daily, weekdays, or weekly"})
+        review_cadence = automation.get("review_cadence", "quarterly")
+        if review_cadence not in AUTOMATION_REVIEW_CADENCES:
+            errors.append(
+                {
+                    "path": "automation.review_cadence",
+                    "message": "review_cadence must be monthly, quarterly, or biannual",
+                }
+            )
     else:
         errors.append({"path": "automation", "message": "automation must be an object"})
     for key in DEFAULT_PROFILE:
@@ -208,8 +231,30 @@ def cmd_env_fix(args) -> int:
         **DEFAULT_PROFILE["automation"],
         **(current_automation if isinstance(current_automation, dict) else {}),
     }
+    reset_invalid_fields: list[str] = []
+    if "automation" in payload and not isinstance(current_automation, dict):
+        # Structurally invalid (not an object at all) — already replaced with
+        # pure defaults above; report it so the reset isn't silent.
+        reset_invalid_fields.append("automation")
+    if fixed.get("sensitivity") not in SENSITIVITY:
+        fixed["sensitivity"] = DEFAULT_PROFILE["sensitivity"]
+        reset_invalid_fields.append("sensitivity")
+    if fixed["automation"].get("trust_level") not in TRUST_LEVELS:
+        fixed["automation"]["trust_level"] = DEFAULT_PROFILE["automation"]["trust_level"]
+        reset_invalid_fields.append("automation.trust_level")
+    if fixed["automation"].get("model") not in AUTOMATION_MODELS:
+        fixed["automation"]["model"] = DEFAULT_PROFILE["automation"]["model"]
+        reset_invalid_fields.append("automation.model")
+    if fixed["automation"].get("schedule") not in AUTOMATION_SCHEDULES:
+        fixed["automation"]["schedule"] = DEFAULT_PROFILE["automation"]["schedule"]
+        reset_invalid_fields.append("automation.schedule")
+    if fixed["automation"].get("review_cadence") not in AUTOMATION_REVIEW_CADENCES:
+        fixed["automation"]["review_cadence"] = DEFAULT_PROFILE["automation"]["review_cadence"]
+        reset_invalid_fields.append("automation.review_cadence")
     changed = fixed != payload
     result = {"changed": changed, "path": str(path), "dry_run": args.dry_run}
+    if reset_invalid_fields:
+        result["reset_invalid_fields"] = reset_invalid_fields
     if changed and not args.dry_run:
         if path.exists():
             backup = safe_vault_join(args.vault, ".carrel", "environment.json.bak")
@@ -229,7 +274,8 @@ def cmd_env_doctor(args) -> int:
     payload = {
         "platform": sys.platform,
         "python": sys.version.split()[0],
-        "project_path": str(args.project_path.expanduser().resolve()) if args.project_path else None,
+        "skill_pack_version": VERSION,
+        "vault": str(args.vault.expanduser().resolve()) if args.vault else None,
         "binaries": binaries,
         "api_keys": {
             "mineru": bool(os.environ.get("MINERU_API_KEY")),

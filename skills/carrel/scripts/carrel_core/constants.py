@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+# The portable skill pack's own version. Deliberately NOT written into
+# environment.json's shared "version" field (that field belongs to the full
+# Claude Code plugin's semver and is drift-checked there) — surfaced only via
+# `env doctor` diagnostics as "skill_pack_version", so the two version
+# concepts never collide on a vault touched by both engines.
 VERSION = "0.1.0-skill"
 
 SENSITIVITY = {"high", "medium", "low"}
 TRUST_LEVELS = {"advisory", "consultative", "delegated", "partnership"}
+AUTOMATION_MODELS = {"sonnet", "opus"}
+AUTOMATION_SCHEDULES = {"daily", "weekdays", "weekly"}
+AUTOMATION_REVIEW_CADENCES = {"monthly", "quarterly", "biannual"}
 TRUST_HIERARCHY = ["advisory", "consultative", "delegated", "partnership"]
 TRUST_ACTIONS = {
     "automation:propose": "consultative",
@@ -58,7 +66,6 @@ AUDIO_EXTENSIONS = {".m4a", ".mp3", ".wav", ".mp4", ".webm", ".mov", ".ogg", ".f
 URL_LIST_EXTENSION = ".txt"
 
 DEFAULT_PROFILE = {
-    "version": VERSION,
     "name": None,
     "field": None,
     "sensitivity": "medium",
@@ -69,6 +76,7 @@ DEFAULT_PROFILE = {
     "wiki_proposal_deferred_until": None,
     "tools_configured": {},
     "preferences": {},
+    "claude_code_familiarity": None,
     "automation": {
         "enabled": False,
         "inbox_processing": True,
@@ -90,4 +98,12 @@ DEFAULT_PROFILE = {
     "_unknown_keys": {},
 }
 
-ADAPTER_PROFILE_KEYS: set[str] = set()
+# Keys owned by another engine's schema (full Claude Code plugin's ResearcherProfile)
+# that the portable runtime must tolerate without treating as unknown drift and
+# without overwriting: it never writes them itself, but a vault previously
+# scaffolded by the full plugin may already have them. `version` in particular
+# tracks the full plugin's semver — deliberately NOT tracked in DEFAULT_PROFILE
+# (see VERSION/skill_pack_version below) so the portable runtime never writes a
+# value that could look like a plugin version mismatch to the full plugin's own
+# drift/migration detection.
+ADAPTER_PROFILE_KEYS: set[str] = {"version"}

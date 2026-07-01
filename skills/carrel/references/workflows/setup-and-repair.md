@@ -13,7 +13,7 @@ layout, copies assets from `assets/templates/`, writes
 After setup, run:
 
 ```bash
-python3 scripts/carrel.py env doctor --project-path <vault> --format json
+python3 scripts/carrel.py env doctor --vault <vault> --format json
 python3 scripts/carrel.py env validate --vault <vault> --format json
 ```
 
@@ -25,7 +25,13 @@ drift, use a guarded repair loop:
 1. Run `env validate` and classify the issue in plain language.
 2. Run `env fix --dry-run --format json` before making changes.
 3. Explain what will be preserved, removed, defaulted, or moved into
-   `_unknown_keys`.
+   `_unknown_keys`. If the result includes `reset_invalid_fields` (any of
+   `sensitivity`, `automation.trust_level`, `automation.model`,
+   `automation.schedule`, `automation.review_cadence`, or a structurally
+   invalid `automation` object entirely), tell the researcher which fields
+   were reset to a safe default and why — `env fix` only repairs
+   missing/unknown keys and these specific invalid enum values, not
+   arbitrary malformed data.
 4. Ask before applying when the repair changes meaningful researcher
    preferences or when ambiguity remains.
 5. Run `env fix` only after approval or when the user explicitly asked for

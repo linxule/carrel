@@ -103,6 +103,23 @@ The researcher chooses how much to delegate. Default is **Advisory**. Each level
 
 **Levels 3-4 are experimental in v0.4.** They rely on session checkpoint history for revert. Make this clear during setup — the researcher's choice of trust level is itself an act of judgment, not an abdication of it.
 
+### Raising trust level for the first time
+
+`carrel automate configure --trust-level <level>` is itself gated by the
+researcher's *current* trust level (it requires at least Consultative to run
+at all). On a fresh vault (default: Advisory), the very first attempt to
+configure automation at Consultative or higher would be rejected by that same
+gate — a bootstrap problem, not a flaw in the gate's intent. When the
+researcher has just explicitly chosen a trust level in this conversation,
+write `automation.trust_level` directly into `.carrel/environment.json`
+first (the same direct-write mechanism used for every other interview-derived
+profile field), then run the Calling Pattern below. The gate's real
+protection — a human explicitly approving the escalation in conversation — is
+intact either way; only the write order changes. The CLI does not enforce
+one-level-at-a-time jumps, so walk the researcher through each intermediate
+level's implications yourself before applying a multi-level jump, even though
+the CLI would accept it directly.
+
 Before reorganizing existing files outside inbox routing, run:
 
 ```bash
@@ -435,15 +452,15 @@ The skill conducts the interview; the CLI writes the files. Final hand-off is th
 
 3. **Returning interview.** Show current config in a readable summary. If `wiki_enabled` flipped to `true` since last review but `wiki_maintenance` is still `false`, surface it: *"Since your last automation review, you've set up a knowledge field map. Would you like to include field map maintenance in overnight automation?"* Then ask "What would you like to change?" — apply only requested changes.
 
-4. **Update environment.json.** The Calling Pattern does this — flags map to typed `AutomationConfig` fields; CLI sets `last_reviewed` to today.
+4. **Update environment.json.** If the researcher just chose a trust level higher than what's currently persisted, write `automation.trust_level` directly into `.carrel/environment.json` first (see "Raising trust level for the first time" above) — otherwise the Calling Pattern's own gate would reject the very call meant to apply it. The Calling Pattern below then persists everything else — flags map to typed `AutomationConfig` fields; CLI sets `last_reviewed` to today.
 
 5. **Update vault `CLAUDE.md` (two-track sync).** Append or update an `## Automation` section in plain language — this is Claude's behavioral guide, not a config file. Describe what's authorized, the trust level, what to log. CLI does the structured write; you do the narrative one.
 
 6. **Update `_meta/my-environment.md`.** Update or add an automation status line for at-a-glance visibility in Obsidian. Regenerable via `carrel vault dashboard --force`.
 
-7. **Generate the automation prompt.** The Calling Pattern handles this — CLI runs `carrel trust check automation:write-prompt --vault .` internally, assembles a per-researcher prompt from name, field, enabled capabilities, trust level, model, sensitivity, active tools, then writes `_meta/automation-prompt.md` (preserving any existing one as `automation-prompt.prev.md`).
+7. **Generate the automation prompt.** This is a SEPARATE CLI call from Calling Pattern below, run right after it: `carrel vault automation-prompt --vault .`. It assembles a per-researcher prompt from name, field, enabled capabilities, trust level, model, sensitivity, and active tools, then writes `_meta/automation-prompt.md`. There is no trust gate on this command and no automatic `.prev.md` backup — pass `--force` to regenerate an existing prompt, and copy the old file yourself first if the researcher wants to diff before/after.
 
-8. **Initialize `_meta/` directories.** CLI creates `_meta/pending-decisions.md` and `_meta/pending-approvals.md` with headers if absent. Doesn't overwrite. Other directories (`briefs/`, `suggestions/`, etc.) are lazy.
+8. **`_meta/pending-decisions.md` and `_meta/pending-approvals.md`.** Neither is proactively created by any CLI command today. `pending-decisions.md` is created lazily the first time an unattended batch run (`carrel batch convert/transcribe --unattended`) defers an item. There is currently no code path that writes `pending-approvals.md` at all — the consultative-level "write proposed actions here" behavior described under "Pending Approvals (Consultative Level)" above is the overnight agent's own responsibility per its generated prompt, not something the CLI enforces or initializes. At consultative trust, mention to the researcher that this file may not exist until the overnight agent first proposes something — don't promise the CLI already created it.
 
 9. **Walk through Desktop App setup.** Point the researcher at "Setting Up a Desktop Scheduled Task" above; confirm the task got saved.
 
@@ -451,7 +468,12 @@ The skill conducts the interview; the CLI writes the files. Final hand-off is th
 
 ### Calling pattern
 
-Hand off to the CLI in one invocation once the interview resolves:
+Hand off to the CLI in one invocation once the interview resolves. If step 4
+required a direct trust-level write first, do that write before this call.
+This call **only** writes `environment.json` — it does not generate the
+automation prompt or touch pending files (see steps 7-8 above); run
+`carrel vault automation-prompt --vault .` as a second, separate call right
+after this one succeeds.
 
 ```bash
 carrel automate configure --enabled true --trust-level advisory \
@@ -461,7 +483,7 @@ carrel automate configure --enabled true --trust-level advisory \
   --wiki-maintenance false --vault .
 ```
 
-CLI owns: writing `AutomationConfig` to `environment.json`, running `policy.trust.is_allowed()` as the internal gate, generating `_meta/automation-prompt.md`, initializing pending-decisions/approvals files. Skill owns: the interview, the trust-level conversation, the vault `CLAUDE.md` narrative update, and the Desktop App walkthrough. Pass only flags the interview resolved — CLI preserves untouched fields on the returning-researcher path.
+CLI owns: writing `AutomationConfig` to `environment.json`, running `policy.trust.is_allowed()` (gated on `automation:propose`, consultative) as the internal gate. It does NOT generate `_meta/automation-prompt.md` or initialize pending-decisions/approvals files — prompt generation is the separate `carrel vault automation-prompt --vault .` call (no trust gate, no `.prev.md` backup), and `pending-approvals.md` initialization isn't implemented by any CLI command today (see step 8). Skill owns: the interview, the trust-level conversation, the vault `CLAUDE.md` narrative update, the follow-up prompt-generation call, and the Desktop App walkthrough. Pass only flags the interview resolved — CLI preserves untouched fields on the returning-researcher path.
 
 **Step 9 in environment-setup**: after cheat sheet generation, offer: *"Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. Claude Desktop's scheduled tasks cost approximately $3-8/month with Sonnet. Set this up now? You can always run `/carrel-automate` later."*
 

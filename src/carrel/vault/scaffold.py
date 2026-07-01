@@ -117,7 +117,7 @@ def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> Scaf
     if profile_path.exists():
         skipped.append(_safe_relative(profile_path, vault))
     else:
-        profile_path.write_text(active_profile.model_dump_json(indent=2), encoding="utf-8")
+        profile_path.write_text(active_profile.model_dump_json(indent=2, by_alias=True), encoding="utf-8")
         created.append(_safe_relative(profile_path, vault))
 
     setup_state_path = safe_vault_join(vault, ".carrel", "setup-state.json")

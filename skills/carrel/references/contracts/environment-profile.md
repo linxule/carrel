@@ -5,7 +5,6 @@ can read. Keep it host-neutral.
 
 ## Required Fields
 
-- `version`: runtime or skill-pack version.
 - `name`: optional researcher name.
 - `field`: optional research field.
 - `sensitivity`: `high`, `medium`, or `low`.
@@ -13,8 +12,19 @@ can read. Keep it host-neutral.
 - `comfort_level`: plain-language experience level.
 - `tools_configured`: object mapping tool name to boolean availability.
 - `preferences`: object for durable workflow preferences.
+- `claude_code_familiarity`: `new`, `some`, `experienced`, or `null`.
 - `automation`: object containing `enabled`, `trust_level`, `schedule`, and
   `review_cadence`.
+
+## Adapter-Owned Fields
+
+Some keys belong to another engine's schema and are tolerated, not required
+or written, by the portable runtime:
+
+- `version`: the full Claude Code plugin's semver, drift-checked there. The
+  portable runtime never writes this field — its own version is surfaced only
+  via `env doctor`'s `skill_pack_version` diagnostic, so the two version
+  concepts never collide on a vault touched by both engines.
 
 ## Onboarding Preferences
 

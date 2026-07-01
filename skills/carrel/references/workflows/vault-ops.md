@@ -3,6 +3,17 @@
 Use this workflow for note creation, vault search, organization proposals,
 Obsidian-facing formatting, analytical threads, and research database views.
 
+## Contents
+
+- Papers And Notes
+- Notes
+- Links And Hygiene
+- Analytical Threads
+- Obsidian Formatting
+- Research Databases
+- Template Provenance
+- Capability Log
+
 ## Papers And Notes
 
 Converted papers are source content filed under `papers/<slug>/paper.md`.
@@ -73,6 +84,30 @@ The `.base` templates in `assets/templates/` are optional Obsidian views:
 Before creating a custom database, ask what the researcher wants to track and
 which columns matter. Start with folder or tag filters and only add formulas
 when needed. Custom local databases must not use Carrel template markers.
+
+## Template Provenance
+
+Plugin-shipped templates (`.base`, `.md`, `.json` files copied from
+`assets/templates/`) carry a source marker so upgrades never clobber
+vault-local customizations:
+
+| File type | Marker syntax |
+|-----------|---------------|
+| `.base` | `# carrel-template: name v0.0.0` (YAML comment) |
+| `.md` | `<!-- carrel-template: name v0.0.0 -->` (HTML comment, first line) |
+| `.json` | `"_carrel_template": "name v0.0.0"` (top-level key) |
+
+| | Plugin-shipped | Vault-local |
+|---|---|---|
+| **Has `carrel-template:` marker** | Yes | Never |
+| **Created by** | `vault init` (scaffold) | Claude during sessions, or the researcher manually |
+| **Safe to overwrite on re-scaffold** | Yes, if unmodified | Never |
+
+The bundled scaffold step only checks whether a file already exists — it does
+not inspect the marker. When hand-editing or regenerating a vault template,
+preserve the existing marker line yourself, and never add a
+`carrel-template:` marker to a vault-local or custom file; that namespace is
+reserved for plugin-shipped content.
 
 ## Capability Log
 

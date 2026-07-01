@@ -7,8 +7,20 @@ selected only when policy allows.
 
 - `high`: block cloud tools even when explicitly requested.
 - `medium`: use local tools by default; require an explicit cloud tool request.
-- `low`: use local tools by default; allow cloud fallback when cloud consent is
-  enabled.
+  Claude Code additionally pauses for human confirmation before the cloud call
+  via a PreToolUse hook; hosts without that hook have no equivalent pause and
+  should treat the explicit request as needing its own confirmation step.
+- `low`: use local tools by default. Two distinct cases:
+  - No tool explicitly requested and no local tool available: the router
+    checks for a cloud tool when cloud consent is enabled, but the bundled
+    stdlib runtime never actually reports a cloud tool as available (see Tool
+    Classes) — this fallback only fires through a host adapter that adds real
+    cloud tool detection, or via `policy explain --available-tools` for
+    diagnostics.
+  - A specific local tool explicitly requested and unavailable: the runtime
+    does not cascade to checking cloud alternatives at all, even with consent
+    enabled — it reports "not available" immediately. This is narrower than
+    the full plugin's cascading sensitivity matrix.
 
 ## Tool Classes
 
