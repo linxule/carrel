@@ -19,6 +19,7 @@ dev = [
     "ruff>=0.1",
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
+    "pytest-cov>=7.1.0",
 ]
 
 [project.scripts]
@@ -40,6 +41,21 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 
+# Coverage is opt-in — `uv run pytest --cov` — so the default suite stays fast
+# (no --cov in addopts). These settings shape the report when it is requested.
+[tool.coverage.run]
+source = ["src/carrel"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "\\.\\.\\.",
+]
+
 [tool.uv]
 package = true
 config-settings = { editable_mode = "compat" }
@@ -48,4 +64,9 @@ config-settings = { editable_mode = "compat" }
 line-length = 100
 
 [dependency-groups]
-dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "ruff>=0.1"]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.1",
+]

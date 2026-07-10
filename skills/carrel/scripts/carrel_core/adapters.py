@@ -41,6 +41,8 @@ def run_adapter(command: list[str], *, timeout: int, label: str) -> subprocess.C
         raise CarrelError(f"{label} timed out", hint=f"Timed out after {timeout}s.") from exc
     if len(proc.stdout.encode("utf-8", errors="replace")) > MAX_ADAPTER_OUTPUT:
         raise CarrelError(f"{label} produced too much output", hint="Run the adapter manually or use a smaller input.")
+    if len(proc.stderr.encode("utf-8", errors="replace")) > MAX_ADAPTER_OUTPUT:
+        raise CarrelError(f"{label} produced too much error output", hint="Run the adapter manually or use a smaller input.")
     if proc.returncode != 0:
         raise CarrelError(f"{label} failed", hint=proc.stderr.strip() or "Check the input and adapter installation.")
     return proc

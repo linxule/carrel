@@ -16,3 +16,9 @@ __pycache__/
 .pytest_cache/
 build/
 dist/
+
+# Coverage artifacts (opt-in via `uv run pytest --cov`)
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

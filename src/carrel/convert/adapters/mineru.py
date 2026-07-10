@@ -9,9 +9,23 @@ import httpx
 
 from carrel.errors import ConversionError
 
+# MinerU's batch API accepts a single file up to 200 MB. Refuse anything larger
+# up front: the signed upload is a presigned PUT, and streaming it through
+# httpx's AsyncClient would force chunked transfer-encoding (the async request
+# path cannot attach a Content-Length to an iterator body), which the storage
+# backend can reject. Bounding the size keeps the whole-file read below in
+# memory to a documented ceiling and fails fast with an actionable message
+# instead of uploading a file the API would reject anyway.
+MINERU_MAX_FILE_BYTES = 200 * 1024 * 1024
+
 
 async def convert_with_mineru(file: Path, api_key: str, timeout: int = 120) -> tuple[str, dict]:
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if file.stat().st_size > MINERU_MAX_FILE_BYTES:
+        raise ConversionError(
+            "mineru file too large",
+            hint="MinerU accepts files up to 200 MB; split or compress the file, or use a local converter.",
+        )
     async with httpx.AsyncClient(timeout=timeout) as client:
         upload_ticket = await client.post(
             "https://api.mineru.net/api/v4/file-urls/batch",

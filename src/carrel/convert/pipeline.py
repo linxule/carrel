@@ -41,7 +41,6 @@ async def select_convert_tool_only(
     return select_convert_tool(
         file=file_path,
         sensitivity=sensitivity or (profile.sensitivity if profile else Sensitivity.MEDIUM),
-        hardware=audit_result.hardware_capability,
         tools=audit_result.tools,
         cloud_consent=resolve_cloud_consent(tool.value if tool else None, profile),
         explicit_tool=tool,

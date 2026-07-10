@@ -120,8 +120,14 @@ def safe_vault_join(vault: Path, *parts: str) -> Path:
     return candidate
 
 
-def slugify(value: str, *, fallback: str = "untitled") -> str:
+def slugify(value: str, *, fallback: str = "untitled", max_length: int = 80) -> str:
     value = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
+    if len(value) > max_length:
+        clipped = value[:max_length]
+        # Cut at the last hyphen so we don't end mid-word; a single long token
+        # with no hyphen in the window is hard-cut. Deterministic either way.
+        boundary = clipped.rfind("-")
+        value = (clipped[:boundary] if boundary > 0 else clipped).strip("-")
     return value or fallback
 
 

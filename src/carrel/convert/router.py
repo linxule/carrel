@@ -4,7 +4,7 @@ from pathlib import Path
 
 from carrel.errors import CarrelError
 from carrel.env.install import install_command_for
-from carrel.models import ConvertTool, HardwareCapability, Sensitivity, ToolAvailability
+from carrel.models import ConvertTool, Sensitivity, ToolAvailability
 from carrel.policy.sensitivity import select_tool
 
 CONVERT_CLOUD_ENV_VARS = {
@@ -26,12 +26,10 @@ CLOUD_CONVERT_SUFFIXES = {
 def select_convert_tool(
     file: Path,
     sensitivity: Sensitivity,
-    hardware: HardwareCapability,
     tools: ToolAvailability,
     cloud_consent: bool = False,
     explicit_tool: ConvertTool | None = None,
 ) -> ConvertTool:
-    _ = hardware
     suffix = file.suffix.lower()
     if explicit_tool is not None:
         if explicit_tool == ConvertTool.DEFUDDLE:

@@ -40,7 +40,13 @@ async def convert_with_mistral_ocr(file: Path, api_key: str, timeout: int = 120)
                     payload.get("usage_info") if isinstance(payload.get("usage_info"), dict) else {}
                 )
             except Exception:
-                await _delete_file(client, file_id, headers, raise_on_failure=False)
+                # Best-effort cleanup of the uploaded file. Guard it so an
+                # unexpected error while deleting can never replace the original
+                # OCR failure that we re-raise below.
+                try:
+                    await _delete_file(client, file_id, headers, raise_on_failure=False)
+                except Exception:
+                    pass
                 raise
             cleanup = await _delete_file(client, file_id, headers)
             return markdown, {

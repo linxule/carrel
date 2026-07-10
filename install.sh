@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 # Carrel Installer — cross-platform setup for AI-augmented research
 #
@@ -106,13 +107,29 @@ case "$OS" in
       ok "Homebrew already installed"
     else
       info "Installing Homebrew..."
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      if [[ -f /opt/homebrew/bin/brew ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        if ! grep -q '/opt/homebrew/bin/brew' ~/.zprofile 2>/dev/null; then
+      # Capture the installer explicitly: a failed $(curl ...) substitution is
+      # NOT caught by `set -e`, so a bare `bash -c "$(curl ...)"` would silently
+      # run an empty script and report success on a network error.
+      brew_installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+        fail "Could not download the Homebrew installer (network error)."
+        info "Retry, or install Homebrew manually: https://brew.sh"
+        exit 1
+      }
+      /bin/bash -c "$brew_installer"
+      # Persist brew to the shell profile — Apple Silicon uses /opt/homebrew,
+      # Intel Macs use /usr/local.
+      brew_bin=""
+      if [[ -x /opt/homebrew/bin/brew ]]; then
+        brew_bin="/opt/homebrew/bin/brew"
+      elif [[ -x /usr/local/bin/brew ]]; then
+        brew_bin="/usr/local/bin/brew"
+      fi
+      if [[ -n "$brew_bin" ]]; then
+        eval "$("$brew_bin" shellenv)"
+        if ! grep -q "$brew_bin" ~/.zprofile 2>/dev/null; then
           echo '' >> ~/.zprofile
           echo '# Homebrew' >> ~/.zprofile
-          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+          echo "eval \"\$($brew_bin shellenv)\"" >> ~/.zprofile
         fi
       fi
       ok "Homebrew installed"

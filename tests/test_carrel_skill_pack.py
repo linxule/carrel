@@ -1646,6 +1646,43 @@ def test_carrel_skill_runtime_frontmatter_hash_scan_ignores_body(tmp_path) -> No
         _sys.modules.pop("carrel_core", None)
 
 
+def test_carrel_skill_runtime_slugify_caps_length(tmp_path) -> None:
+    """slugify caps length at a hyphen boundary, deterministically.
+
+    Long titles must not produce filenames that exceed filesystem limits."""
+    import sys as _sys
+
+    skill = _copy_skill(tmp_path)
+    scripts_dir = str(skill / "scripts")
+    added = scripts_dir not in _sys.path
+    if added:
+        _sys.path.insert(0, scripts_dir)
+    try:
+        from carrel_core.core import slugify
+
+        # Many hyphen-separated tokens: cut lands on a boundary, no partial word.
+        long_title = "word " * 100
+        result = slugify(long_title)
+        assert len(result) <= 80
+        assert not result.startswith("-") and not result.endswith("-")
+        assert all(part == "word" for part in result.split("-"))
+        assert slugify(long_title) == result  # deterministic
+
+        # A single long token with no separator is hard-cut to the max length.
+        blob = slugify("a" * 200)
+        assert len(blob) == 80
+        assert blob == "a" * 80
+
+        # Short titles and the fallback are unchanged.
+        assert slugify("Hello World") == "hello-world"
+        assert slugify("!!!") == "untitled"
+    finally:
+        if added:
+            _sys.path.remove(scripts_dir)
+        _sys.modules.pop("carrel_core.core", None)
+        _sys.modules.pop("carrel_core", None)
+
+
 def test_carrel_skill_runtime_pdf_never_falls_back_to_markitdown(tmp_path) -> None:
     """A PDF with no liteparse must error, never silently route to markitdown."""
     skill = _copy_skill(tmp_path)
