@@ -185,7 +185,7 @@ If Carrel is active, it reports the environment state. If not installed, the com
 
 | Client | Install |
 |--------|---------|
-| Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` (once the standalone repo is live) |
+| Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` |
 | Codex, Cursor, OpenCode, Gemini CLI | Copy the folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel` for a global install) |
 | Kimi Code CLI | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
 | Claude.ai / Claude app / Cowork | Zip the folder and upload via **Settings → Capabilities → Skills**: `cd skills && zip -r carrel-skill.zip carrel -x "*__pycache__*" "*.pyc" "*.DS_Store"` |

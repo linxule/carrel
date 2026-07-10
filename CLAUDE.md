@@ -34,6 +34,8 @@ uv run carrel batch convert <folder> [--unattended] --vault . # Sequential PDF b
 uv run carrel batch transcribe <folder> [--unattended] --vault . # Sequential audio/YouTube batch (v0.9.0)
 uv run carrel automate configure --enabled --trust-level consultative --schedule daily --review-cadence quarterly --vault . # Typed-flag automation config, no prompts (v0.9.0)
 uv run carrel migrate apply [--plugin-root <path>] --vault . # Walk migrations registry, update plugin-state.json (v0.9.0)
+uv run pytest --cov                              # Coverage run (pytest-cov in dev group; config in pyproject [tool.coverage.*])
+scripts/sync-skill-repo.sh [--push]              # Publish skills/carrel → linxule/carrel-skill via git subtree (dry-run default)
 ```
 
 ## Architecture
@@ -45,6 +47,8 @@ Transports (thin)     → plugin, CLI, MCP, agent SDK apps
 ```
 
 The core library NEVER asks questions or makes judgment calls. Skills handle that. If a required parameter is missing, the library returns an actionable error.
+
+**Host-split (decision 2026-07-10)**: the typed CLI (`src/carrel`, provisioned by install.sh via `uv tool install`) is the Claude Code plugin's **sole** runtime — hooks, slash commands, and the 13 workflow skills call `carrel ...`. The portable skill pack (`skills/carrel/`: SKILL.md + stdlib-only `scripts/carrel.py` runtime) is the standalone engine for every other host (Codex, Kimi Code, Gemini CLI, OpenCode, Cursor, Cowork, Claude.ai zip) — sandbox-native because it travels as files + python3. The pack is a **strict subset**; `tests/test_runtime_parity.py` is the drift alarm (same-input comparisons on shared surfaces + an enumerated allowlist of intended `vault init` divergences: `setup-state.json` typed-only, `agent-context.md` portable-only). Distribution: `scripts/sync-skill-repo.sh --push` subtree-publishes `skills/carrel/` to [linxule/carrel-skill](https://github.com/linxule/carrel-skill) for `npx skills` / `.agents/skills/` installs. **Never edit carrel-skill directly** — it's a publish target, not a second source of truth; `skills/carrel/` here is canonical.
 
 ## Directory Structure
 
@@ -74,6 +78,7 @@ carrel/
 ├── commands/             # 15 plugin slash commands (/carrel-*); 7 are thin wrappers per CONVENTIONS.md
 │   └── CONVENTIONS.md    # ${ARGS} (skill-constructed) vs $ARGUMENTS (raw) convention (v0.9.0)
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
+├── scripts/              # sync-skill-repo.sh — subtree publish of skills/carrel → linxule/carrel-skill
 ├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
 ├── install.sh            # macOS/Linux one-line installer (curl | bash)
 ├── install.ps1           # Windows installer (first-class as of v0.7.0)
@@ -195,6 +200,10 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Wrapper convention (v0.9.0): 7 slash commands are now thin `!carrel <subcmd> ${ARGS}` shells (no body prose). `${ARGS}` = skill-constructed typed-flag arg list; `$ARGUMENTS` = raw user input. Documented in `commands/CONVENTIONS.md`. The other 8 commands keep their existing shape; shrink later if they accumulate orchestration prose. `tests/test_command_wrappers.py` enforces the structural template for the 7 wrappers.
 - Hook debugging (v0.9.0): `inject-context.js` (UserPromptSubmit) and `sensitivity-gate.js` (PreToolUse Bash matcher) silent-fail on any error path so they don't disrupt user turns. Set `CARREL_HOOK_DEBUG=1` to enable `[carrel:<hook-name>] <reason>` stderr logging when diagnosing why a hook isn't firing. The sensitivity gate also rejects (passes through silently) when the command contains shell control characters (`;`, `&`, `|`, `<`, `>`, `` ` ``, `$`) — use `# bypass-gate` in those cases.
 - Mirror filename (v0.9.0): `carrel vault mirror --write` writes to `_meta/mirror/<YYYY-MM>.md` (monthly, idempotent same-month). Reflect-log writes to `_meta/reflections/reflection-<YYYY-MM-DD>.md`; feedback-digest writes to flat `_meta/feedback-digest-<YYYY-MM-DD>.md`. These three paths form a read/write loop (feedback-export reads reflections, mirror reads reflections + friction-log + capability-log) — `session-reflection` skill owns reflect + feedback; `research-partner` skill owns mirror synthesis.
+- Gemini transcription model (2026-07-10): default `gemini-3.5-flash` (GA), overridable via `CARREL_GEMINI_MODEL`. The Interactions response parse walks ALL output items (thought-items-first responses are handled) — don't revert to `output[0][...]` indexing.
+- Corrupt-profile recovery (2026-07-10): `vault init` on UNPARSEABLE JSON backs the file up to `.carrel/environment.json.corrupt-<timestamp>` and proceeds fresh (loud warning); parseable-but-invalid profiles hard-fail with an `env validate` → `env fix --safe` hint. Consent repairs are asymmetric by design: auto-repairs may only NARROW consent (`"false"`→false auto-fixed; `"true"` defers to the human).
+- Feedback digest headings (2026-07-10): vault-relative paths with the structural sweep prefix (`_meta/<sweep-dir>/`) never redacted and every user-named segment + basename always redacted — no codename leaks via paths, no structural garbling. Identical in both runtimes; parity-asserted.
+- carrel-skill repo is publish-only: regenerated by `scripts/sync-skill-repo.sh --push` (dry-run default, refuses dirty trees). Edit `skills/carrel/` here, never the standalone repo.
 
 ## Capability Absorption
 

@@ -81,6 +81,8 @@ planning/
 | `reviews/014-impl-review-plugin-validator.md` | Pre-commit audit (1/4): plugin structural validity — valid-with-warnings; 2 hook JSON shape warnings later confirmed as bugs by code-reviewer. |
 | `reviews/014-impl-review-codex.md` | Pre-commit audit (2/4): codex adversarial pass — 1 HIGH (mirror prose routing), 4 MED (hook truncation, pending-decisions dedupe, silent failure modes, migration doc gaps). |
 | `reviews/014-impl-audit-synthesis.md` | Pre-commit audit synthesis: consolidates all 4 reviewer findings (plugin-validator, code-reviewer, kimi, codex), enumerates the 11 fixes applied + 4 deferred, sign-off for commit. Includes meta-lessons about skill↔CLI contract drift and adversarial-reviewer convergence as quality signal. |
+| `reviews/2026-07-10-freshness-skill-audit.md` | Freshness + skill-contract readiness evidence (Codex, skill-first branch): typed/portable runtime alignment, upstream re-pins (Obsidian Bases, Hermes Wiki 2.1, JSON Canvas 1.0, Cowork scheduling), full verification-gate table. |
+| `reviews/2026-07-10-swarm-findings.md` | Branch-wide adversarial review log (kimi-review + 40-agent verification workflow + 10-target kimi-swarm): 3 maintainer decisions (host-split, advisory bootstrap, network-lite YouTube), by-design dismissals, falsified reviewer claims, and the low-severity backlog fully resolved with a per-item table. |
 
 ## Release arc summary
 
