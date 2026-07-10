@@ -16,7 +16,14 @@ from .constants import (
     TRUST_LEVELS,
     VERSION,
 )
-from .core import CarrelError, default_profile, safe_atomic_write, safe_vault_join, write_profile
+from .core import (
+    CarrelError,
+    default_profile,
+    require_asset,
+    safe_atomic_write,
+    safe_vault_join,
+    write_profile,
+)
 from .vault_setup import (
     detect_template_drift,
     materialize_bases,
@@ -163,7 +170,9 @@ def cmd_vault_init(args) -> int:
     if context_path.is_symlink():
         raise CarrelError("Path escapes vault root", hint=f"Refusing context symlink {context_path}")
     if not context_path.exists():
-        safe_atomic_write(vault, context_path, context_asset.read_text(encoding="utf-8"))
+        safe_atomic_write(
+            vault, context_path, require_asset(context_asset).read_text(encoding="utf-8")
+        )
     payload = {
         "vault": str(vault),
         "profile": str(profile_path),
@@ -204,6 +213,8 @@ def validate_profile_payload(payload: dict) -> tuple[list[dict], list[dict]]:
     sensitivity = payload.get("sensitivity", "medium")
     if sensitivity not in SENSITIVITY:
         errors.append({"path": "sensitivity", "message": "sensitivity must be high, medium, or low"})
+    if "cloud_consent" in payload and not isinstance(payload["cloud_consent"], bool):
+        errors.append({"path": "cloud_consent", "message": "cloud_consent must be true or false (boolean)"})
     automation = payload.get("automation", {})
     if isinstance(automation, dict):
         trust = automation.get("trust_level", "advisory")
@@ -304,18 +315,37 @@ def cmd_env_fix(args) -> int:
     if fixed["automation"].get("review_cadence") not in AUTOMATION_REVIEW_CADENCES:
         fixed["automation"]["review_cadence"] = DEFAULT_PROFILE["automation"]["review_cadence"]
         reset_invalid_fields.append("automation.review_cadence")
+    # cloud_consent is asymmetric, unlike the enum resets above: only the
+    # narrowing "false" string typo is safe to auto-repair. Any other
+    # non-bool value (e.g. "true") is deferred to a human edit instead of
+    # being silently reset — matching the typed CLI's healing.py contract.
+    deferred: list[str] = []
+    cloud_consent_raw = fixed.get("cloud_consent")
+    if not isinstance(cloud_consent_raw, bool):
+        if isinstance(cloud_consent_raw, str) and cloud_consent_raw.strip().lower() == "false":
+            fixed["cloud_consent"] = False
+            reset_invalid_fields.append("cloud_consent")
+        else:
+            deferred.append(
+                f"Cannot safely fix cloud_consent (found {cloud_consent_raw!r}); edit "
+                ".carrel/environment.json and set cloud_consent to unquoted true or false "
+                "(widening repairs require a human)."
+            )
     changed = fixed != payload
     result = {"changed": changed, "path": str(path), "dry_run": args.dry_run}
     if reset_invalid_fields:
         result["reset_invalid_fields"] = reset_invalid_fields
-    if changed and not args.dry_run:
+    if deferred:
+        result["deferred"] = deferred
+    if changed and not args.dry_run and not deferred:
         if path.exists():
             backup = safe_vault_join(args.vault, ".carrel", "environment.json.bak")
             safe_atomic_write(args.vault, backup, path.read_text(encoding="utf-8"))
             result["backup"] = str(backup)
         write_profile(args.vault, fixed)
-    print(json.dumps(result) if args.format == "json" else ("updated" if changed else "ok"))
-    return 0
+    status_text = "deferred" if deferred else ("updated" if changed else "ok")
+    print(json.dumps(result) if args.format == "json" else status_text)
+    return 2 if deferred else 0
 
 
 def cmd_env_doctor(args) -> int:

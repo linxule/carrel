@@ -13,6 +13,7 @@ from .core import (
     assert_safe_write_target,
     current_trust,
     read_profile,
+    require_asset,
     require_profile,
     safe_atomic_write,
     safe_read_text,
@@ -360,9 +361,8 @@ def _render_automation_prompt(profile: dict) -> str:
         "- No automation capabilities are enabled. Stop after confirming that the vault is idle."
     )
     skill_root = Path(__file__).resolve().parents[2]
-    template = (skill_root / "assets" / "templates" / "automation-prompt.md").read_text(
-        encoding="utf-8"
-    )
+    template_path = require_asset(skill_root / "assets" / "templates" / "automation-prompt.md")
+    template = template_path.read_text(encoding="utf-8")
     return (
         template.replace("{{researcher_name}}", profile.get("name") or "this researcher")
         .replace("{{researcher_field}}", profile.get("field") or "Unknown")

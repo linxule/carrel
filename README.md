@@ -99,7 +99,7 @@ Best for fresh machines or when a facilitator is helping set up.
 
 Open Terminal on macOS/Linux or PowerShell as Administrator on Windows, then run the matching command above.
 
-This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, and installs the Carrel plugin. Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
+This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, installs the Carrel plugin, and installs the `carrel` CLI (the typed CLI that the plugin's hooks and slash commands run). Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
 
 If you have the script locally (e.g., via AirDrop):
 | Platform | Command |
@@ -136,6 +136,11 @@ brew install gh
 gh auth login
 ```
 
+**Path B doesn't install the `carrel` CLI** — the plugin's hooks and slash commands all run it, so install it separately (requires [uv](https://docs.astral.sh/uv/)):
+```bash
+uv tool install git+https://github.com/linxule/carrel.git
+```
+
 ### For AI Assistants Helping With Setup
 
 If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is the reliable sequence:
@@ -145,7 +150,8 @@ If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is
 3. **GitHub auth is required** (private repo): `gh auth login` if not authenticated
 4. **Add marketplace**: `claude plugin marketplace add linxule/carrel`
 5. **Install plugin**: `claude plugin install carrel@carrel --scope user`
-6. **Verify**: `claude plugin list` should show `carrel@carrel`
+6. **Install the CLI**: `uv tool install git+https://github.com/linxule/carrel.git` — required for the plugin's hooks and commands to work; check with `carrel --version`
+7. **Verify**: `claude plugin list` should show `carrel@carrel`
 
 Common issues:
 - `"Failed to add marketplace"` → GitHub auth not set up. Run `gh auth login` first.
@@ -172,6 +178,21 @@ In any Claude Code session:
 /carrel-status
 ```
 If Carrel is active, it reports the environment state. If not installed, the command won't be recognized.
+
+## Use Carrel with Other AI Clients
+
+`skills/carrel/` is a standalone, stdlib-only pack — a strict subset of this plugin's capability that runs without the Claude Code plugin runtime, for hosts that only support Agent Skills.
+
+| Client | Install |
+|--------|---------|
+| Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` (once the standalone repo is live) |
+| Codex, Cursor, OpenCode, Gemini CLI | Copy the folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel` for a global install) |
+| Kimi Code CLI | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
+| Claude.ai / Claude app / Cowork | Zip the folder and upload via **Settings → Capabilities → Skills**: `cd skills && zip -r carrel-skill.zip carrel -x "*__pycache__*" "*.pyc" "*.DS_Store"` |
+
+Don't run `npx skills add linxule/carrel` (this plugin repo) — it will discover every `skills/<name>/SKILL.md` in the repo, including the other skills meant only for the Claude Code plugin runtime (`knowledge-wiki`, `model-teammates`, etc.), which assume hooks/commands/agents that don't exist standalone. Use `linxule/carrel-skill` (the dedicated single-skill repo) instead, or scope the install with `--skill carrel`.
+
+Skills aren't signed — before installing from any source, read the code. `skills/carrel/scripts/` is short and stdlib-only by design, so this is a quick read.
 
 ## Optional MCPs
 

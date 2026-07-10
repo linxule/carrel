@@ -638,6 +638,54 @@ def test_carrel_skill_runtime_fix_reports_structurally_invalid_automation(tmp_pa
     assert fixed_payload["automation"]["trust_level"] == "advisory"
 
 
+def test_carrel_skill_runtime_malformed_cloud_consent_never_grants_cloud_routing(tmp_path) -> None:
+    """A hand-edited, non-boolean cloud_consent must fail env validate and
+    must never be read as consent by the routing decision.
+
+    `bool("false")` is `True` in Python, so a naive `bool(profile.get(...))`
+    read would silently treat this malformed string as consent granted. The
+    typed CLI's pydantic model rejects this shape via a strict field
+    validator (src/carrel/models.py, added 2026-07-10 — pydantic's default
+    lax coercion would otherwise ACCEPT bool-ish strings); the portable
+    runtime must match, not coerce it.
+    """
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+    env_path = vault / ".carrel" / "environment.json"
+    payload = json.loads(env_path.read_text(encoding="utf-8"))
+    payload["cloud_consent"] = "false"
+    env_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    validate = _run(skill, "env", "validate", "--vault", str(vault), "--format", "json")
+    assert validate.returncode == 1
+    body = json.loads(validate.stdout)
+    assert body["status"] == "invalid"
+    assert any(
+        item["path"] == "cloud_consent" and "boolean" in item["message"] for item in body["errors"]
+    )
+
+    empty_bin = tmp_path / "empty-bin"
+    empty_bin.mkdir()
+    decision = _run(
+        skill,
+        "transcript",
+        "create",
+        "recording.m4a",
+        "--vault",
+        str(vault),
+        "--sensitivity",
+        "low",
+        "--explain",
+        env_extra={"PATH": str(empty_bin)},
+    )
+    assert decision.returncode == 1, decision.stderr
+    explain_payload = json.loads(decision.stdout)
+    assert explain_payload["selected_tool"] is None
+    assert "cloud consent is not enabled" in explain_payload["rationale"]
+    assert "cloud consent is enabled" not in explain_payload["rationale"]
+
+
 def test_carrel_skill_default_profile_matches_researcher_profile_schema(tmp_path) -> None:
     """Guard against silent schema drift between the two engines.
 
@@ -1347,3 +1395,93 @@ def test_carrel_skill_runtime_policy_blocks_high_sensitivity_cloud(tmp_path) -> 
     )
     assert google.returncode == 1
     assert "HIGH sensitivity blocks Google Workspace export" in google.stderr
+
+
+def test_carrel_skill_runtime_batch_transcribe_rejects_leading_dash_source(tmp_path) -> None:
+    """A dash-prefixed source from a URL-list file must not reach adapter argv.
+
+    `batch transcribe` builds sources from a `.txt` URL-list file, bypassing
+    argparse's own dash-prefix parsing entirely, so adapters.py must reject
+    the value itself before invoking the coli subprocess.
+    """
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    marker = tmp_path / "coli-ran.txt"
+    adapter = bin_dir / "coli"
+    adapter.write_text(f"#!/bin/sh\ntouch '{marker}'\nprintf 'should not run\\n'\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    _run(skill, "vault", "init", str(vault))
+    folder = tmp_path / "audio"
+    folder.mkdir()
+    (folder / "urls.txt").write_text("-evil-flag\n", encoding="utf-8")
+
+    result = _run(
+        skill,
+        "batch",
+        "transcribe",
+        str(folder),
+        "--vault",
+        str(vault),
+        "--tool",
+        "coli",
+        "--format",
+        "json",
+        env_extra={"PATH": f"{bin_dir}:{os.environ.get('PATH', '')}"},
+    )
+
+    assert result.returncode == 1, result.stdout
+    outcomes = json.loads(result.stdout)
+    assert outcomes[0]["action"] == "failed"
+    assert "starts with '-'" in outcomes[0]["detail"]
+    assert not marker.exists()
+
+
+def test_carrel_skill_runtime_adapters_reject_leading_dash_values(tmp_path) -> None:
+    """Both adapter argv builders (capture URL, coli source) reject '-' prefixes."""
+    import sys as _sys
+
+    skill = _copy_skill(tmp_path)
+    scripts_dir = str(skill / "scripts")
+    added = scripts_dir not in _sys.path
+    if added:
+        _sys.path.insert(0, scripts_dir)
+    try:
+        from carrel_core.adapters import capture_url_with_adapter, transcribe_with_adapter
+        from carrel_core.core import CarrelError
+
+        messages = []
+        try:
+            capture_url_with_adapter("-evil")
+        except CarrelError as error:
+            messages.append(error.message)
+        try:
+            transcribe_with_adapter("-evil", "coli")
+        except CarrelError as error:
+            messages.append(error.message)
+    finally:
+        if added:
+            _sys.path.remove(scripts_dir)
+        _sys.modules.pop("carrel_core.adapters", None)
+        _sys.modules.pop("carrel_core.core", None)
+        _sys.modules.pop("carrel_core", None)
+
+    assert len(messages) == 2
+    assert all("starts with '-'" in message for message in messages)
+
+
+def test_carrel_skill_runtime_does_not_write_bytecode_cache(tmp_path) -> None:
+    """sys.dont_write_bytecode in carrel.py must keep a copied skill dir clean.
+
+    Regression guard for test_carrel_skill_pack_has_no_generated_files, which
+    would otherwise fail the next time someone runs the runtime manually
+    against the checked-in skill folder instead of a copy.
+    """
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+
+    result = _run(skill, "vault", "init", str(vault))
+
+    assert result.returncode == 0, result.stderr
+    assert list(skill.rglob("__pycache__")) == []

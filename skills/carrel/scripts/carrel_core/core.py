@@ -36,6 +36,23 @@ def default_profile() -> dict:
     return json.loads(json.dumps(DEFAULT_PROFILE))
 
 
+def cloud_consent_granted(profile: dict) -> bool:
+    # Only an explicit boolean True counts as consent. A malformed profile
+    # value (e.g. the string "false" from hand-edited JSON) is truthy under
+    # Python's bool() coercion and must never silently widen egress.
+    return profile.get("cloud_consent") is True
+
+
+def require_asset(path: Path) -> Path:
+    if not path.exists():
+        raise CarrelError(
+            "Skill pack incomplete: assets/templates not found next to "
+            f"scripts/: expected {path.resolve(strict=False)}",
+            hint="Copy the entire skills/carrel folder, not just scripts/.",
+        )
+    return path
+
+
 def atomic_write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(

@@ -60,7 +60,7 @@ Keep these outside the portable core.
 | `migrate apply` | Claude/plugin adapter only. It depends on plugin versions and host-specific state. |
 | `setup-state advance`, `complete`, `show`, `reset` | Host adapter setup flow only. Portable setup state is `.carrel/environment.json` plus `.carrel/agent-context.md`. |
 | `vault check-sync`, `vault add-markers` | Claude adapter only because they manage `CLAUDE.md` markers. |
-| Slash commands and hooks | Host adapter only. They should call the bundled runtime or read these references. |
+| Slash commands and hooks | Host adapter only. The Carrel Claude Code plugin's commands and hooks call the typed `carrel` CLI as their runtime; adapters on other hosts call this bundled runtime or read these references. |
 | Host scheduling walkthroughs | Adapter documentation only. Portable Carrel generates the prompt; Cowork or another host owns the saved schedule. |
 | marketplace/plugin state | Adapter only. Portable Carrel is the skill folder plus bundled scripts. |
 | model teammate install commands | Adapter only. Portable Carrel records `model_teammates`, sensitivity gates, and research use cases. |

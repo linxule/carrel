@@ -77,11 +77,7 @@ Use `--unattended` only in scheduled batch invocations. Interactive batches reta
 Automation configure commands persist only the profile and set `last_reviewed`; they do not create prompt or pending files. Generate the prompt as a separate explicit step:
 
 ```bash
-# Typed CLI
 carrel vault automation-prompt --vault .
-
-# Portable runtime
-python3 scripts/carrel.py vault automation-prompt --vault <vault>
 ```
 
 Pass `--force` to replace an existing prompt. No command creates an automatic `.prev` backup. The generated prompt must locate the vault via `.carrel/environment.json`, not embed an absolute path.
@@ -104,7 +100,7 @@ For a returning researcher, summarize current values and change only requested f
 
 ## Calling Patterns
 
-The full Typer CLI uses boolean switch pairs. Do not pass `true` or `false` after these flags:
+This is the Claude Code plugin skill; its runtime is the typed `carrel` CLI, which uses boolean switch pairs. Do not pass `true` or `false` after these flags:
 
 ```bash
 carrel automate configure --enabled --trust-level consultative \
@@ -114,16 +110,7 @@ carrel automate configure --enabled --trust-level consultative \
   --no-wiki-maintenance --vault .
 ```
 
-The portable argparse runtime intentionally accepts explicit boolean values:
-
-```bash
-python3 scripts/carrel.py automation configure --vault <vault> \
-  --enabled true --trust-level consultative --model sonnet \
-  --schedule daily --review-cadence quarterly \
-  --inbox-processing true --vault-health true --cross-linking true \
-  --gap-analysis false --draft-feedback false \
-  --reflection-synthesis true --wiki-maintenance false
-```
+On hosts without this plugin, the portable pack's runtime takes explicit boolean values instead; see `skills/carrel/references/workflows/automation.md`.
 
 After configure succeeds, generate the prompt separately, review it, then guide the researcher through Cowork `/schedule` or the Scheduled page. A local-vault task needs the connected folder and Desktop availability when it runs. The host's saved schedule is not modified by Carrel profile changes.
 

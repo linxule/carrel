@@ -24,6 +24,7 @@ from .adapters import (
 from .core import (
     CarrelError,
     available_tools,
+    cloud_consent_granted,
     read_profile,
     render_frontmatter,
     safe_atomic_write,
@@ -110,7 +111,7 @@ def cmd_convert_file(args) -> int:
     if not args.tool and (file_path.suffix.lower() in {".txt", ".md"} or args.content):
         decision = {"selected_tool": "provided", "rationale": "Bundled runtime can read provided/plain text directly"}
     else:
-        decision = select_tool("convert", args.tool, available, sensitivity, bool(profile.get("cloud_consent")))
+        decision = select_tool("convert", args.tool, available, sensitivity, cloud_consent_granted(profile))
     if args.explain:
         print(json.dumps(decision))
         return 0 if decision["selected_tool"] else 1
@@ -154,7 +155,7 @@ def cmd_transcript_create(args) -> int:
     if not args.tool and args.content:
         decision = {"selected_tool": "provided", "rationale": "Bundled runtime can file provided transcript text directly"}
     else:
-        decision = select_tool("transcribe", args.tool, available, sensitivity, bool(profile.get("cloud_consent")))
+        decision = select_tool("transcribe", args.tool, available, sensitivity, cloud_consent_granted(profile))
     if args.explain:
         payload = dict(decision)
         payload.update(
@@ -232,7 +233,7 @@ def cmd_google_export(args) -> int:
     if not args.tool and args.content:
         decision = {"selected_tool": "provided", "rationale": "Bundled runtime can file provided export text directly"}
     else:
-        decision = select_tool("convert", args.tool, available, sensitivity, bool(profile.get("cloud_consent")))
+        decision = select_tool("convert", args.tool, available, sensitivity, cloud_consent_granted(profile))
     if args.explain:
         payload = dict(decision)
         payload.update(

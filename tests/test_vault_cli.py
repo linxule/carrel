@@ -32,7 +32,9 @@ def test_env_profile_wraps_corrupted_profile_errors(tmp_path) -> None:
 
     assert result.exit_code == 1
     assert "Could not parse" in result.stderr
-    assert "Run /carrel-setup to regenerate it." in result.stderr
+    assert "env validate" in result.stderr
+    assert "env fix --safe" in result.stderr
+    assert "/carrel-setup" in result.stderr
 
 
 def test_vault_status_quiet_prints_only_vault_path(tmp_path) -> None:

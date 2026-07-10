@@ -209,6 +209,17 @@ class ResearcherProfile(BaseModel):
         serialization_alias="_unknown_keys",
     )
 
+    @field_validator("cloud_consent", mode="before")
+    @classmethod
+    def validate_cloud_consent_strict_bool(cls, value: Any) -> Any:
+        # The consent gate must never be widened by pydantic's lax coercion:
+        # a hand-edited "yes"/"true"/"1" would otherwise silently grant
+        # cloud consent. Parity contract with the portable runtime's
+        # validate_profile_payload (2026-07-10 host-split decision).
+        if not isinstance(value, bool):
+            raise ValueError("cloud_consent must be true or false (boolean)")
+        return value
+
     @field_validator("wiki_proposal_deferred_until")
     @classmethod
     def validate_wiki_proposal_deferred_until(cls, value: str | None) -> str | None:

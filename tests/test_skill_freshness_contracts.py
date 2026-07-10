@@ -160,7 +160,14 @@ def test_skill_frontmatter_names_size_and_references_are_portable() -> None:
         match = re.match(r"\A---\n(.*?)\n---\n", text, flags=re.DOTALL)
         assert match, path
         frontmatter = yaml.safe_load(match.group(1))
-        assert set(frontmatter) == {"name", "description"}, path
+        # Host-split (2026-07-10): the portable `carrel` pack is the standalone
+        # engine for non-plugin hosts, so it carries the agentskills.io spec
+        # fields `license` + `compatibility` on top of the plugin baseline; the
+        # 13 plugin skills stay strict {name, description}.
+        if path.parent.name == "carrel":
+            assert set(frontmatter) == {"name", "description", "license", "compatibility"}, path
+        else:
+            assert set(frontmatter) == {"name", "description"}, path
         assert frontmatter["name"] == path.parent.name, path
 
         for ref in re.findall(r"`((?:skills/)?(?:[A-Za-z0-9_-]+/)*references/[A-Za-z0-9_./-]+\.md)`", text):
