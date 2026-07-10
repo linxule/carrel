@@ -80,6 +80,25 @@ def cmd_mirror_write(args) -> int:
     print(json.dumps({"path": str(target), "action": "updated" if existed else "created"}))
     return 0
 
+# Fixed structural sweep-dir names, used both to sweep and to compute the
+# never-redacted heading prefix (don't hardcode the list twice).
+FEEDBACK_SWEEP_DIRS = ["friction-log", "capability-log", "reflections"]
+
+
+def _feedback_structural_prefix(rel: Path) -> tuple[str, str]:
+    """(structural prefix, redactable tail) — mirrors exporter._split_structural_prefix.
+
+    ``_meta`` plus the fixed sweep-dir name (when present) is never redacted;
+    user-named subdirectories and the basename are the redactable tail.
+    """
+
+    parts = rel.parts
+    prefix_len = 1  # "_meta"
+    if len(parts) > 2 and parts[1] in FEEDBACK_SWEEP_DIRS:
+        prefix_len = 2
+    return "/".join(parts[:prefix_len]), "/".join(parts[prefix_len:])
+
+
 def cmd_feedback_export(args) -> int:
     terms = read_redactions(args.redact_list)
     profile = read_profile(args.vault)
@@ -93,7 +112,7 @@ def cmd_feedback_export(args) -> int:
     terms = normalize_redactions(terms)
     vault_root = args.vault.expanduser().resolve()
     candidates = []
-    for folder in ["friction-log", "capability-log", "reflections"]:
+    for folder in FEEDBACK_SWEEP_DIRS:
         folder_path = safe_vault_join(args.vault, "_meta", folder)
         if folder_path.is_dir():
             candidates.extend(sorted(folder_path.glob("*.md")))
@@ -112,13 +131,18 @@ def cmd_feedback_export(args) -> int:
             unreadable.append(source)
             continue
         sources.append(source)
-        # Vault-relative heading keeps same-basename files distinct; redacted too.
-        label = source.relative_to(vault_root).as_posix()
-        section = f"## {label}\n\n{body.rstrip()}\n"
-        redacted, counts = apply_redactions(section, terms)
-        parts.append(f"\n{redacted.rstrip()}\n")
-        for term, count in counts.items():
-            total_counts[term] = total_counts.get(term, 0) + count
+        # Redact the tail (user-named subdirs + basename) and body, never the
+        # fixed structural prefix (`_meta/<sweep-dir>/`): a rule must not eat
+        # characters inside a fixed component, yet a codename in a user-named
+        # nested dir must still be redacted, not leaked.
+        prefix, tail = _feedback_structural_prefix(source.relative_to(vault_root))
+        redacted_tail, tail_counts = apply_redactions(tail, terms)
+        redacted_body, body_counts = apply_redactions(body.rstrip(), terms)
+        section = f"## {prefix}/{redacted_tail}\n\n{redacted_body}".rstrip()
+        parts.append(f"\n{section}\n")
+        for counts in (tail_counts, body_counts):
+            for term, count in counts.items():
+                total_counts[term] = total_counts.get(term, 0) + count
     zero_match_terms = [term for term, count in total_counts.items() if count == 0]
     target = safe_vault_join(args.vault, "_meta", f"feedback-digest-{date.today().isoformat()}.md")
     safe_atomic_write(args.vault, target, "\n".join(parts).rstrip() + "\n")

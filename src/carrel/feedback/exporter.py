@@ -28,6 +28,13 @@ REFLECTIONS_DIR = "reflections"
 FRICTION_FILE = "friction_log.md"
 CAPABILITY_FILE = "capability-log.md"
 
+# The fixed structural sweep-dir names (derived from the sweep list above, not
+# hardcoded twice). Their `_meta/<dir>/` prefix is never redacted — it is fixed
+# carrel vocabulary, never sensitive — while every user-named path segment below
+# it and the basename are redacted, so a project codename can't leak through a
+# nested directory name in a shareable digest.
+SWEEP_DIRS = frozenset({FRICTION_DIR, CAPABILITY_DIR, REFLECTIONS_DIR})
+
 
 @dataclass(frozen=True)
 class FeedbackExportResult:
@@ -124,6 +131,22 @@ def _rule_pattern(rule: RedactionRule) -> str:
     return rf"\b{escaped}\b" if rule.word_boundary else escaped
 
 
+def _split_structural_prefix(rel: Path) -> tuple[str, str]:
+    """Split a vault-relative source path into (structural prefix, redactable tail).
+
+    The structural prefix is ``_meta`` plus the fixed sweep-dir name when the
+    source lives under one; everything below it (user-named subdirectories and
+    the basename) is the redactable tail. Both are POSIX strings; the tail is
+    always non-empty (a source always has a basename).
+    """
+
+    parts = rel.parts
+    prefix_len = 1  # "_meta"
+    if len(parts) > 2 and parts[1] in SWEEP_DIRS:
+        prefix_len = 2
+    return "/".join(parts[:prefix_len]), "/".join(parts[prefix_len:])
+
+
 def _apply_redactions(
     text: str,
     rules: list[RedactionRule],
@@ -164,8 +187,11 @@ def render_digest(
     Returns the digest text, per-rule match counts, the sources actually read,
     and the sources skipped because they could not be read. Section headings use
     the vault-relative path so same-basename files in different ``_meta``
-    subdirectories stay distinct (the whole section, heading included, is passed
-    through redaction).
+    subdirectories stay distinct. Redaction applies to the redactable tail
+    (user-named subdirectories + basename) and the body, but never to the fixed
+    structural prefix (``_meta/<sweep-dir>/``): a rule cannot eat characters
+    inside a fixed path component (e.g. an "i" rule inside ".../reflections/"),
+    yet a project codename in a user-named nested directory is still redacted.
     """
 
     header = (
@@ -186,12 +212,17 @@ def render_digest(
             skipped.append(source)
             continue
         read_sources.append(source)
-        label = source.relative_to(vault_root).as_posix()
-        section = f"## {label}\n\n{body.rstrip()}\n"
-        redacted, counts = _apply_redactions(section, normalized)
-        for rule_source, count in counts.items():
-            total_counts[rule_source] += count
-        sections.append(redacted.rstrip() + "\n")
+        # Redact the redactable tail (user-named subdirs + basename) and the
+        # body, but never the fixed structural prefix (`_meta/<sweep-dir>/`): a
+        # rule must not eat characters inside a fixed path component (an "i" rule
+        # inside ".../reflections/"), yet a project codename in a user-named
+        # nested directory must still be redacted, not leaked.
+        prefix, tail = _split_structural_prefix(source.relative_to(vault_root))
+        redacted_tail, tail_counts = _apply_redactions(tail, normalized)
+        redacted_body, body_counts = _apply_redactions(body.rstrip(), normalized)
+        for rule_source in total_counts:
+            total_counts[rule_source] += tail_counts[rule_source] + body_counts[rule_source]
+        sections.append(f"## {prefix}/{redacted_tail}\n\n{redacted_body}".rstrip() + "\n")
 
     if not sections:
         sections.append("_No reflection, friction-log, or capability-log entries found._\n")

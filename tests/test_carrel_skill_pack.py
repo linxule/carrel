@@ -1335,16 +1335,15 @@ def test_carrel_skill_runtime_feedback_redacts_heading_and_unicode_i_variants(tm
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     body = Path(payload["path"]).read_text(encoding="utf-8")
-    # Headings carry the vault-relative path (same-basename collision fix,
-    # 2026-07-10) and redaction applies to the WHOLE digest including path
-    # components: a redact-listed term must never leak through a directory
-    # name in a shareable digest. So "x.md" -> [REDACTED] and the "i" in
-    # "reflections" folds under the i -> X rule. Total = 4 body + 1 heading
-    # "i" + 1 "x.md".
-    assert "## _meta/reflectXons/[REDACTED]" in body
+    # Headings carry the vault-relative path (same-basename collision fix), but
+    # only the basename is redacted — the fixed structural directory prefix
+    # (friction-log/capability-log/reflections) is left intact, so a rule cannot
+    # eat characters inside a path component. Here "x.md" -> [REDACTED] while the
+    # "i" in "reflections" is NOT touched. Total = 4 body "i" + 1 basename "x.md".
+    assert "## _meta/reflections/[REDACTED]" in body
     assert "X X X X" in body
-    assert payload["redacted_terms"] == 6
-    assert payload["redactions_applied"] == 6
+    assert payload["redacted_terms"] == 5
+    assert payload["redactions_applied"] == 5
     assert payload["zero_match_terms"] == []
 
 

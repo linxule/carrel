@@ -337,9 +337,10 @@ def test_feedback_export_handles_unicode_ignorecase_equivalents(tmp_path) -> Non
     digest = Path(payload["path"]).read_text(encoding="utf-8")
     # All four İ/ı/I/i variants fold to "i" under IGNORECASE (the body).
     assert "X X X X" in digest
-    # Headings now carry the vault-relative path, which is redacted too: the two
-    # "i"s in "friction-log" also match, so the total is 4 (body) + 2 (heading).
-    assert payload["redactions_applied"] == 6
+    # The directory prefix in the heading is NOT redacted, so the "i"s inside
+    # "friction-log" are not counted — only the four body matches are.
+    assert payload["redactions_applied"] == 4
+    assert "## _meta/friction-log/sample.md" in digest  # intact relative dir prefix
 
 
 def test_feedback_export_auto_name_redaction_matches_whole_words_only(tmp_path) -> None:
@@ -453,3 +454,44 @@ def test_feedback_export_disambiguates_same_basename_across_subdirs(tmp_path) ->
     assert "## _meta/reflections/2026.md" in digest
     assert "friction body" in digest
     assert "reflection body" in digest
+
+
+def test_feedback_export_redacts_user_named_subdir_but_not_structural_prefix(tmp_path) -> None:
+    """Leak regression: a codename in a user-named nested subdir must be redacted.
+
+    The heading carries the vault-relative path, so a project codename living in
+    a user-created directory under a sweep dir (`_meta/reflections/AcmeCorp-notes/`)
+    would otherwise leak into a digest built for anonymized sharing. The fixed
+    structural prefix (`_meta/reflections/`) stays intact; everything below it,
+    including the codename subdir, is redacted.
+    """
+
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    nested = vault / "_meta" / "reflections" / "AcmeCorp-notes"
+    nested.mkdir(parents=True)
+    (nested / "x.md").write_text("Session notes.\n", encoding="utf-8")
+    redact = tmp_path / "redact.txt"
+    redact.write_text("AcmeCorp\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "vault",
+            "feedback",
+            "export",
+            "--redact-list",
+            str(redact),
+            "--vault",
+            str(vault),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    payload = json.loads(result.stdout)
+    digest = Path(payload["path"]).read_text(encoding="utf-8")
+    assert "AcmeCorp" not in digest  # the codename never leaks through the heading
+    assert "## _meta/reflections/[REDACTED]-notes/x.md" in digest  # prefix intact, subdir redacted
+    assert payload["redactions_applied"] == 1
