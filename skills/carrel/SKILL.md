@@ -24,11 +24,16 @@ python3 scripts/carrel.py capture url https://example.com/article --vault <vault
 ```
 
 The runtime is stdlib-first. Public tool ids include `liteparse`,
-`markdownify`, `defuddle`, `coli`, `gws`, `mineru`, `mistral_ocr`, `groq`,
-`gemini`, and YouTube caption support. Executable names such as `lit` and
-`markitdown` are adapter implementation details. If an adapter is missing,
-report the missing capability and offer the relevant setup path instead of
-treating the skill as unavailable.
+`markdownify`, `defuddle`, `coli`, `gws`, `mineru`, `mistral_ocr`, `groq`, and
+`gemini`. Executable names such as `lit` and `markitdown` are adapter
+implementation details. If an adapter is missing, report the missing capability
+and offer the relevant setup path instead of treating the skill as unavailable.
+
+YouTube caption or audio *fetching* is typed-CLI or host-adapter territory: the
+bundled runtime never calls the network for transcripts. It recognizes YouTube
+URLs only to slug the artifact by video id (so two distinct videos never
+collide on the shared `watch` stem) — supply the transcript itself with
+`--content`, or let a host adapter fetch captions.
 
 ## Workflow Routing
 

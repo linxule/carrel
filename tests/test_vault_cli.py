@@ -37,6 +37,62 @@ def test_env_profile_wraps_corrupted_profile_errors(tmp_path) -> None:
     assert "/carrel-setup" in result.stderr
 
 
+def test_env_fix_rejects_unsafe_flag_at_parse_level(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+
+    result = runner.invoke(app, ["env", "fix", "--vault", str(vault), "--unsafe"])
+
+    assert result.exit_code == 2
+    assert "No such option: --unsafe" in result.stderr
+
+
+def test_env_fix_still_accepts_safe_flag(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+
+    # --safe is documented and must stay valid; with no profile it parses fine
+    # and proceeds to the "No ResearcherProfile found" path.
+    result = runner.invoke(app, ["env", "fix", "--vault", str(vault), "--safe"])
+
+    assert result.exit_code == 1
+    assert "No ResearcherProfile found" in result.stderr
+
+
+def test_share_generate_explain_human_format_is_not_raw_json(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+
+    result = runner.invoke(
+        app,
+        [
+            "vault",
+            "share",
+            "generate",
+            "--mode",
+            "quick",
+            "--for",
+            "jane",
+            "--sensitivity",
+            "medium",
+            "--vault",
+            str(vault),
+            "--from-stdin",
+            "--explain",
+        ],
+        input="# body\n",
+    )
+
+    assert result.exit_code == 0, result.stderr
+    out = result.stdout
+    assert "Would write:" in out
+    assert "Mode: quick" in out
+    assert "Body source: stdin" in out
+    # Human format, not the old indented-JSON dump.
+    assert '"would_write"' not in out
+    assert not out.lstrip().startswith("{")
+
+
 def test_vault_status_quiet_prints_only_vault_path(tmp_path) -> None:
     vault = tmp_path / "vault"
     (vault / ".carrel").mkdir(parents=True)

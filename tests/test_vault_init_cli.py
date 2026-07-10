@@ -154,6 +154,73 @@ def test_vault_init_invalid_existing_profile_does_not_extend_vault(tmp_path) -> 
     ]
 
 
+def test_vault_init_repairable_profile_hint_points_to_env_fix(tmp_path) -> None:
+    """Parseable-but-invalid JSON is repairable: hard-fail, but point at the tools."""
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    (vault / ".carrel" / "environment.json").write_text(
+        '{"sensitivity": "extreme"}',
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["vault", "init", str(vault)])
+
+    assert result.exit_code == 1
+    assert "Could not parse existing profile" in result.stderr
+    assert "carrel env validate" in result.stderr
+    assert "carrel env fix --safe" in result.stderr
+    # Left in place for the researcher to repair — not backed up.
+    assert not list((vault / ".carrel").glob("environment.json.corrupt-*"))
+    assert (vault / ".carrel" / "environment.json").read_text(encoding="utf-8") == (
+        '{"sensitivity": "extreme"}'
+    )
+
+
+def test_vault_init_recovers_from_corrupt_existing_profile(tmp_path) -> None:
+    """Unparseable JSON is unrepairable: back it up and proceed with a fresh profile."""
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    (vault / ".carrel" / "environment.json").write_text("{not valid json", encoding="utf-8")
+
+    result = runner.invoke(app, ["vault", "init", str(vault)])
+
+    assert result.exit_code == 0, result.stderr
+    # Corrupt file moved aside (not left in place, not overwritten silently).
+    backups = list((vault / ".carrel").glob("environment.json.corrupt-*"))
+    assert len(backups) == 1
+    assert backups[0].read_text(encoding="utf-8") == "{not valid json"
+    # A fresh, valid default profile now exists.
+    stored = ResearcherProfile.model_validate_json(
+        (vault / ".carrel" / "environment.json").read_text(encoding="utf-8")
+    )
+    assert stored.sensitivity.value == "medium"
+    # The vault was actually scaffolded, not left half-built.
+    assert (vault / "papers").is_dir()
+    assert (vault / "_meta" / "cheat_sheet.md").exists()
+    # Loud, actionable warning naming the backup surfaced on stderr.
+    assert "was not valid JSON" in result.stderr
+    assert "corrupt-" in result.stderr
+
+
+def test_vault_init_corrupt_backup_does_not_overwrite_existing_backup(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    (vault / ".carrel" / "environment.json").write_text("{bad", encoding="utf-8")
+    # A backup with today's timestamp could already exist from a prior recovery.
+    from datetime import datetime
+
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    prior = vault / ".carrel" / f"environment.json.corrupt-{stamp}"
+    prior.write_text("earlier backup", encoding="utf-8")
+
+    result = runner.invoke(app, ["vault", "init", str(vault)])
+
+    assert result.exit_code == 0, result.stderr
+    assert prior.read_text(encoding="utf-8") == "earlier backup"
+    backups = sorted((vault / ".carrel").glob("environment.json.corrupt-*"))
+    assert len(backups) == 2
+
+
 def test_vault_init_rejects_symlinked_profile_before_scaffold_mutation(tmp_path) -> None:
     vault = tmp_path / "vault"
     (vault / ".carrel").mkdir(parents=True)

@@ -335,5 +335,121 @@ def test_feedback_export_handles_unicode_ignorecase_equivalents(tmp_path) -> Non
     assert result.exit_code == 0, result.stderr
     payload = json.loads(result.stdout)
     digest = Path(payload["path"]).read_text(encoding="utf-8")
+    # All four İ/ı/I/i variants fold to "i" under IGNORECASE (the body).
     assert "X X X X" in digest
-    assert payload["redactions_applied"] == 4
+    # Headings now carry the vault-relative path, which is redacted too: the two
+    # "i"s in "friction-log" also match, so the total is 4 (body) + 2 (heading).
+    assert payload["redactions_applied"] == 6
+
+
+def test_feedback_export_auto_name_redaction_matches_whole_words_only(tmp_path) -> None:
+    """A short profile name must not corrupt words that merely contain it.
+
+    Repro from the fix: the auto-injected rule for name "Ann" rewrote
+    "Planning the annual review" into garbage because it matched "ann" as an
+    unbounded substring. The auto name rule now matches whole words only; a
+    standalone "Ann" is still redacted. User-supplied rules keep substring
+    semantics (covered elsewhere).
+    """
+
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    (vault / "_meta" / "friction-log").mkdir(parents=True)
+    (vault / "_meta" / "friction-log" / "notes.md").write_text(
+        "Planning the annual review. Ann joined the lab.\n",
+        encoding="utf-8",
+    )
+    (vault / ".carrel" / "environment.json").write_text(
+        ResearcherProfile(name="Ann").model_dump_json(indent=2, by_alias=True),
+        encoding="utf-8",
+    )
+    redact = tmp_path / "redact.txt"
+    redact.write_text("", encoding="utf-8")  # only the auto name rule applies
+
+    result = runner.invoke(
+        app,
+        [
+            "vault",
+            "feedback",
+            "export",
+            "--redact-list",
+            str(redact),
+            "--vault",
+            str(vault),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    payload = json.loads(result.stdout)
+    digest = Path(payload["path"]).read_text(encoding="utf-8")
+    assert "Planning the annual review" in digest  # neither word corrupted
+    assert "Researcher joined the lab" in digest  # standalone "Ann" redacted
+    assert "PlResearcher" not in digest  # the exact reported corruption is gone
+    assert payload["redactions_applied"] == 1
+
+
+def test_feedback_export_skips_unreadable_source_and_excludes_it_from_count(tmp_path) -> None:
+    """An unreadable file is dropped from sources and every count, tracked separately."""
+
+    from carrel.feedback.exporter import export_feedback
+
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    friction_dir = vault / "_meta" / "friction-log"
+    friction_dir.mkdir(parents=True)
+    (friction_dir / "good.md").write_text("Acme Lab was here.\n", encoding="utf-8")
+    (friction_dir / "bad.md").write_bytes(b"\xff\xfe not valid utf-8 \xff")
+    redact = tmp_path / "redact.txt"
+    redact.write_text("Acme Lab\n", encoding="utf-8")
+
+    out = vault / "_meta" / f"feedback-digest-{date.today().isoformat()}.md"
+    result = export_feedback(vault=vault, redact_list=redact, output_path=out)
+
+    assert {p.name for p in result.sources} == {"good.md"}
+    assert {p.name for p in result.skipped} == {"bad.md"}
+    digest = out.read_text(encoding="utf-8")
+    assert "good.md" in digest
+    assert "bad.md" not in digest  # unreadable file never reaches the digest
+    assert result.redacted_terms == 1  # only good.md's "Acme Lab" is counted
+
+
+def test_feedback_export_disambiguates_same_basename_across_subdirs(tmp_path) -> None:
+    """Same-basename files in different _meta subdirs get distinct headings."""
+
+    vault = tmp_path / "vault"
+    (vault / ".carrel").mkdir(parents=True)
+    (vault / "_meta" / "friction-log").mkdir(parents=True)
+    (vault / "_meta" / "reflections").mkdir(parents=True)
+    (vault / "_meta" / "friction-log" / "2026.md").write_text(
+        "friction body\n", encoding="utf-8"
+    )
+    (vault / "_meta" / "reflections" / "2026.md").write_text(
+        "reflection body\n", encoding="utf-8"
+    )
+    redact = tmp_path / "redact.txt"
+    redact.write_text("nothingmatches\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "vault",
+            "feedback",
+            "export",
+            "--redact-list",
+            str(redact),
+            "--vault",
+            str(vault),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    digest = Path(json.loads(result.stdout)["path"]).read_text(encoding="utf-8")
+    # Previously both collapsed to "## 2026.md"; now each carries its subdir.
+    assert "## _meta/friction-log/2026.md" in digest
+    assert "## _meta/reflections/2026.md" in digest
+    assert "friction body" in digest
+    assert "reflection body" in digest

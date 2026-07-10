@@ -118,9 +118,19 @@ def _first_result_value(payload: dict, *keys: str) -> str | None:
 def _markdown_from_zip(content: bytes) -> str:
     try:
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
-            for name in archive.namelist():
-                if name.endswith(".md"):
-                    return archive.read(name).decode("utf-8").strip()
+            md_names = sorted(name for name in archive.namelist() if name.lower().endswith(".md"))
+            if not md_names:
+                raise ConversionError(
+                    "mineru result had no markdown",
+                    hint="Result zip did not include a .md file.",
+                )
+            # MinerU emits a canonical `full.md` holding the whole document. When it
+            # is present, use it alone so per-page fragments are not duplicated;
+            # otherwise concatenate every markdown member in sorted (deterministic)
+            # order to avoid silently dropping pages.
+            full_names = [name for name in md_names if name.rsplit("/", 1)[-1].lower() == "full.md"]
+            chosen = full_names or md_names
+            sections = [archive.read(name).decode("utf-8").strip() for name in chosen]
     except zipfile.BadZipFile as exc:
         raise ConversionError("mineru result was not a zip file", hint="Retry the conversion.") from exc
-    raise ConversionError("mineru result had no markdown", hint="Result zip did not include a .md file.")
+    return "\n\n".join(section for section in sections if section)

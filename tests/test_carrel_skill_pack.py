@@ -685,6 +685,43 @@ def test_carrel_skill_runtime_malformed_cloud_consent_never_grants_cloud_routing
     assert "cloud consent is not enabled" in explain_payload["rationale"]
     assert "cloud consent is enabled" not in explain_payload["rationale"]
 
+    # HONESTY GUARD (2026-07-10): the subprocess assertions above run with an
+    # empty PATH, so no cloud tool can be available and `selected_tool is None`
+    # is trivially true regardless of consent -- it only proves the rationale
+    # wording. The portable runtime's `available_tools()` never surfaces a cloud
+    # tool at CLI level (it shutil.which()-detects local binaries only), so
+    # faking cloud availability through the CLI is impossible. Drive the
+    # portable policy function directly with a cloud tool GENUINELY available to
+    # prove the real invariant: a non-consent value (what the malformed
+    # cloud_consent reads as) never routes to cloud even when cloud IS reachable.
+    #
+    # Import from the tmp COPY (never the checked-in skill dir) with bytecode
+    # writing disabled and full teardown, so no __pycache__ or stale sys.modules
+    # entry leaks (guards test_carrel_skill_pack_has_no_generated_files and
+    # peers, and keeps the portable namespace clean for other tests).
+    import importlib
+
+    scripts_dir = str(skill / "scripts")
+    sys.path.insert(0, scripts_dir)
+    prev_dont_write = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        portable_core = importlib.import_module("carrel_core.core")
+
+        denied = portable_core.select_tool("transcribe", None, {"groq"}, "low", False)
+        assert denied["selected_tool"] is None  # cloud reachable, consent=False → blocked
+        assert "cloud consent is not enabled" in denied["rationale"]
+
+        # Converse control: flip ONLY consent → cloud is now selected, proving the
+        # cloud tool really was available and consent was the deciding gate.
+        granted = portable_core.select_tool("transcribe", None, {"groq"}, "low", True)
+        assert granted["selected_tool"] == "groq"
+    finally:
+        sys.dont_write_bytecode = prev_dont_write
+        sys.path.remove(scripts_dir)
+        for mod in [m for m in sys.modules if m == "carrel_core" or m.startswith("carrel_core.")]:
+            del sys.modules[mod]
+
 
 def test_carrel_skill_default_profile_matches_researcher_profile_schema(tmp_path) -> None:
     """Guard against silent schema drift between the two engines.
@@ -1298,10 +1335,16 @@ def test_carrel_skill_runtime_feedback_redacts_heading_and_unicode_i_variants(tm
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     body = Path(payload["path"]).read_text(encoding="utf-8")
-    assert "## [REDACTED]" in body
+    # Headings carry the vault-relative path (same-basename collision fix,
+    # 2026-07-10) and redaction applies to the WHOLE digest including path
+    # components: a redact-listed term must never leak through a directory
+    # name in a shareable digest. So "x.md" -> [REDACTED] and the "i" in
+    # "reflections" folds under the i -> X rule. Total = 4 body + 1 heading
+    # "i" + 1 "x.md".
+    assert "## _meta/reflectXons/[REDACTED]" in body
     assert "X X X X" in body
-    assert payload["redacted_terms"] == 5
-    assert payload["redactions_applied"] == 5
+    assert payload["redacted_terms"] == 6
+    assert payload["redactions_applied"] == 6
     assert payload["zero_match_terms"] == []
 
 
@@ -1485,3 +1528,190 @@ def test_carrel_skill_runtime_does_not_write_bytecode_cache(tmp_path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert list(skill.rglob("__pycache__")) == []
+
+
+def _dry_run_target(output: str) -> str:
+    return output.strip().rsplit(" -> ", 1)[-1]
+
+
+def test_carrel_skill_runtime_youtube_sources_slug_by_video_id_not_watch(tmp_path) -> None:
+    """Distinct YouTube videos must produce distinct targets.
+
+    The old slug derived from the URL path stem, so every
+    ``youtube.com/watch?v=<id>`` collided on the literal ``watch`` — the second
+    video silently skipped, and ``--force`` overwrote the first (data loss).
+    The slug now keys on the extracted video id.
+    """
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+
+    first = _run(
+        skill, "transcript", "create",
+        "https://www.youtube.com/watch?v=AAA111aaa11", "--vault", str(vault), "--dry-run",
+    )
+    second = _run(
+        skill, "transcript", "create",
+        "https://youtu.be/BBB222bbb22", "--vault", str(vault), "--dry-run",
+    )
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    first_target = _dry_run_target(first.stdout)
+    second_target = _dry_run_target(second.stdout)
+    assert first_target != second_target
+    assert "youtube-aaa111aaa11" in first_target
+    assert "youtube-bbb222bbb22" in second_target
+
+    # Same collision guard for capture (no --title -> URL-derived slug).
+    cap_first = _run(
+        skill, "capture", "url",
+        "https://www.youtube.com/watch?v=AAA111aaa11", "--vault", str(vault), "--dry-run",
+    )
+    cap_second = _run(
+        skill, "capture", "url",
+        "https://www.youtube.com/watch?v=BBB222bbb22", "--vault", str(vault), "--dry-run",
+    )
+    assert _dry_run_target(cap_first.stdout) != _dry_run_target(cap_second.stdout)
+    assert "youtube-aaa111aaa11" in _dry_run_target(cap_first.stdout)
+
+
+def test_carrel_skill_runtime_youtube_url_without_id_errors_not_collides(tmp_path) -> None:
+    """A YouTube URL with no extractable video id is an actionable error, not a
+    colliding ``playlist``/``watch`` slug."""
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+
+    for command in (
+        ("transcript", "create", "https://www.youtube.com/playlist?list=PL999"),
+        ("capture", "url", "https://www.youtube.com/playlist?list=PL999"),
+    ):
+        result = _run(skill, *command, "--vault", str(vault), "--dry-run")
+        assert result.returncode == 1, result.stdout
+        assert "video id" in result.stderr.lower()
+        assert "Traceback" not in result.stderr
+
+
+def test_carrel_skill_runtime_provided_content_change_is_not_a_false_skip(tmp_path) -> None:
+    """With --content, changing the body must be detected as a different
+    source-hash. The old URL-only hash silently skipped edited content."""
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+    url = "https://example.com/post"
+    common = ["capture", "url", url, "--vault", str(vault), "--title", "Note"]
+
+    created = _run(skill, *common, "--content", "First body.")
+    assert json.loads(created.stdout)["action"] == "created"
+
+    same = _run(skill, *common, "--content", "First body.")
+    same_payload = json.loads(same.stdout)
+    assert same_payload["action"] == "skipped"
+    assert "source-hash matches" in same_payload["reason"]
+
+    changed = _run(skill, *common, "--content", "Second body.")
+    changed_payload = json.loads(changed.stdout)
+    assert changed_payload["action"] == "skipped"
+    assert "different source-hash" in changed_payload["reason"]
+
+    forced = _run(skill, *common, "--content", "Second body.", "--force")
+    assert json.loads(forced.stdout)["action"] == "overwritten"
+
+
+def test_carrel_skill_runtime_frontmatter_hash_scan_ignores_body(tmp_path) -> None:
+    """The idempotency check reads source_hash from the frontmatter block only.
+
+    A 64-char hash literal in the note body must never be mistaken for the
+    frontmatter value (the old substring check did exactly that)."""
+    import sys as _sys
+
+    skill = _copy_skill(tmp_path)
+    scripts_dir = str(skill / "scripts")
+    added = scripts_dir not in _sys.path
+    if added:
+        _sys.path.insert(0, scripts_dir)
+    try:
+        from carrel_core.core import frontmatter_source_hash, render_frontmatter
+
+        real = "a" * 64
+        decoy = "b" * 64
+        note = render_frontmatter(
+            {"source_hash": real}, f'Body mentions source_hash: "{decoy}"\n'
+        )
+        assert frontmatter_source_hash(note) == real
+        assert frontmatter_source_hash("no frontmatter here") is None
+    finally:
+        if added:
+            _sys.path.remove(scripts_dir)
+        _sys.modules.pop("carrel_core.core", None)
+        _sys.modules.pop("carrel_core", None)
+
+
+def test_carrel_skill_runtime_pdf_never_falls_back_to_markitdown(tmp_path) -> None:
+    """A PDF with no liteparse must error, never silently route to markitdown."""
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    source = tmp_path / "scan.pdf"
+    source.write_text("fake pdf", encoding="utf-8")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    marker = tmp_path / "markitdown-ran.txt"
+    adapter = bin_dir / "markitdown"
+    adapter.write_text(f"#!/bin/sh\ntouch '{marker}'\nprintf 'converted\\n'\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    _run(skill, "vault", "init", str(vault))
+
+    result = _run(
+        skill, "convert", "file", str(source), "--vault", str(vault),
+        env_extra={"PATH": str(bin_dir)},
+    )
+
+    assert result.returncode == 1
+    assert not marker.exists()
+    assert "liteparse" in (result.stderr + result.stdout).lower()
+    assert not (vault / "papers" / "scan" / "paper.md").exists()
+
+
+def test_carrel_skill_runtime_non_pdf_never_routes_to_liteparse(tmp_path) -> None:
+    """liteparse is a PDF parser; a .pptx must never be routed to it."""
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    source = tmp_path / "deck.pptx"
+    source.write_text("fake pptx", encoding="utf-8")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    marker = tmp_path / "lit-ran.txt"
+    adapter = bin_dir / "lit"
+    adapter.write_text(f"#!/bin/sh\ntouch '{marker}'\nprintf 'parsed\\n'\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    _run(skill, "vault", "init", str(vault))
+
+    result = _run(
+        skill, "convert", "file", str(source), "--vault", str(vault),
+        env_extra={"PATH": str(bin_dir)},
+    )
+
+    assert result.returncode == 1
+    assert not marker.exists()
+    assert not (vault / "papers" / "deck" / "paper.md").exists()
+
+
+def test_carrel_skill_runtime_google_export_lists_supported_formats_on_mismatch(tmp_path) -> None:
+    """A presentation has no html export; the error lists the formats it does
+    support rather than failing opaquely."""
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+
+    result = _run(
+        skill, "google", "export",
+        "https://docs.google.com/presentation/d/deck123/edit",
+        "--vault", str(vault), "--export-format", "html", "--content", "Body.",
+    )
+
+    assert result.returncode == 1
+    assert "presentation" in result.stderr
+    assert "html" in result.stderr
+    for supported in ("docx", "pdf", "txt"):
+        assert supported in result.stderr
+    assert list((vault / "papers").iterdir()) == []

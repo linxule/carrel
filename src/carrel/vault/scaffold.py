@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import sys
+from datetime import date, datetime
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -83,6 +85,46 @@ def _render_claude_template(profile: ResearcherProfile) -> str:
     return ensure_markers(rendered, _claude_marker_values(profile))
 
 
+def _render_environment_dashboard(vault: Path) -> str:
+    """Render the starter my-environment.md so no literal {{placeholders}} leak.
+
+    Tool statuses are unknown until an audit runs — `carrel vault dashboard
+    --force` regenerates this file with live audit data.
+    """
+    return (
+        read_template("my-environment.md")
+        .replace("{{status}}", "unknown")
+        .replace("{{vault_path}}", f"`{vault}`")
+        .replace("{{date}}", date.today().isoformat())
+    )
+
+
+def _backup_corrupt_profile(profile_path: Path) -> Path:
+    """Move an unparseable environment.json aside so vault init can proceed.
+
+    Uses a timestamped suffix and never overwrites an existing backup.
+    """
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    candidate = profile_path.with_name(f"{profile_path.name}.corrupt-{timestamp}")
+    counter = 1
+    while candidate.exists():
+        candidate = profile_path.with_name(
+            f"{profile_path.name}.corrupt-{timestamp}-{counter}"
+        )
+        counter += 1
+    profile_path.rename(candidate)
+    return candidate
+
+
+def _warn_corrupt_profile(profile_path: Path, backup_path: Path) -> None:
+    print(
+        f"WARNING: {profile_path} was not valid JSON and could not be repaired.\n"
+        f"         Backed it up to {backup_path} and continued with a fresh default profile.\n"
+        f"         Re-run `/carrel-setup` (or restore .carrel/environment.json) to recover your preferences.",
+        file=sys.stderr,
+    )
+
+
 def _preflight_path(vault: Path, relative: str, *, expect_directory: bool) -> None:
     root = vault.expanduser().resolve()
     current = root
@@ -152,8 +194,16 @@ def load_profile_file(path: Path) -> ResearcherProfile:
         ) from error
 
 
-def _resolve_active_profile(vault: Path, profile: ResearcherProfile | None) -> ResearcherProfile:
-    """Resolve profile semantics without creating or modifying any vault files."""
+def _resolve_active_profile(
+    vault: Path, profile: ResearcherProfile | None
+) -> tuple[ResearcherProfile, Path | None]:
+    """Resolve profile semantics without creating or modifying any vault files.
+
+    Returns the active profile plus the path of a corrupt (unparseable-JSON)
+    environment.json that the caller must back up before writing a fresh one.
+    Parseable-but-invalid JSON is repairable, so it hard-fails instead — the
+    hint points at the working repair path (`carrel env validate` / `env fix`).
+    """
 
     carrel_dir = vault / ".carrel"
     lexical_profile_path = carrel_dir / "environment.json"
@@ -164,16 +214,34 @@ def _resolve_active_profile(vault: Path, profile: ResearcherProfile | None) -> R
         )
     profile_path = safe_vault_join(vault, ".carrel", "environment.json")
     existing: ResearcherProfile | None = None
+    corrupt_profile: Path | None = None
     if profile_path.exists():
         try:
-            existing = ResearcherProfile.model_validate_json(
-                profile_path.read_text(encoding="utf-8")
-            )
-        except (OSError, UnicodeDecodeError, ValidationError) as error:
+            raw_text = profile_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as error:
             raise CarrelError(
-                f"Could not parse existing profile: {profile_path}",
-                hint="Repair environment.json before rerunning vault init.",
+                f"Could not read existing profile: {profile_path}",
+                hint="Fix file permissions or encoding before rerunning vault init.",
             ) from error
+        try:
+            json.loads(raw_text)
+        except json.JSONDecodeError:
+            # Unparseable JSON cannot be repaired by `carrel env fix`. Signal a
+            # backup so vault init recovers instead of dead-ending in the
+            # /carrel-setup -> vault init hint loop.
+            corrupt_profile = profile_path
+        else:
+            try:
+                existing = ResearcherProfile.model_validate_json(raw_text)
+            except ValidationError as error:
+                raise CarrelError(
+                    f"Could not parse existing profile: {profile_path}",
+                    hint=(
+                        "Run `carrel env validate --vault .` to see the schema errors, "
+                        "then `carrel env fix --safe --vault .` to repair environment.json "
+                        "before rerunning vault init."
+                    ),
+                ) from error
 
     if profile is not None and existing is not None and profile != existing:
         raise CarrelError(
@@ -181,15 +249,15 @@ def _resolve_active_profile(vault: Path, profile: ResearcherProfile | None) -> R
             hint="Use the existing profile or make the supplied profile identical before rerunning init.",
         )
     if profile is not None:
-        return profile
+        return profile, corrupt_profile
     if existing is not None:
-        return existing
-    return DEFAULT_PROFILE
+        return existing, corrupt_profile
+    return DEFAULT_PROFILE, corrupt_profile
 
 
 def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> ScaffoldResult:
     vault = path.expanduser().resolve()
-    active_profile = _resolve_active_profile(vault, profile)
+    active_profile, corrupt_profile = _resolve_active_profile(vault, profile)
     scaffold = load_scaffold_config()
     obsidian = load_obsidian_config()["files"]
     selected_bases = _select_bases(scaffold, active_profile)
@@ -207,6 +275,12 @@ def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> Scaf
         "_meta/friction_log.md",
     ]
     _preflight_init_targets(vault, directories=directories, files=files)
+    # Back up a corrupt environment.json only after preflight passes, so a
+    # rejected init leaves the vault untouched (all-or-nothing). Moving it aside
+    # lets the fresh profile write below succeed.
+    if corrupt_profile is not None:
+        backup_path = _backup_corrupt_profile(corrupt_profile)
+        _warn_corrupt_profile(corrupt_profile, backup_path)
     # Drift inspection is read-only and now runs after every target has passed
     # the all-or-nothing scaffold preflight.
     drift = detect_template_drift(vault)
@@ -261,7 +335,7 @@ def scaffold_vault(path: Path, profile: ResearcherProfile | None = None) -> Scaf
     (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
 
     env_dashboard = safe_vault_join(vault, "_meta", "my-environment.md")
-    action, raw_path = _safe_write(env_dashboard, read_template("my-environment.md"))
+    action, raw_path = _safe_write(env_dashboard, _render_environment_dashboard(vault))
     (created if action == "created" else skipped).append(_safe_relative(Path(raw_path), vault))
 
     claude_md = safe_vault_join(vault, "CLAUDE.md")

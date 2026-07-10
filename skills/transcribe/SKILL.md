@@ -28,6 +28,8 @@ The CLI handles tool routing, filing (`transcripts/<kind>-<name>-<date>.md`), an
 ### Tool selection
 
 - **YouTube URL** → omit `--tool` and the CLI uses local captions (free, no API key, includes timestamps). Run with local captions first (the default). If the output quality is poor (garbled text, missing segments, wrong language), offer to re-run with `--tool gemini` for AI-processed transcription from the actual audio+video.
+
+  YouTube captions are a **network-lite** fetch, not a cloud upload: Carrel pulls already-public captions from YouTube and **no vault data egresses**. So caption fetches are allowed on LOW and MEDIUM sensitivity **without** `cloud_consent` (they route by default). HIGH sensitivity is different: a caption fetch is **blocked by default** there, but an explicit `--tool youtube_captions` override is **honored with a warning** — the researcher is asserting the URL itself is not sensitive. `--tool gemini` remains a true cloud tool: it uploads audio/video and stays blocked on HIGH regardless of consent. (Decision 2026-07-10.)
 - **Local audio, sensitive data** → default to `coli` (local). Warn before suggesting `--tool groq`: "This will send audio to Groq's servers — is that okay given the sensitivity?"
 - **Local audio, non-sensitive, slow hardware** → `--tool groq` is faster, but Carrel's current adapter returns plain transcript text and does not expose word-level timestamps.
 - **Default** → omit `--tool` and let the CLI decide (coli for local audio, local captions for YouTube).

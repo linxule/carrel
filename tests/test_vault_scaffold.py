@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 import pytest
 
@@ -34,6 +35,35 @@ def test_scaffold_creates_dashboard_and_capability_log(tmp_path) -> None:
     assert "## Configured tools" in cheat_sheet
     assert "## Common workflows" in cheat_sheet
     assert "## Next steps" in cheat_sheet
+
+
+def test_scaffold_renders_environment_dashboard_placeholders(tmp_path) -> None:
+    result = scaffold_vault(tmp_path / "vault")
+
+    dashboard = (result.vault / "_meta" / "my-environment.md").read_text(encoding="utf-8")
+    assert "{{" not in dashboard  # no literal template placeholders leak
+    assert "{{status}}" not in dashboard
+    assert "{{vault_path}}" not in dashboard
+    assert "{{date}}" not in dashboard
+    assert str(result.vault) in dashboard
+    assert date.today().isoformat() in dashboard
+
+
+def test_scaffold_cheat_sheet_transcription_status_reflects_configured_tools(tmp_path) -> None:
+    default_sheet = (
+        scaffold_vault(tmp_path / "default").vault / "_meta" / "cheat_sheet.md"
+    ).read_text(encoding="utf-8")
+    assert "- Audio transcription: `available later`" in default_sheet
+
+    # Any transcription tool (audio or YouTube) flips the status to enabled.
+    for tool in ("coli", "groq", "gemini", "youtube_captions"):
+        profile = ResearcherProfile(tools_configured={tool: True})
+        sheet = (
+            scaffold_vault(tmp_path / tool, profile=profile).vault
+            / "_meta"
+            / "cheat_sheet.md"
+        ).read_text(encoding="utf-8")
+        assert "- Audio transcription: `enabled`" in sheet, tool
 
 
 def test_scaffold_cheat_sheet_uses_natural_language_wiki_copy(tmp_path) -> None:

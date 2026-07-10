@@ -97,7 +97,11 @@ def select_tool(
 
     if requested_tool is not None:
         if _is_network(requested_tool, tool_class):
-            if sensitivity == Sensitivity.HIGH:
+            # A caption fetch egresses no vault data (only the public video URL),
+            # so an explicit request is honored at every sensitivity level. At HIGH
+            # the default routing still refuses (below); this is the researcher's
+            # deliberate override, recorded in the rationale.
+            if requested_tool not in available_tools:
                 return _decision(
                     requested_tool=requested_tool,
                     selected_tool=None,
@@ -106,9 +110,9 @@ def select_tool(
                     tool_class=tool_class,
                     local_available=local_available,
                     cloud_available=cloud_available,
-                    rationale="HIGH sensitivity blocks network caption fetches",
+                    rationale="Requested caption tool is not available; install it and retry",
                 )
-            if requested_tool in available_tools:
+            if sensitivity == Sensitivity.HIGH:
                 return _decision(
                     requested_tool=requested_tool,
                     selected_tool=requested_tool,
@@ -117,8 +121,18 @@ def select_tool(
                     tool_class=tool_class,
                     local_available=local_available,
                     cloud_available=cloud_available,
-                    rationale="Requested network tool is available; preference honored",
+                    rationale="HIGH sensitivity: explicit researcher override for public caption fetch",
                 )
+            return _decision(
+                requested_tool=requested_tool,
+                selected_tool=requested_tool,
+                sensitivity=sensitivity,
+                cloud_consent=cloud_consent,
+                tool_class=tool_class,
+                local_available=local_available,
+                cloud_available=cloud_available,
+                rationale="public caption fetch, no vault data egresses",
+            )
 
         if _is_cloud(requested_tool, tool_class):
             if sensitivity == Sensitivity.HIGH:
@@ -232,7 +246,7 @@ def select_tool(
                 tool_class=tool_class,
                 local_available=local_available,
                 cloud_available=cloud_available,
-                rationale="HIGH sensitivity blocks network caption fetches",
+                rationale="HIGH sensitivity blocks automatic caption fetches; pass --tool youtube_captions to override for public captions",
             )
         return _decision(
             requested_tool=requested_tool,
@@ -242,7 +256,7 @@ def select_tool(
             tool_class=tool_class,
             local_available=local_available,
             cloud_available=cloud_available,
-            rationale="Network caption tool selected by default",
+            rationale="Caption fetch selected by default; public captions, no vault data egresses",
         )
 
     if sensitivity == Sensitivity.HIGH:

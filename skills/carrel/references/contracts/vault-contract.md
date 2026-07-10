@@ -7,6 +7,12 @@ paths through the vault-safe path helper before writing.
 
 - `.carrel/environment.json`: structured researcher profile.
 - `.carrel/agent-context.md`: host-neutral narrative context for future agents.
+  The portable `vault init` writes this at scaffold time. (Host-split note: a
+  vault initialized by the *typed* Claude Code CLI instead carries
+  `.carrel/setup-state.json` for its resumable setup flow and does not write
+  `agent-context.md`. Both are valid; treat whichever is present as canonical
+  for that vault. See `tests/test_runtime_parity.py` for the enumerated
+  divergence allowlists.)
 - `inbox/`: captured web pages and unsorted incoming material.
 - `papers/`: converted papers, using `papers/<slug>/paper.md`.
 - `transcripts/`: transcript markdown files.

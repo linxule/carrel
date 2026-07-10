@@ -77,6 +77,19 @@ def test_collect_activity_stats_returns_zeros_for_empty_vault(tmp_path) -> None:
     assert stats == ActivityStats(papers=0, transcripts=0, inbox=0)
 
 
+def test_collect_activity_stats_handles_file_named_like_folder(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    # A researcher file that shadows a stats folder name must not crash rglob().
+    (vault / "papers").write_text("not a folder", encoding="utf-8")
+    (vault / "transcripts").mkdir()
+    (vault / "transcripts" / "a.md").write_text("t", encoding="utf-8")
+
+    stats = collect_activity_stats(vault)
+
+    assert stats == ActivityStats(papers=0, transcripts=1, inbox=0)
+
+
 def test_collect_activity_stats_handles_missing_folders_gracefully(tmp_path) -> None:
     vault = tmp_path / "vault"
     (vault / "papers" / "alpha").mkdir(parents=True)

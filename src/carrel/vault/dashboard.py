@@ -31,7 +31,9 @@ class ActivityStats(BaseModel):
 
 
 def _count_files(path: Path) -> int:
-    if not path.exists():
+    # is_dir() is False for both a missing path and a file that happens to share
+    # the folder name (papers/transcripts/inbox) — rglob() on a file raises.
+    if not path.is_dir():
         return 0
     return sum(1 for child in path.rglob("*") if child.is_file())
 

@@ -182,6 +182,12 @@ def render_cheat_sheet(
     tools = profile.tools_configured
     name = profile.name or "Researcher"
     vault_name = vault.name
+    # Any transcription tool the vault has configured counts — audio (coli/groq)
+    # and YouTube (youtube_captions/gemini) both land in transcripts/.
+    transcription_tools = ("coli", "groq", "youtube_captions", "gemini")
+    transcription_status = (
+        "enabled" if any(tools.get(tool) for tool in transcription_tools) else "available later"
+    )
     return f"""# Carrel - Your AI Research Environment
 
 Customized for: {name}
@@ -192,7 +198,7 @@ Vault: {vault_name}
 - Obsidian vault: `{vault}`
 - Cloud consent: `{str(profile.cloud_consent).lower()}`
 - Sensitivity: `{profile.sensitivity.value}`
-- Audio transcription: `{"enabled" if tools.get("coli") or tools.get("groq") else "available later"}`
+- Audio transcription: `{transcription_status}`
 
 ## Folders
 

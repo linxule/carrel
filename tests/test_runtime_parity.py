@@ -63,8 +63,11 @@ from carrel.models import (
     HardwareCapability,
     PlatformToolMatrix,
     ResearcherProfile,
+    Sensitivity,
     ToolAvailability,
+    TranscribeTool,
 )
+from carrel.policy.sensitivity import select_tool
 
 SKILL_SRC = Path(__file__).resolve().parents[1] / "skills" / "carrel"
 runner = CliRunner()
@@ -408,6 +411,36 @@ def test_cloud_consent_command_time_parity_never_grants_cloud(tmp_path, portable
     assert "cloud consent is not enabled" in portable_payload["rationale"]
     assert "cloud consent is enabled" not in portable_payload["rationale"]
 
+    # HONESTY GUARD (2026-07-10): the assertions above run with an empty PATH,
+    # so *no* cloud tool can be available and `selected_tool is None` is
+    # trivially true regardless of consent. That proves the rationale wording,
+    # not the safety property. Drive the typed policy function directly with a
+    # cloud tool GENUINELY available to prove the actual invariant: a
+    # non-consent value (what a malformed cloud_consent reads as) never routes
+    # to cloud even when cloud IS reachable.
+    cloud_available = [TranscribeTool.GROQ]  # cloud tool present, no local tool
+    denied = select_tool(
+        requested_tool=None,
+        available_tools=cloud_available,
+        sensitivity=Sensitivity.LOW,
+        cloud_consent=False,  # malformed non-bool reads as not-consented
+        tool_class="transcribe",
+    )
+    assert denied.cloud_available is True  # the cloud tool really was available
+    assert denied.selected_tool is None  # ...and consent=False still blocked it
+
+    # Converse control: the ONLY thing changed is consent, and now cloud IS
+    # selected -- proving the None above was caused by consent, not by the
+    # cloud tool secretly being unavailable.
+    granted = select_tool(
+        requested_tool=None,
+        available_tools=cloud_available,
+        sensitivity=Sensitivity.LOW,
+        cloud_consent=True,
+        tool_class="transcribe",
+    )
+    assert granted.selected_tool == TranscribeTool.GROQ
+
 
 # ---------------------------------------------------------------------------
 # vault init — enumerated divergence (drift alarm)
@@ -711,13 +744,25 @@ def test_feedback_export_parity(tmp_path, portable_skill) -> None:
     portable_sources = {str(Path(s).relative_to(portable_vault)) for s in portable_body["sources"]}
     assert typed_sources == portable_sources == {"_meta/friction_log.md"}
 
-    # The redacted section body (everything from the first "## " header) is
-    # byte-identical; only the digest header differs by contract.
+    # Section headings now use the vault-relative path (`## _meta/friction_log.md`,
+    # not the bare `## friction_log.md`) so same-basename files in different
+    # `_meta` subdirectories stay distinct (review finding; both runtimes mirror
+    # it — exporter.py and carrel_core/maintenance.py). Assert the relative-path
+    # form explicitly on each side so a regression to bare basenames is caught
+    # directly, not only via the byte-identity check below.
+    typed_digest = Path(typed_body["path"]).read_text(encoding="utf-8")
+    portable_digest = Path(portable_body["path"]).read_text(encoding="utf-8")
+    assert "## _meta/friction_log.md" in typed_digest
+    assert "## _meta/friction_log.md" in portable_digest
+    assert "## friction_log.md\n" not in typed_digest  # not the collision-prone basename
+    assert "## friction_log.md\n" not in portable_digest
+
+    # The redacted section (everything from the first "## " header — heading and
+    # body) is byte-identical across runtimes; only the top-level digest header
+    # (`# Feedback Digest — <date>`) differs by contract.
     def _sections(digest: str) -> str:
         return digest[digest.find("## ") :]
 
-    typed_digest = Path(typed_body["path"]).read_text(encoding="utf-8")
-    portable_digest = Path(portable_body["path"]).read_text(encoding="utf-8")
     assert _sections(typed_digest) == _sections(portable_digest)
 
 
@@ -733,6 +778,12 @@ def test_automation_configure_parity(tmp_path, portable_skill) -> None:
     one advisory -> consultative bootstrap, so a fresh vault can be configured.
     The grammars differ (typed ``--enabled`` boolean flag vs portable
     ``--enabled true``); the persisted ``automation`` object must be equal.
+
+    INTENDED CONTRACT (decision 2026-07-10, advisory bootstrap): pinning the
+    Advisory->Consultative self-transition here is deliberate, not an accident
+    of the current code — the skill's interview-approval flow is the approval of
+    record and no on-disk artifact gates it. Both runtimes must agree on exactly
+    that one exception. See src/carrel/cli/automate.py.
     """
 
     typed_vault = tmp_path / "typed"

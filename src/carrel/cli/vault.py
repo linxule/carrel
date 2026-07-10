@@ -444,6 +444,7 @@ def feedback_export_command(
                         "path": str(result.path),
                         "action": result.action,
                         "sources": [str(s) for s in result.sources],
+                        "unreadable_sources": [str(s) for s in result.skipped],
                         "redacted_terms": result.redacted_terms,
                         "redaction_rules": result.redaction_rules,
                         "redactions_applied": result.redactions_applied,
@@ -459,6 +460,11 @@ def feedback_export_command(
             f"{result.action.capitalize()} {result.path} "
             f"(sources={len(result.sources)}, redactions={result.redacted_terms})"
         )
+        if result.skipped:
+            console.print(
+                f"  [yellow]skipped {len(result.skipped)} unreadable source(s):[/yellow] "
+                + ", ".join(str(s) for s in result.skipped)
+            )
     except CarrelError as error:
         emit_carrel_error(error)
 
@@ -648,22 +654,17 @@ def share_generate_command(
         canonical_path = (
             safe_vault_join(vault_path, "_meta", "lab-handbook.md") if canonical else None
         )
-        supplied_body: str | None = None
-        if from_stdin:
-            supplied_body = sys.stdin.read()
-            if not supplied_body.strip():
-                raise CarrelError(
-                    "Empty collaborator handbook received on stdin",
-                    hint="Pipe the approved non-empty handbook body with --from-stdin.",
-                )
         if explain:
-            if supplied_body is not None:
-                body = supplied_body
-                redactions: list[str] = []
+            # Short-circuit before the unconditional stdin read below: a dry run
+            # must never block waiting on an interactive stdin the user did not
+            # pipe. Only consume a genuinely piped body (not a TTY).
+            redactions: list[str] = []
+            if from_stdin:
+                explain_body = sys.stdin.read() if not sys.stdin.isatty() else ""
             else:
                 from carrel.share.synthesizer import synthesize_handbook
 
-                body, redactions = synthesize_handbook(
+                explain_body, redactions = synthesize_handbook(
                     vault_path,
                     mode=mode,
                     name=name,
@@ -677,13 +678,36 @@ def share_generate_command(
                 "sensitivity": sensitivity.value,
                 "from_stdin": from_stdin,
                 "redactions_applied": redactions,
-                "bytes": len(body.encode("utf-8")),
+                "bytes": len(explain_body.encode("utf-8")),
             }
             if fmt == OutputFormat.JSON:
                 typer.echo(json.dumps(payload))
+            elif fmt == OutputFormat.QUIET:
+                typer.echo(str(output_path))
             else:
-                typer.echo(json.dumps(payload, indent=2))
+                body_source = "stdin" if from_stdin else "synthesized from vault"
+                console.print(
+                    "\n".join(
+                        [
+                            f"Would write: {output_path}",
+                            f"Canonical: {canonical_path if canonical_path else '(none)'}",
+                            f"Mode: {mode}",
+                            f"Sensitivity: {sensitivity.value}",
+                            f"Body source: {body_source}",
+                            f"Bytes: {payload['bytes']}",
+                            f"Redactions: {len(redactions)}",
+                        ]
+                    )
+                )
             return
+        supplied_body: str | None = None
+        if from_stdin:
+            supplied_body = sys.stdin.read()
+            if not supplied_body.strip():
+                raise CarrelError(
+                    "Empty collaborator handbook received on stdin",
+                    hint="Pipe the approved non-empty handbook body with --from-stdin.",
+                )
         assert_safe_write_target(vault_path, output_path)
         if canonical_path is not None:
             assert_safe_write_target(vault_path, canonical_path)

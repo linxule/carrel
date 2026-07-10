@@ -35,9 +35,12 @@ installation blockers.
 
 ## Network Tool Adapters
 
-- YouTube caption fetches: retrieve transcript metadata from YouTube by video
-  ID. Treat this as network access, not local processing; high sensitivity
-  blocks it.
+- YouTube caption fetches: retrieving a transcript from YouTube by video id is
+  network access, not local processing. The bundled stdlib runtime does **not**
+  implement it — it only recognizes YouTube URLs to slug the artifact by video
+  id. Caption/audio fetching belongs to the typed CLI or a host adapter; the
+  portable runtime files the supplied transcript via `--content`. High
+  sensitivity blocks any such network fetch.
 
 ## Cloud Tool Adapters
 

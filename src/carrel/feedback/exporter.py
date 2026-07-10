@@ -9,7 +9,7 @@ applies the list.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
@@ -38,12 +38,20 @@ class FeedbackExportResult:
     redactions_applied: int
     zero_match_terms: list[str]
     action: str  # "created" | "overwritten"
+    # Sources that were swept but could not be read (OSError/UnicodeDecodeError).
+    # They are excluded from `sources` (and therefore from every count) so the
+    # digest never claims to cover a file it silently dropped.
+    skipped: list[Path] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class RedactionRule:
     source: str
     replacement: str
+    # Auto-injected rules (e.g. the profile name) match whole words only so a
+    # short name like "Ann" cannot corrupt "annual"/"planning". User-supplied
+    # rules keep their pre-existing, opt-in substring semantics.
+    word_boundary: bool = False
 
 
 def read_redact_list(redact_path: Path) -> list[RedactionRule]:
@@ -111,6 +119,11 @@ def _normalize_rules(rules: list[RedactionRule]) -> list[RedactionRule]:
     return sorted(unique.values(), key=lambda rule: -len(rule.source))
 
 
+def _rule_pattern(rule: RedactionRule) -> str:
+    escaped = re.escape(rule.source)
+    return rf"\b{escaped}\b" if rule.word_boundary else escaped
+
+
 def _apply_redactions(
     text: str,
     rules: list[RedactionRule],
@@ -123,7 +136,7 @@ def _apply_redactions(
     by_group = {f"rule_{index}": rule for index, rule in enumerate(normalized)}
     pattern = re.compile(
         "|".join(
-            f"(?P<{group_name}>{re.escape(rule.source)})"
+            f"(?P<{group_name}>{_rule_pattern(rule)})"
             for group_name, rule in by_group.items()
         ),
         flags=re.IGNORECASE,
@@ -144,8 +157,16 @@ def render_digest(
     sources: list[Path],
     rules: list[RedactionRule],
     today: str,
-) -> tuple[str, dict[str, int]]:
-    """Assemble the anonymized digest and return per-rule match counts."""
+    vault_root: Path,
+) -> tuple[str, dict[str, int], list[Path], list[Path]]:
+    """Assemble the anonymized digest.
+
+    Returns the digest text, per-rule match counts, the sources actually read,
+    and the sources skipped because they could not be read. Section headings use
+    the vault-relative path so same-basename files in different ``_meta``
+    subdirectories stay distinct (the whole section, heading included, is passed
+    through redaction).
+    """
 
     header = (
         f"# Feedback Digest — {today}\n\n"
@@ -156,12 +177,17 @@ def render_digest(
     normalized = _normalize_rules(rules)
     total_counts = {rule.source: 0 for rule in normalized}
     sections: list[str] = []
+    read_sources: list[Path] = []
+    skipped: list[Path] = []
     for source in sources:
         try:
             body = source.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
+            skipped.append(source)
             continue
-        section = f"## {source.name}\n\n{body.rstrip()}\n"
+        read_sources.append(source)
+        label = source.relative_to(vault_root).as_posix()
+        section = f"## {label}\n\n{body.rstrip()}\n"
         redacted, counts = _apply_redactions(section, normalized)
         for rule_source, count in counts.items():
             total_counts[rule_source] += count
@@ -170,7 +196,7 @@ def render_digest(
     if not sections:
         sections.append("_No reflection, friction-log, or capability-log entries found._\n")
 
-    return header + "\n".join(sections), total_counts
+    return header + "\n".join(sections), total_counts, read_sources, skipped
 
 
 def export_feedback(
@@ -188,20 +214,24 @@ def export_feedback(
     if profile_name and all(
         rule.source.casefold() != profile_name.casefold() for rule in rules
     ):
-        rules.append(RedactionRule(profile_name, "Researcher"))
+        rules.append(RedactionRule(profile_name, "Researcher", word_boundary=True))
     iso_today = today or date.today().isoformat()
+    vault_root = vault.expanduser().resolve()
     sources = _collect_sources(vault)
-    digest, counts = render_digest(sources, rules, iso_today)
+    digest, counts, read_sources, skipped = render_digest(
+        sources, rules, iso_today, vault_root
+    )
     hits = sum(counts.values())
     zero_match_terms = [source for source, count in counts.items() if count == 0]
     existed = output_path.exists()
     safe_atomic_write(vault, output_path, digest)
     return FeedbackExportResult(
         path=output_path,
-        sources=sources,
+        sources=read_sources,
         redacted_terms=hits,
         redaction_rules=len(counts),
         redactions_applied=hits,
         zero_match_terms=zero_match_terms,
         action="overwritten" if existed else "created",
+        skipped=skipped,
     )

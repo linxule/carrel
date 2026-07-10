@@ -29,6 +29,15 @@ console = Console()
 # automation:propose (consultative). The one bootstrap exception is an explicit
 # Advisory -> Consultative request: the skill obtains approval, then the runtime
 # validates and persists that transition with the rest of the approved config.
+#
+# DECISION 2026-07-10 (advisory bootstrap): this is the single documented
+# exception to "the trust check is the single boundary; never bypass it"
+# (CLAUDE.md). No approval artifact is written for the Advisory->Consultative
+# transition — the skill's interview-approval flow (skills/automation/SKILL.md)
+# is the contract of record. The exception is deliberately narrow: only
+# Advisory->Consultative, only in this command; Advisory->Delegated/Partnership
+# is still rejected below. See skills/carrel/references/contracts/trust-levels.md.
+# Behavior is intentionally unchanged; this comment only records the rationale.
 AUTOMATE_CONFIGURE_ACTION = "automation:propose"
 
 

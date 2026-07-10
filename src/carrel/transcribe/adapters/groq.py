@@ -30,4 +30,10 @@ async def transcribe_with_groq(file: Path, api_key: str, timeout: int = 120) -> 
             "groq returned invalid JSON",
             hint="may be rate-limited or returning an HTML error page; try again or check API status",
         ) from exc
-    return payload.get("text") or ""
+    text = payload.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise TranscriptionError(
+            "groq returned an empty transcript",
+            hint="The response payload contained no 'text'. The audio may be silent, too short, or in an unsupported format; check the file and retry.",
+        )
+    return text

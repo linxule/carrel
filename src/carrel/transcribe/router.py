@@ -54,10 +54,28 @@ def select_transcribe_tool(
     )
     if decision.selected_tool is not None:
         return decision.selected_tool
+
+    # selected_tool is None: choose a hint that names the real reason. The router
+    # built `available_tools`, so "explicit cloud tool present but not selected"
+    # can only mean a sensitivity block -- never a missing credential.
     if explicit_tool in TRANSCRIBE_CLOUD_ENV_VARS:
+        if explicit_tool in available_tools:
+            raise CarrelError(
+                decision.rationale,
+                hint="HIGH sensitivity keeps transcription local. Use --tool coli, or lower the vault sensitivity.",
+            )
         raise CarrelError(
             decision.rationale,
             hint=f"Configure {TRANSCRIBE_CLOUD_ENV_VARS[explicit_tool]} or choose an available local/network tool.",
+        )
+
+    if explicit_tool == TranscribeTool.YOUTUBE_CAPTIONS:
+        raise CarrelError(
+            decision.rationale,
+            hint=(
+                "Install it: "
+                f"{install_command_for('youtube-transcript-api') or 'install youtube-transcript-api'}"
+            ),
         )
 
     if not is_yt:

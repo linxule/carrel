@@ -46,7 +46,7 @@ Schedules are `daily`, `weekdays`, or `weekly`; review cadence is `monthly`, `qu
 | Delegated *(experimental)* | File new items within conventions; do not reorganize existing files. Log each action and a concrete revert. |
 | Partnership *(experimental)* | May reorganize existing content within the agreed epistemology. Log every action and revert guidance. |
 
-Explain every intermediate level before raising trust. After the researcher explicitly confirms Consultative, invoke configure once with `--trust-level consultative`; both runtimes permit exactly that Advisory-to-Consultative bootstrap and persist the approved configuration in one validated write. A direct Advisory-to-Delegated or Advisory-to-Partnership jump is rejected. Never treat a request to configure unrelated settings as permission to raise trust.
+Explain every intermediate level before raising trust. You MUST obtain the researcher's explicit confirmation before running `configure` with any trust upgrade — the runtime writes no approval artifact for the Advisory→Consultative bootstrap, so your interview confirmation *is* the approval of record (decision 2026-07-10). Only after that explicit confirmation, invoke configure once with `--trust-level consultative`; both runtimes permit exactly that Advisory-to-Consultative bootstrap and persist the approved configuration in one validated write. A direct Advisory-to-Delegated or Advisory-to-Partnership jump is rejected. Never treat a request to configure unrelated settings as permission to raise trust.
 
 Run an action-specific trust check immediately before a guarded operation. Examples:
 

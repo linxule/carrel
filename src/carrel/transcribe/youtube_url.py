@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from urllib.parse import parse_qs, urlparse
 
+from carrel.errors import CarrelError
+
 
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip().lower())
@@ -41,8 +43,13 @@ def extract_video_id(url: str) -> str | None:
 
 
 def slug_for_filename(url: str) -> str:
-    video_id = extract_video_id(url)
-    if video_id:
+    if is_youtube_url(url):
+        video_id = extract_video_id(url)
+        if video_id is None:
+            raise CarrelError(
+                "could not extract a YouTube video id from the URL",
+                hint="Use a standard youtube.com/watch?v=..., youtu.be/..., or /embed|/shorts|/live URL.",
+            )
         return _slugify(video_id)
 
     parsed = urlparse(url)

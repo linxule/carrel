@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import sys
+import unicodedata
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from .core import (
     trust_allowed,
     write_profile,
 )
+from .redaction import apply_redactions, normalize_redactions, read_redactions
 from .vault_setup import normalize_profile
 
 AUTOMATION_CAPABILITIES = {
@@ -78,66 +80,6 @@ def cmd_mirror_write(args) -> int:
     print(json.dumps({"path": str(target), "action": "updated" if existed else "created"}))
     return 0
 
-def read_redactions(path: Path) -> list[tuple[str, str]]:
-    if not path.exists():
-        raise CarrelError("Redact list not found", hint=str(path))
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeDecodeError) as exc:
-        raise CarrelError("Could not read redact list", hint="Provide a readable UTF-8 file") from exc
-    redactions: list[tuple[str, str]] = []
-    for line_number, line in enumerate(lines, start=1):
-        value = line.strip()
-        if not value or value.startswith("#"):
-            continue
-        arrows = [(value.find(arrow), arrow) for arrow in ("->", "→") if arrow in value]
-        if arrows:
-            index, arrow = min(arrows)
-            source = value[:index].strip()
-            replacement = value[index + len(arrow) :].strip()
-            if not source:
-                raise CarrelError(
-                    "Invalid redact list",
-                    hint=f"Line {line_number}: mapping source must not be empty",
-                )
-            redactions.append((source, replacement or "[REDACTED]"))
-        else:
-            redactions.append((value, "[REDACTED]"))
-    return redactions
-
-def normalize_redactions(redactions: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    unique: dict[str, tuple[str, str]] = {}
-    for term, replacement in redactions:
-        unique.setdefault(term.casefold(), (term, replacement))
-    return sorted(unique.values(), key=lambda item: -len(item[0]))
-
-def apply_redactions(text: str, redactions: list[tuple[str, str]]) -> tuple[str, dict[str, int]]:
-    normalized = normalize_redactions(redactions)
-    counts = {term: 0 for term, _ in normalized}
-    if not normalized:
-        return text, counts
-    by_group = {
-        f"rule_{index}": (term, replacement)
-        for index, (term, replacement) in enumerate(normalized)
-    }
-    pattern = re.compile(
-        "|".join(
-            f"(?P<{group_name}>{re.escape(term)})"
-            for group_name, (term, _replacement) in by_group.items()
-        ),
-        flags=re.IGNORECASE,
-    )
-
-    def replace(match: re.Match[str]) -> str:
-        if match.lastgroup is None:  # pragma: no cover - every branch is named
-            raise AssertionError("redaction regex matched without a rule branch")
-        term, replacement = by_group[match.lastgroup]
-        counts[term] += 1
-        return replacement
-
-    return pattern.sub(replace, text), counts
-
-
 def cmd_feedback_export(args) -> int:
     terms = read_redactions(args.redact_list)
     profile = read_profile(args.vault)
@@ -145,27 +87,34 @@ def cmd_feedback_export(args) -> int:
     if (
         isinstance(researcher_name, str)
         and researcher_name.strip()
-        and not any(term.casefold() == researcher_name.strip().casefold() for term, _ in terms)
+        and not any(term.casefold() == researcher_name.strip().casefold() for term, _, _ in terms)
     ):
-        terms.append((researcher_name.strip(), "Researcher"))
+        terms.append((researcher_name.strip(), "Researcher", True))  # whole-word auto rule
     terms = normalize_redactions(terms)
-    sources = []
+    vault_root = args.vault.expanduser().resolve()
+    candidates = []
     for folder in ["friction-log", "capability-log", "reflections"]:
         folder_path = safe_vault_join(args.vault, "_meta", folder)
         if folder_path.is_dir():
-            for source in sorted(folder_path.glob("*.md")):
-                safe_read_text(args.vault, source, encoding="utf-8")
-                sources.append(source)
+            candidates.extend(sorted(folder_path.glob("*.md")))
     for flat in ["friction_log.md", "capability-log.md"]:
         flat_path = safe_vault_join(args.vault, "_meta", flat)
         if flat_path.is_file():
-            safe_read_text(args.vault, flat_path, encoding="utf-8")
-            sources.append(flat_path)
+            candidates.append(flat_path)
     parts = [f"# Feedback Digest - {date.today().isoformat()}\n"]
-    total_counts: dict[str, int] = {term: 0 for term, _ in terms}
-    for source in sources:
-        body = safe_read_text(args.vault, source, encoding="utf-8")
-        section = f"## {source.name}\n\n{body.rstrip()}\n"
+    total_counts: dict[str, int] = {term: 0 for term, _, _ in terms}
+    sources = []
+    unreadable = []  # dropped from the digest and every count, not silently covered
+    for source in candidates:
+        try:
+            body = safe_read_text(args.vault, source, encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            unreadable.append(source)
+            continue
+        sources.append(source)
+        # Vault-relative heading keeps same-basename files distinct; redacted too.
+        label = source.relative_to(vault_root).as_posix()
+        section = f"## {label}\n\n{body.rstrip()}\n"
         redacted, counts = apply_redactions(section, terms)
         parts.append(f"\n{redacted.rstrip()}\n")
         for term, count in counts.items():
@@ -178,6 +127,7 @@ def cmd_feedback_export(args) -> int:
             {
                 "path": str(target),
                 "sources": [str(path) for path in sources],
+                "unreadable_sources": [str(path) for path in unreadable],
                 "redacted_terms": sum(total_counts.values()),
                 "redaction_rules": len(terms),
                 "redactions_applied": sum(total_counts.values()),
@@ -193,7 +143,10 @@ def collaborator_slug(name: str) -> str:
         raise CarrelError("Collaborator name is required")
     if ".." in name or "/" in name or "\\" in name:
         raise CarrelError("Invalid collaborator name")
-    slug = re.sub(r"\s+", "-", name.strip().lower())
+    # NFKD-transliterate accents before stripping so "José" -> "jose", not "Jos".
+    decomposed = unicodedata.normalize("NFKD", name.strip())
+    slug = decomposed.encode("ascii", "ignore").decode("ascii").lower()
+    slug = re.sub(r"\s+", "-", slug)
     slug = re.sub(r"[^a-z0-9-]", "", slug)
     slug = re.sub(r"-+", "-", slug).strip("-")
     if not slug:
@@ -243,7 +196,7 @@ def cmd_share_generate(args) -> int:
         elif args.mode == "full":
             redactions.append("friction-log-omitted")
         if args.sensitivity != "high":
-            threads = sorted((args.vault / "notes" / "threads").glob("*.md"))
+            threads = sorted(safe_vault_join(args.vault, "notes", "threads").glob("*.md"))
             if threads:
                 body.extend(["", "## Active Threads"])
                 for thread in threads:

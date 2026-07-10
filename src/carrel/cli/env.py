@@ -152,7 +152,11 @@ def validate_command(
 @app.command("fix")
 def fix_command(
     vault: Path | None = typer.Option(None, "--vault"),
-    safe: bool = typer.Option(True, "--safe/--unsafe"),
+    safe: bool = typer.Option(
+        True,
+        "--safe",
+        help="Safe mode — the only supported mode (accepted as a no-op for clarity).",
+    ),
     dry_run: bool = typer.Option(False, "--dry-run"),
     fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
     preserve_unknown: bool = typer.Option(
@@ -161,12 +165,6 @@ def fix_command(
     ),
 ) -> None:
     try:
-        if not safe:
-            raise CarrelError(
-                "Only --safe mode is supported",
-                hint="Pass --safe or omit the flag.",
-            )
-
         vault_path = resolve_vault(vault)
         environment_path = _environment_path(vault_path)
         if not environment_path.exists():

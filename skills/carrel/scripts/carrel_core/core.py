@@ -143,6 +143,37 @@ def source_hash(source: str | Path) -> str:
     return hashlib.sha256(str(source).encode("utf-8")).hexdigest()
 
 
+def source_hash_with_content(source: str | Path, content: str | None) -> str:
+    # Idempotency hash for an ingested artifact. Without provided content this
+    # is exactly source_hash(source). With --content, the provided body is
+    # folded in so re-ingesting the same source *identifier* with different
+    # content re-writes (a changed transcript/article is a changed artifact),
+    # while an identical source+content pair still skips idempotently. Without
+    # this, a URL-only or bare-name hash makes every re-run with edited
+    # --content silently skip.
+    base = source_hash(source)
+    if content is None:
+        return base
+    digest = hashlib.sha256()
+    digest.update(base.encode("utf-8"))
+    digest.update(b"\x00")
+    digest.update(content.encode("utf-8"))
+    return digest.hexdigest()
+
+
+def frontmatter_source_hash(text: str) -> str | None:
+    # Read source_hash from the leading `--- ... ---` YAML block only. Line- and
+    # block-anchored so a 64-char hash literal appearing in the note *body* can
+    # never be mistaken for the frontmatter value (the old `expected in old`
+    # substring check did exactly that, producing false "unchanged" skips).
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    block = text if end == -1 else text[:end]
+    match = re.search(r'^source_hash:\s*"([^"]*)"\s*$', block, re.MULTILINE)
+    return match.group(1) if match else None
+
+
 def render_frontmatter(metadata: dict, body: str) -> str:
     lines = ["---"]
     for key, value in metadata.items():
@@ -243,6 +274,22 @@ def available_tools(tool_class: str) -> set[str]:
         if shutil.which("coli"):
             tools.add("coli")
     return tools
+
+
+def convert_available_tools(suffix: str, *, explicit_tool: str | None = None) -> set[str]:
+    # Suffix-aware convert availability, mirroring src/carrel/convert/router.py.
+    # PDFs never fall back to markitdown: only liteparse (local) is offered,
+    # plus markdownify when the caller explicitly requested it. Non-PDF
+    # documents use markdownify only — liteparse is a PDF parser and must not be
+    # selected for a .pptx/.docx. The type-blind available_tools() above stays
+    # for callers (policy explain) that only reason about installed binaries.
+    detected = available_tools("convert")
+    if suffix == ".pdf":
+        allowed = {"liteparse"}
+        if explicit_tool == "markdownify":
+            allowed.add("markdownify")
+        return detected & allowed
+    return detected & {"markdownify"}
 
 
 def trust_allowed(action: str, trust_level: str) -> tuple[str, bool]:

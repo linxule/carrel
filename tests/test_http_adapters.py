@@ -321,8 +321,145 @@ async def test_transcribe_with_gemini_uses_interactions_video_request(monkeypatc
     assert text == "Transcript body"
     assert calls[0][0] == "https://generativelanguage.googleapis.com/v1beta/interactions"
     assert calls[0][1]["headers"] == {"x-goog-api-key": "configured"}
-    content = calls[0][1]["json"]["input"][0]["content"]
+    body = calls[0][1]["json"]
+    assert body["model"] == "gemini-3.5-flash"
+    content = body["input"][0]["content"]
     assert {"type": "video", "uri": "https://www.youtube.com/watch?v=abc123"} in content
+
+
+@pytest.mark.asyncio
+async def test_transcribe_with_gemini_honors_model_env_override(monkeypatch) -> None:
+    captured: dict = {}
+
+    class FakeGeminiClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, url: str, **kwargs):  # noqa: ARG002
+            captured.update(kwargs["json"])
+            return _JsonResponse({"output_text": "ok"})
+
+    monkeypatch.setattr("carrel.transcribe.adapters.gemini.httpx.AsyncClient", FakeGeminiClient)
+    monkeypatch.setenv("CARREL_GEMINI_MODEL", "gemini-flash-latest")
+
+    await transcribe_with_gemini("https://youtu.be/abc123", api_key="configured")
+
+    assert captured["model"] == "gemini-flash-latest"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_with_gemini_skips_reasoning_items_in_output(monkeypatch) -> None:
+    # A thought/reasoning item can lead the output array; the transcript text must
+    # come from the message item, not the reasoning item.
+    payload = {
+        "output": [
+            {"type": "reasoning", "content": [{"type": "reasoning_text", "text": "let me think"}]},
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "output_text", "text": "[00:00:00] Real transcript"}],
+            },
+        ]
+    }
+
+    class FakeGeminiClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, url: str, **kwargs):  # noqa: ARG002
+            return _JsonResponse(payload)
+
+    monkeypatch.setattr("carrel.transcribe.adapters.gemini.httpx.AsyncClient", FakeGeminiClient)
+
+    text = await transcribe_with_gemini("https://youtu.be/abc123", api_key="configured")
+
+    assert text == "[00:00:00] Real transcript"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_with_gemini_raises_when_no_text_anywhere(monkeypatch) -> None:
+    payload = {"output": [{"type": "reasoning", "content": [{"type": "reasoning_text", "text": "thinking"}]}]}
+
+    class FakeGeminiClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, url: str, **kwargs):  # noqa: ARG002
+            return _JsonResponse(payload)
+
+    monkeypatch.setattr("carrel.transcribe.adapters.gemini.httpx.AsyncClient", FakeGeminiClient)
+
+    with pytest.raises(TranscriptionError) as exc:
+        await transcribe_with_gemini("https://youtu.be/abc123", api_key="configured")
+
+    assert exc.value.message == "gemini response was missing transcript content"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_with_groq_raises_on_empty_text(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "audio.wav"
+    source.write_bytes(b"audio")
+
+    class EmptyTextGroqClient:
+        def __init__(self, *args, **kwargs):  # noqa: D401, ARG002
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):  # noqa: ARG002
+            return False
+
+        async def post(self, *args, **kwargs):  # noqa: ARG002
+            return _JsonResponse({"text": "   "})
+
+    monkeypatch.setattr("carrel.transcribe.adapters.groq.httpx.AsyncClient", EmptyTextGroqClient)
+
+    with pytest.raises(TranscriptionError) as exc:
+        await transcribe_with_groq(source, api_key="configured")
+
+    assert exc.value.message == "groq returned an empty transcript"
+
+
+def test_markdown_from_zip_concatenates_pages_when_no_full_md() -> None:
+    from carrel.convert.adapters.mineru import _markdown_from_zip
+
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as archive:
+        archive.writestr("doc/page_2.md", "## Page 2")
+        archive.writestr("doc/page_1.md", "# Page 1")
+    markdown = _markdown_from_zip(out.getvalue())
+    # Sorted deterministic order: page_1 before page_2.
+    assert markdown == "# Page 1\n\n## Page 2"
+
+
+def test_markdown_from_zip_prefers_full_md_over_page_fragments() -> None:
+    from carrel.convert.adapters.mineru import _markdown_from_zip
+
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as archive:
+        archive.writestr("doc/page_1.md", "# Page 1")
+        archive.writestr("doc/full.md", "# Whole document")
+    markdown = _markdown_from_zip(out.getvalue())
+    assert markdown == "# Whole document"
 
 
 @pytest.mark.asyncio

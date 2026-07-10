@@ -291,6 +291,45 @@ def test_share_generate_from_stdin_rejects_empty_body_and_unknown_mode(tmp_path)
     assert "Unknown share mode: interactive" in unknown.stderr
 
 
+def test_share_generate_slug_transliterates_accents_without_collision() -> None:
+    """'José' transliterates to 'jose' (NFKD) rather than colliding with 'Jos'."""
+
+    from carrel.share.synthesizer import slug_name
+
+    assert slug_name("José") == "jose"
+    assert slug_name("Jos") == "jos"
+    assert slug_name("José") != slug_name("Jos")
+    # A name that is only accented characters still yields a usable slug.
+    assert slug_name("Renée") == "renee"
+
+
+def test_share_generate_accented_name_produces_transliterated_filename(tmp_path) -> None:
+    vault = _seed_vault(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "vault",
+            "share",
+            "generate",
+            "--mode",
+            "quick",
+            "--for",
+            "José",
+            "--sensitivity",
+            "low",
+            "--vault",
+            str(vault),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert Path(payload["path"]).name == f"{date.today().isoformat()}-for-jose.md"
+
+
 def test_share_generate_without_stdin_can_write_canonical_copy(tmp_path) -> None:
     vault = _seed_vault(tmp_path)
 

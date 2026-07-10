@@ -44,3 +44,11 @@ On a fresh Advisory profile, this command is the deterministic bootstrap after
 the researcher explicitly approves Consultative. It may not jump directly from
 Advisory to Delegated or Partnership. Later transitions use the normal
 Consultative action gate.
+
+This bootstrap is the one documented exception to "the trust check is the single
+boundary" (decision 2026-07-10). The runtime does **not** write an approval
+artifact for the Advisory→Consultative transition; the skill's interview
+confirmation is the approval of record. The agent MUST secure explicit
+researcher confirmation before invoking configure with the upgrade. This trusts
+the skill layer by design and is narrowly scoped: only Advisory→Consultative,
+only in this command.

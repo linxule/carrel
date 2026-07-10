@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 from .constants import (
     AUDIO_EXTENSIONS,
     DOC_EXTENSIONS,
-    GOOGLE_WORKSPACE_EXPORTS,
     URL_LIST_EXTENSION,
 )
 from .adapters import (
@@ -25,6 +24,8 @@ from .core import (
     CarrelError,
     available_tools,
     cloud_consent_granted,
+    convert_available_tools,
+    frontmatter_source_hash,
     read_profile,
     render_frontmatter,
     safe_atomic_write,
@@ -32,8 +33,9 @@ from .core import (
     safe_read_text,
     select_tool,
     slugify,
-    source_hash,
+    source_hash_with_content,
 )
+from .media_url import google_export_target, slug_for_source
 
 
 def cmd_policy_explain(args) -> int:
@@ -62,8 +64,8 @@ def write_ingested(vault: Path, path: Path, body: str, metadata: dict, force: bo
     existed = path.exists()
     if path.exists() and not force:
         old = safe_read_text(vault, path, encoding="utf-8", errors="replace")
-        expected = f'source_hash: "{metadata.get("source_hash")}"'
-        if expected in old:
+        existing_hash = frontmatter_source_hash(old)
+        if existing_hash is not None and existing_hash == metadata.get("source_hash"):
             return "skipped", "source-hash matches; pass --force to overwrite"
         return "skipped", "target exists with a different source-hash; pass --force to overwrite"
     safe_atomic_write(vault, path, render_frontmatter(metadata, body))
@@ -81,18 +83,18 @@ def capture_content(url: str, args) -> tuple[str, dict, str]:
 def cmd_capture_url(args) -> int:
     vault = args.vault.expanduser().resolve()
     url = args.url
-    title = args.title or Path(urlparse(url).path).stem or urlparse(url).netloc
-    target = safe_vault_join(vault, "inbox", f"{slugify(title)}.md")
+    slug = slugify(args.title) if args.title else slug_for_source(url)
+    target = safe_vault_join(vault, "inbox", f"{slug}.md")
     if args.dry_run:
         print(f"Would capture {url} -> {target}")
         return 0
     body, metadata, tool = capture_content(url, args)
     metadata.update(
         {
-            "title": metadata.get("title") or title,
+            "title": metadata.get("title") or args.title or urlparse(url).netloc,
             "source_url": url,
             "capture_tool": tool,
-            "source_hash": source_hash(url),
+            "source_hash": source_hash_with_content(url, args.content),
         }
     )
     action, reason = write_ingested(vault, target, body, metadata, args.force)
@@ -104,11 +106,13 @@ def cmd_convert_file(args) -> int:
     vault = args.vault.expanduser().resolve()
     file_path = args.file.expanduser().resolve()
     profile = read_profile(vault)
-    available = available_tools("convert")
-    if file_path.suffix.lower() in {".txt", ".md"} or args.content:
+    suffix = file_path.suffix.lower()
+    is_plain = suffix in {".txt", ".md"}
+    available = convert_available_tools(suffix, explicit_tool=args.tool)
+    if is_plain or args.content:
         available.add("provided")
     sensitivity = args.sensitivity or profile.get("sensitivity", "medium")
-    if not args.tool and (file_path.suffix.lower() in {".txt", ".md"} or args.content):
+    if not args.tool and (is_plain or args.content):
         decision = {"selected_tool": "provided", "rationale": "Bundled runtime can read provided/plain text directly"}
     else:
         decision = select_tool("convert", args.tool, available, sensitivity, cloud_consent_granted(profile))
@@ -118,6 +122,11 @@ def cmd_convert_file(args) -> int:
     if args.tool and not decision["selected_tool"]:
         raise CarrelError("Requested conversion tool is not allowed", hint=decision["rationale"])
     if not decision["selected_tool"] and not args.content:
+        if suffix == ".pdf":
+            raise CarrelError(
+                "No PDF conversion tool available",
+                hint="Install liteparse (the `lit` executable) for local PDF conversion, or pass --content. PDFs never fall back to markitdown.",
+            )
         raise CarrelError("No conversion tool selected", hint=decision["rationale"])
     if args.dry_run:
         print(f"Would convert {file_path} -> papers/{slugify(file_path.stem)}/paper.md")
@@ -125,7 +134,7 @@ def cmd_convert_file(args) -> int:
     adapter_metadata = {}
     if args.content:
         body = args.content
-    elif file_path.suffix.lower() in {".txt", ".md"}:
+    elif is_plain:
         body = file_path.read_text(encoding="utf-8")
     elif decision["selected_tool"]:
         body, adapter_metadata = convert_with_adapter(file_path, decision["selected_tool"])
@@ -136,7 +145,7 @@ def cmd_convert_file(args) -> int:
         "title": file_path.stem,
         "source": str(file_path),
         "convert_tool": decision["selected_tool"] or "provided",
-        "source_hash": source_hash(file_path),
+        "source_hash": source_hash_with_content(file_path, args.content),
     }
     metadata.update(adapter_metadata)
     action, reason = write_ingested(vault, target, body, metadata, args.force)
@@ -168,7 +177,7 @@ def cmd_transcript_create(args) -> int:
         )
         print(json.dumps(payload))
         return 0 if decision["selected_tool"] else 1
-    slug = slugify(Path(urlparse(source).path).stem or Path(source).stem or "recording")
+    slug = slug_for_source(source, fallback="recording")
     target = safe_vault_join(vault, "transcripts", f"{date.today().isoformat()}-{args.kind}-{slug}.md")
     if args.dry_run:
         print(f"Would transcribe {source} -> {target}")
@@ -187,34 +196,11 @@ def cmd_transcript_create(args) -> int:
         "source": source,
         "kind": args.kind,
         "transcribe_tool": decision["selected_tool"] or "provided",
-        "source_hash": source_hash(source_for_hash),
+        "source_hash": source_hash_with_content(source_for_hash, args.content),
     }
     action, reason = write_ingested(vault, target, body, metadata, args.force)
     print(json.dumps({"path": str(target), "action": action, "reason": reason}))
     return 0
-
-
-def parse_google_workspace_url(url: str) -> tuple[str, str]:
-    parsed = urlparse(url)
-    if parsed.netloc.lower() != "docs.google.com":
-        raise CarrelError("Unsupported Google Workspace URL", hint="Use a docs.google.com/document, spreadsheets, or presentation URL.")
-    parts = [part for part in parsed.path.split("/") if part]
-    if len(parts) < 3 or parts[1] != "d":
-        raise CarrelError("Unsupported Google Workspace URL", hint="Expected docs.google.com/<kind>/d/<id>/edit.")
-    kind = parts[0]
-    if kind not in GOOGLE_WORKSPACE_EXPORTS:
-        raise CarrelError("Unsupported Google Workspace file type", hint="Supported kinds: document, spreadsheets, presentation.")
-    return kind, parts[2]
-
-
-def google_export_target(vault: Path, url: str, export_format: str) -> tuple[str, str, Path]:
-    kind, file_id = parse_google_workspace_url(url)
-    try:
-        mime_type, suffix = GOOGLE_WORKSPACE_EXPORTS[kind][export_format]
-    except KeyError as exc:
-        raise CarrelError("Unsupported export format", hint=f"{kind} files do not support --export-format {export_format}.") from exc
-    target = safe_vault_join(vault, ".carrel", "exports", f"{file_id}{suffix}")
-    return file_id, mime_type, target
 
 
 def cmd_google_export(args) -> int:
@@ -284,7 +270,7 @@ def cmd_google_export(args) -> int:
         "google_file_id": file_id,
         "export_format": args.export_format,
         "convert_tool": decision["selected_tool"] or "provided",
-        "source_hash": source_hash(args.url),
+        "source_hash": source_hash_with_content(args.url, args.content),
     }
     action, reason = write_ingested(vault, target, body, metadata, args.force)
     if not args.keep_export and export_path.exists():

@@ -97,6 +97,13 @@ def test_automate_configure_denies_advisory_jump_to_delegated(tmp_path) -> None:
 
 
 def test_automate_configure_bootstraps_advisory_to_consultative(tmp_path) -> None:
+    # INTENDED CONTRACT (decision 2026-07-10, advisory bootstrap): the
+    # Advisory->Consultative transition succeeds with no approval artifact on
+    # disk — the skill's interview-approval flow is the contract of record, and
+    # the CLI is the mechanical writer. This is the documented exception to
+    # "the trust check is the single boundary"; the assertions below (exit 0,
+    # trust persisted, no pending-approvals.md) codify that on purpose, not a
+    # bug. See src/carrel/cli/automate.py and skills/automation/SKILL.md.
     vault = _seed_vault(tmp_path, TrustLevel.ADVISORY)
 
     result = runner.invoke(

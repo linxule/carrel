@@ -5,18 +5,25 @@ takes the resolved parameters and walks the vault deterministically to produce
 a dated handbook under ``_meta/handbook/``. Sensitivity drives redaction depth:
 
 - ``low``: include researcher name, vault layout, friction log excerpts verbatim
-- ``medium``: include researcher name + layout, omit specific project codenames
-  from friction-log; drop notes/threads file contents (keep titles only)
+- ``medium``: include researcher name + layout; truncate friction-log excerpts to
+  a fixed length cap; drop notes/threads file contents (keep titles only). NOTE:
+  MEDIUM does not detect or redact project codenames — that is content-level
+  judgment left to the skill/researcher (see future work below).
 - ``high``: omit researcher name (use "Researcher"), omit friction-log details,
   drop notes/threads section entirely
 
 The skill explains the redaction depth before the file is produced; the CLI
 just applies the rules so the output is reproducible.
+
+Future work: automatic project-codename redaction at MEDIUM would require a
+judgment-heavy detector (which strings are codenames vs. ordinary nouns); it is
+intentionally not implemented here and belongs in the skill layer if added.
 """
 
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -51,7 +58,10 @@ def slug_name(name: str) -> str:
             "Invalid collaborator name",
             hint="Use letters/numbers/spaces only. Names with path separators are rejected.",
         )
-    slug = name.strip().lower()
+    # Transliterate accented characters before stripping non-ASCII so "José"
+    # decomposes to "jose" rather than colliding with a literal "Jos".
+    decomposed = unicodedata.normalize("NFKD", name.strip())
+    slug = decomposed.encode("ascii", "ignore").decode("ascii").lower()
     slug = re.sub(r"\s+", "-", slug)
     slug = re.sub(r"[^a-z0-9-]", "", slug)
     slug = re.sub(r"-+", "-", slug).strip("-")
@@ -116,7 +126,12 @@ def _vault_layout(vault: Path) -> list[str]:
 
 
 def _redact_friction_excerpts(text: str, sensitivity: Sensitivity) -> str:
-    """Trim friction-log excerpts at higher sensitivity levels."""
+    """Trim friction-log excerpts at higher sensitivity levels.
+
+    This is a length cap only — it does not inspect or redact codenames or any
+    other content. HIGH omits the section entirely upstream, so it never reaches
+    here.
+    """
 
     if sensitivity == Sensitivity.LOW:
         return text
