@@ -16,8 +16,9 @@ TRUST_HIERARCHY = ["advisory", "consultative", "delegated", "partnership"]
 TRUST_ACTIONS = {
     "automation:propose": "consultative",
     "automation:execute": "delegated",
-    "automation:write-prompt": "delegated",
+    "automation:write-prompt": "consultative",
     "wiki:propose": "consultative",
+    "wiki:apply-approved": "consultative",
     "wiki:write": "delegated",
     "vault:move-file": "delegated",
     "vault:reorganize": "partnership",

@@ -88,16 +88,16 @@ When the researcher wants to share their experience with the plugin maintainer (
 carrel vault feedback export --redact-list <path>
 ```
 
-The CLI reads `_meta/reflections/` and `_meta/friction_log.md`, applies the redactions from the list, and writes `_meta/feedback-digest-YYYY-MM-DD.md`. The skill's job is upstream (build the list, then preview with the researcher) and downstream (tell them where to send it).
+The CLI reads reflections plus the friction and capability logs, applies the redactions from the list, and writes `_meta/feedback-digest-YYYY-MM-DD.md`. The skill's job is upstream (build the list, then preview with the researcher) and downstream (tell them where to send it).
 
 ### Building the redact list
 
-Before calling the CLI, scan the source files (`_meta/reflections/*.md`, `_meta/friction_log.md`) and `.carrel/environment.json` for identifying content. Write the redact list as a simple `original → replacement` mapping file (CLI accepts a path; format is one mapping per line).
+Before calling the CLI, scan the source files (`_meta/reflections/*.md`, `_meta/friction_log.md`) and `.carrel/environment.json` for identifying content. Write literal mappings with canonical ASCII `original -> replacement`, one rule per line. Bare terms mean `term -> [REDACTED]`; legacy Unicode `original → replacement` remains accepted. Comments and blank lines are ignored.
 
 Always include:
 
-- Researcher's name (from `environment.json` → `researcher_name`) → `Researcher`
-- Institution (from `environment.json` → `institution`, or detected from reflection mentions) → `University`
+- Researcher's name (from `environment.json` → `name`) -> `Researcher`
+- Institution, when present at `environment.json` → `preferences.institution`, or detected in the source scan -> `University`
 - Specific research topics or project names mentioned in reflections → `[research topic]`
 - File names that reveal research content (e.g., `dimaggio-isomorphism-1983.pdf`) → generic descriptions like `[paper]`
 
@@ -108,7 +108,9 @@ Keep (do NOT redact):
 - Workflow descriptions and friction patterns
 - Carrel command names
 
-The CLI is dumb about which strings are sensitive — the skill is what makes the redact list correct for this researcher.
+The CLI applies literal case-insensitive rules longest-first and adds the profile `name -> Researcher` fail-safe when no explicit name rule exists. The skill still owns the sensitive-term scan and meaningful replacement choices. After export, review `redactions_applied` and `zero_match_terms`; a zero-match rule may indicate a typo or stale identifier.
+
+If the redact list was created as a temporary file, remove it after the digest has been generated and reviewed; it contains the identifiers the digest is designed not to expose.
 
 ### After the CLI writes
 

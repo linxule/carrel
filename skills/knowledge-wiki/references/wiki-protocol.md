@@ -1,6 +1,6 @@
 # Wiki Protocol
 
-Adapted from [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) and [Hermes Agent's implementation](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md). This document defines the operations and conventions for maintaining the wiki inside a carrel vault.
+Adapted from [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) and [Hermes Agent llm-wiki 2.1](https://github.com/NousResearch/hermes-agent/blob/8e3f9537db21b49ebe796f7b5a6ff489028fe1fb/skills/research/llm-wiki/SKILL.md), reviewed 2026-07-10. This document defines the operations and conventions for maintaining the wiki inside a Carrel vault.
 
 When upstream improves, update this document. The carrel-specific adaptations (folder mapping, trust gating, log reasoning) live in the parent SKILL.md and trust-activation.md — they're stable across protocol updates.
 
@@ -48,6 +48,8 @@ The wiki synthesizes from these carrel vault folders (read-only):
 - When updating a page, always bump the `updated` date
 - Every new page must be added to `wiki/index.md` under the correct section
 - Every action must be appended to `wiki/log.md` with reasoning
+- On pages synthesizing 3+ sources, append a source-path marker such as
+  `^[papers/author-year/paper.md]` to source-dependent paragraphs
 
 ## Frontmatter
 
@@ -58,9 +60,22 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 type: entity | concept | comparison | query
 tags: [from taxonomy below]
-sources: [papers/author-year/paper, transcripts/name]
+sources: [papers/author-year/paper.md, transcripts/name.md]
+source_digests:
+  papers/author-year/paper.md: <sha256-of-markdown-body>
+# Optional quality signals:
+confidence: high | medium | low
+contested: true
+contradictions: [other-page-slug]
 ---
 ```
+
+`confidence`, `contested`, and `contradictions` are optional. Existing pages
+without them remain valid. `source_digests` maps every listed relative source
+path to SHA-256 of the source Markdown body after its closing frontmatter
+delimiter. It is distinct from Carrel's source-file `source_hash` field.
+Legacy pages without digests remain valid; backfill only when editing the page
+or applying an approved repair batch.
 
 ## Tag Taxonomy
 [Generated from existing paper tags + researcher input. Start with 10-20 tags.]
@@ -155,6 +170,7 @@ When the researcher adds a source or when automation detects new files:
 **Step 2 — Read the source:**
 - Read the converted markdown from its location in the vault
 - For large papers (100+ pages of markdown), focus on abstract, introduction, discussion, conclusion
+- Compute SHA-256 over the Markdown body after the closing frontmatter delimiter
 
 **Step 3 — Discuss takeaways (interactive mode only):**
 - "What stands out to you?" / "How does this relate to your current work?"
@@ -171,7 +187,13 @@ When the researcher adds a source or when automation detects new files:
 - **Contradictions:** Follow the Update Policy — never silently overwrite
 - **Cross-reference:** Every new/updated page must link to at least 2 other wiki pages via `[[wikilinks]]`
 - **Tags:** Only use tags from the taxonomy in SCHEMA.md
-- **Source references:** Link back to the source file: `sources: [papers/smith-2025/paper]`
+- **Source references:** Link back to the source file and record its digest:
+  `sources: [papers/smith-2025/paper.md]` plus the matching `source_digests` entry
+- **Provenance markers:** On pages with 3+ sources, mark source-dependent
+  paragraphs with `^[papers/smith-2025/paper.md]`
+- **Quality signals:** Use `confidence: medium|low` for opinion-heavy,
+  fast-moving, or weakly corroborated claims. Set `contested: true` and
+  `contradictions` when disagreements remain unresolved.
 
 **Step 6 — Update navigation:**
 - Add new pages to `wiki/index.md` under correct section, alphabetically
@@ -218,6 +240,8 @@ When the researcher asks for a health check, or during weekly automation:
 **Quick lint (daily, during automation):**
 - Verify pages created in this session have 2+ outbound wikilinks
 - Verify new pages are in index.md
+- Verify every listed source has a matching `source_digests` entry
+- Recompute source digests for changed pages and report drift
 - Check log.md size (rotate if >500 entries)
 
 **Full lint (weekly, or on request):**
@@ -229,12 +253,18 @@ Run these checks programmatically where possible:
 3. **Index completeness:** Every wiki page should appear in index.md
 4. **Frontmatter validation:** Required fields present (title, created, updated, type, tags, sources). Tags in taxonomy.
 5. **Stale content:** Pages whose `updated` date is >90 days older than the most recent source mentioning the same entities
-6. **Contradictions:** Pages sharing tags/entities but stating different facts
-7. **Page size:** Flag pages over 200 lines as split candidates
-8. **Tag audit:** List tags in use, flag any not in SCHEMA.md taxonomy
-9. **Source coverage:** Papers in `papers/` that have never been ingested (no wiki page references them)
+6. **Quality signals:** Count and list `confidence: low`, `contested: true`,
+   contradiction links, and single-source pages without `confidence`
+7. **Source drift:** Recompute each `source_digests` value and flag mismatches
+8. **Contradictions:** Pages sharing tags/entities but stating different facts
+9. **Page size:** Flag pages over 200 lines as split candidates
+10. **Tag audit:** List tags in use, flag any not in SCHEMA.md taxonomy
+11. **Source coverage:** Papers in `papers/` that have never been ingested (no wiki page references them)
 
-**Report:** Group findings by severity (broken links > orphans > stale > style). Include specific file paths and suggested actions. Append summary to log.md.
+**Report:** Group findings by severity (broken links > source drift > contested
+or contradictory claims > orphans > stale > style). Include counts, specific
+file paths, and suggested actions. Append the summary to log.md. A finding is
+not authorization to repair it.
 
 ---
 
@@ -309,4 +339,6 @@ This is the back channel. The wiki log is the agent talking to its future self. 
 - **Include reasoning in log entries** — the next Claude instance needs to follow precedent
 - **Ask before mass-updating** — if an ingest would touch 10+ existing pages, confirm scope (interactive mode) or note in brief (automation mode)
 - **Handle contradictions explicitly** — note both claims with dates, mark in frontmatter, flag for review
+- **Preserve provenance** — keep `source_digests` aligned and add paragraph markers on 3+ source pages
+- **Treat drift as a review signal** — never rewrite a page or immutable source merely because a digest changed
 - **Never remove `[!researcher]` callouts** — these are the researcher's authoritative voice on wiki pages. Read, respect, incorporate.

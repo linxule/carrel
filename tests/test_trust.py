@@ -35,9 +35,18 @@ def test_list_actions_for_delegated_trust() -> None:
     assert result == {
         "automation:propose": (TrustLevel.CONSULTATIVE, True),
         "automation:execute": (TrustLevel.DELEGATED, True),
-        "automation:write-prompt": (TrustLevel.DELEGATED, True),
+        "automation:write-prompt": (TrustLevel.CONSULTATIVE, True),
         "wiki:propose": (TrustLevel.CONSULTATIVE, True),
+        "wiki:apply-approved": (TrustLevel.CONSULTATIVE, True),
         "wiki:write": (TrustLevel.DELEGATED, True),
         "vault:move-file": (TrustLevel.DELEGATED, True),
         "vault:reorganize": (TrustLevel.PARTNERSHIP, False),
     }
+
+
+def test_consultative_allows_only_approved_wiki_writes() -> None:
+    assert is_allowed("automation:write-prompt", TrustLevel.CONSULTATIVE) is True
+    assert is_allowed("wiki:propose", TrustLevel.CONSULTATIVE) is True
+    assert is_allowed("wiki:apply-approved", TrustLevel.CONSULTATIVE) is True
+    assert is_allowed("wiki:write", TrustLevel.CONSULTATIVE) is False
+    assert is_allowed("wiki:write", TrustLevel.DELEGATED) is True

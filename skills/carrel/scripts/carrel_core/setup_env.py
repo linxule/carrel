@@ -17,22 +17,32 @@ from .constants import (
     VERSION,
 )
 from .core import CarrelError, default_profile, safe_atomic_write, safe_vault_join, write_profile
+from .vault_setup import (
+    detect_template_drift,
+    materialize_bases,
+    preflight_init_targets,
+    resolve_init_profile,
+)
+
+
+def template_assets(skill_root: Path) -> list[Path]:
+    source = skill_root / "assets" / "templates"
+    if not source.exists():
+        return []
+    return [
+        item
+        for item in sorted(source.iterdir())
+        if item.is_file()
+        and item.name not in {"agent-context.md", "vault-scaffold.json", "obsidian-config.json"}
+        and item.suffix == ".md"
+    ]
 
 
 def copy_templates(vault: Path, skill_root: Path) -> list[str]:
-    source = skill_root / "assets" / "templates"
     copied: list[str] = []
-    if not source.exists():
-        return copied
     template_dir = safe_vault_join(vault, "_templates")
     template_dir.mkdir(parents=True, exist_ok=True)
-    for item in sorted(source.iterdir()):
-        if not item.is_file():
-            continue
-        if item.name in {"agent-context.md", "vault-scaffold.json", "obsidian-config.json"}:
-            continue
-        if item.suffix not in {".md", ".base"}:
-            continue
+    for item in template_assets(skill_root):
         target = template_dir / item.name
         if target.is_symlink():
             raise CarrelError("Path escapes vault root", hint=f"Refusing template symlink {target}")
@@ -104,19 +114,50 @@ def materialize_obsidian_config(vault: Path, skill_root: Path) -> list[str]:
     return written
 
 
+def obsidian_filenames(skill_root: Path) -> list[str]:
+    config_path = skill_root / "assets" / "templates" / "obsidian-config.json"
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    files = payload.get("files", {})
+    if not isinstance(files, dict):
+        return []
+    return sorted(
+        filename
+        for filename in files
+        if isinstance(filename, str)
+        and "/" not in filename
+        and "\\" not in filename
+        and not filename.startswith(".")
+    )
+
+
 def cmd_vault_init(args) -> int:
     vault = args.path.expanduser().resolve()
-    vault.mkdir(parents=True, exist_ok=True)
     skill_root = Path(__file__).resolve().parents[2]
+    active_profile = resolve_init_profile(vault, args.profile_file)
+    folder_names = scaffold_folders(skill_root) + ["_meta/mirror", "_meta/handbook", ".obsidian"]
+    file_names = [
+        ".carrel/environment.json",
+        ".carrel/agent-context.md",
+        *(f"_templates/{asset.name}" for asset in template_assets(skill_root)),
+        *(f".obsidian/{filename}" for filename in obsidian_filenames(skill_root)),
+        *(asset.name for asset in sorted((skill_root / "assets" / "templates").glob("*.base"))),
+    ]
+    preflight_init_targets(vault, directories=folder_names, files=file_names)
+    outdated_templates, unversioned_templates = detect_template_drift(vault, skill_root)
+    vault.mkdir(parents=True, exist_ok=True)
     for name in scaffold_folders(skill_root):
         safe_vault_join(vault, *name.split("/")).mkdir(parents=True, exist_ok=True)
     for name in ["_meta/mirror", "_meta/handbook"]:
         safe_vault_join(vault, *name.split("/")).mkdir(parents=True, exist_ok=True)
     copied = copy_templates(vault, skill_root)
+    bases_created = materialize_bases(vault, skill_root, active_profile)
     obsidian_files = materialize_obsidian_config(vault, skill_root)
     profile_path = vault / ".carrel" / "environment.json"
     if not profile_path.exists():
-        write_profile(vault, default_profile())
+        write_profile(vault, active_profile)
     context_asset = skill_root / "assets" / "templates" / "agent-context.md"
     context_path = safe_vault_join(vault, ".carrel", "agent-context.md")
     if context_path.is_symlink():
@@ -128,9 +169,21 @@ def cmd_vault_init(args) -> int:
         "profile": str(profile_path),
         "context": str(context_path),
         "templates_copied": copied,
+        "bases_created": bases_created,
         "obsidian_files": obsidian_files,
+        "outdated_templates": outdated_templates,
+        "unversioned_templates": unversioned_templates,
     }
-    print(json.dumps(payload) if args.format == "json" else f"Created vault at {vault}")
+    if args.format == "json":
+        print(json.dumps(payload))
+    else:
+        print(f"Created vault at {vault}")
+        if outdated_templates:
+            print("Outdated templates (not overwritten): " + ", ".join(outdated_templates))
+        if unversioned_templates:
+            print("Unversioned templates (not overwritten): " + ", ".join(unversioned_templates))
+        if not outdated_templates and not unversioned_templates:
+            print("Template drift: none")
     return 0
 
 

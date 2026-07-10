@@ -6,9 +6,13 @@ interview, read `references/workflows/onboarding.md` first.
 
 ## Vault Setup
 
-Use `vault init` to create a portable vault. The runtime creates the folder
-layout, copies assets from `assets/templates/`, writes
-`.carrel/environment.json`, and writes `.carrel/agent-context.md`.
+Use `vault init <vault> --profile-file <profile.json>` after onboarding. The
+runtime validates the profile before any write, creates the folder layout,
+copies Markdown assets, writes `.carrel/environment.json` and
+`.carrel/agent-context.md`, and installs selected `.base` trackers at the vault
+root. Without `--profile-file`, it reuses an existing valid target profile or
+falls back to defaults. It rejects an explicit profile that conflicts with an
+existing one and never deletes legacy `_templates/*.base` files.
 
 After setup, run:
 

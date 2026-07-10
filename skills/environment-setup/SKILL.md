@@ -77,18 +77,25 @@ Does this sound right? Anything you'd add or skip?"
 
 ### Step 4: Scaffold Vault (~2 min)
 
-Run `carrel vault init <path>` to create:
+Write the complete interview result to a temporary profile JSON file, then run:
+
+```bash
+carrel vault init <path> --profile-file <profile.json>
+```
+
+The CLI validates the whole profile before any vault write. It creates:
 - Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration (core plugins, templates setup)
-- `.carrel/environment.json` (structured profile with defaults)
+- `.carrel/environment.json` (the validated interview profile)
 - `_templates/` (paper, meeting, reflection, daily note templates)
 - `_meta/cheat_sheet.md` (customized reference card)
+- selected `.base` trackers at the vault root
 
-After scaffolding, update `.carrel/environment.json` with the researcher's profile from the interview.
+After confirming that init succeeded and `.carrel/environment.json` contains the intended profile, remove the temporary profile file; do not leave a second copy of researcher metadata in a general temp directory.
 
 #### Research Database Views
 
-`carrel vault init` automatically includes `.base` database templates based on the researcher's profile preferences. To control which ones are included, set the relevant preference keys before scaffolding (e.g., `preferences.qualitative`, `preferences.many_papers`, `preferences.writing`). `reading-progress.base` is always included. See `references/decision-tree.md` → Research Databases for the full mapping:
+`carrel vault init` includes `.base` trackers from the already-validated profile. `reading-progress.base` is always included. Paper tracking uses `many_papers` or `literature_review`; interview tracking uses `qualitative` or `interviews`; writing tracking uses `writing`, `thesis`, or `dissertation`. See `references/decision-tree.md` → Research Databases for the full mapping:
 
 - `reading-progress.base` — always include (lightweight reading pipeline dashboard)
 - `paper-tracker.base` — for researchers with many papers or doing literature reviews
@@ -176,7 +183,7 @@ Regenerate the cheat sheet so it reflects the personalized profile and any tools
 carrel vault cheatsheet --vault <path> --force
 ```
 
-The CLI reads `.carrel/environment.json` via Pydantic and writes `_meta/cheat_sheet.md`. The vault scaffold in Step 4 wrote a starter version with default values; this regenerates against the real profile.
+The CLI reads `.carrel/environment.json` via Pydantic and writes `_meta/cheat_sheet.md`. The vault scaffold in Step 4 generated a starter from the validated profile; this refreshes it after tool setup.
 
 After regeneration, read the cheat sheet and edit it directly to add researcher-specific touches (workflow examples, named projects, custom shortcuts).
 
@@ -196,7 +203,7 @@ Test one operation end-to-end:
 
 Offer this briefly — it's an opt-in, not a required step:
 
-> "Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. This uses Claude Desktop's scheduled tasks feature and costs approximately $3-8/month in API usage via Sonnet."
+> "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Claude Cowork can schedule this from `/schedule` or the Scheduled page. Because Carrel needs your local vault, the folder must be connected and Claude Desktop available when the task needs local access. Scheduled Cowork work uses your paid-plan allocation."
 
 - **Interested** → Run `/carrel-automate` now to configure it, or note it for later.
 - **Not now** → Skip. Mention they can always run `/carrel-automate` later to enable it.

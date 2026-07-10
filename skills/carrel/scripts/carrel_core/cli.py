@@ -28,6 +28,7 @@ from .maintenance import (
     cmd_trust_check,
     cmd_trust_list,
     cmd_trust_show,
+    cmd_vault_automation_prompt,
 )
 from .setup_env import cmd_env_doctor, cmd_env_fix, cmd_env_validate, cmd_vault_init
 
@@ -40,8 +41,13 @@ def build_parser() -> argparse.ArgumentParser:
     vault_sub = vault.add_subparsers(dest="command", required=True)
     vault_init = vault_sub.add_parser("init")
     vault_init.add_argument("path", type=Path)
+    vault_init.add_argument("--profile-file", type=Path)
     vault_init.add_argument("--format", choices=["human", "json"], default="human")
     vault_init.set_defaults(func=cmd_vault_init)
+    vault_automation_prompt = vault_sub.add_parser("automation-prompt")
+    vault_automation_prompt.add_argument("--vault", type=Path, required=True)
+    vault_automation_prompt.add_argument("--force", action="store_true")
+    vault_automation_prompt.set_defaults(func=cmd_vault_automation_prompt)
 
     env = sub.add_parser("env")
     env_sub = env.add_subparsers(dest="command", required=True)

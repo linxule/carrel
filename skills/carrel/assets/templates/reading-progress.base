@@ -1,47 +1,72 @@
-# carrel-template: reading-progress v0.3.0
+# carrel-template: reading-progress v0.4.0
 # Do not remove this marker — it helps Carrel detect updates.
 # Safe to customize everything below.
 
-properties:
-  - name: title
-    type: text
-  - name: status
-    type: text
-  - name: tags
-    type: tags
+filters:
+  and:
+    - 'file.inFolder("papers")'
 
 formulas:
-  - name: days-in-vault
-    formula: "(now() - file.ctime).days"
-  - name: is-stale
-    formula: "if((now() - file.mtime).days > 30, \"stale\", \"active\")"
+  days_in_vault: '(now() - file.ctime).days'
+  is_stale: 'if((now() - file.mtime).days > 30, "stale", "active")'
 
-filter: "file.folder = \"papers\""
+properties:
+  title:
+    displayName: "Title"
+  status:
+    displayName: "Status"
+  tags:
+    displayName: "Tags"
+  formula.days_in_vault:
+    displayName: "Days in vault"
+  formula.is_stale:
+    displayName: "Freshness"
 
-sort:
-  - property: file.ctime
-    direction: desc
+summaries:
+  Count: 'values.length'
 
 views:
   - type: table
     name: "Recent Additions"
+    order:
+      - file.name
+      - title
+      - status
+      - tags
+      - file.ctime
+      - formula.days_in_vault
+      - formula.is_stale
     sort:
       - property: file.ctime
-        direction: desc
+        direction: DESC
+    summaries:
+      title: Count
+      formula.days_in_vault: Average
 
   - type: table
     name: "Stale Papers"
-    filter: "(now() - file.mtime).days > 30"
+    filters:
+      and:
+        - '(now() - file.mtime).days > 30'
+    order:
+      - file.name
+      - title
+      - status
+      - tags
+      - file.mtime
+      - formula.days_in_vault
+      - formula.is_stale
     sort:
       - property: file.mtime
-        direction: asc
+        direction: ASC
 
   - type: list
     name: "By Status"
-    group: status
-
-summaries:
-  - property: title
-    function: Count
-  - property: days-in-vault
-    function: Average
+    order:
+      - file.name
+      - title
+      - status
+      - tags
+    groupBy:
+      property: status
+      direction: ASC

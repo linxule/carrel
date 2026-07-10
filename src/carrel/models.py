@@ -115,6 +115,8 @@ class ScaffoldResult(BaseModel):
     profile_path: Path
     created: list[str]
     skipped: list[str]
+    outdated_templates: list[str] = Field(default_factory=list)
+    unversioned_templates: list[str] = Field(default_factory=list)
 
 
 class AuditResult(BaseModel):

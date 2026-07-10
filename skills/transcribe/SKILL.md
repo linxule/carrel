@@ -29,7 +29,7 @@ The CLI handles tool routing, filing (`transcripts/<kind>-<name>-<date>.md`), an
 
 - **YouTube URL** → omit `--tool` and the CLI uses local captions (free, no API key, includes timestamps). Run with local captions first (the default). If the output quality is poor (garbled text, missing segments, wrong language), offer to re-run with `--tool gemini` for AI-processed transcription from the actual audio+video.
 - **Local audio, sensitive data** → default to `coli` (local). Warn before suggesting `--tool groq`: "This will send audio to Groq's servers — is that okay given the sensitivity?"
-- **Local audio, non-sensitive, slow hardware** → `--tool groq` is faster and gives word-level timestamps for better paragraph reconstruction.
+- **Local audio, non-sensitive, slow hardware** → `--tool groq` is faster, but Carrel's current adapter returns plain transcript text and does not expose word-level timestamps.
 - **Default** → omit `--tool` and let the CLI decide (coli for local audio, local captions for YouTube).
 
 For speaker diarization, pass `--speakers N` when the number of speakers is known — coli uses this to improve speaker separation.

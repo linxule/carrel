@@ -1,10 +1,11 @@
 {
-  "manifest_version": 1,
-  "last_reviewed": "2026-06-30",
+  "manifest_version": 2,
+  "last_full_reviewed": "2026-06-30",
   "refresh_cadence": "monthly",
   "purpose": "Track external packages, APIs, host harnesses, and documentation contracts referenced by the portable Carrel skill and legacy adapters so scheduled refresh jobs can detect upstream drift.",
   "entry_required_fields": [
     "id",
+    "last_reviewed",
     "kind",
     "display_name",
     "contract_marker",
@@ -17,10 +18,12 @@
   "entries": [
     {
       "id": "liteparse",
+      "last_reviewed": "2026-07-10",
       "kind": "npm-package",
       "display_name": "LiteParse",
       "package": "@llamaindex/liteparse",
-      "observed_version": "2.3.0",
+      "observed_version": "2.5.0",
+      "review_note": "2026-07-10 version probe observed 2.5.0; the `lit parse <file> --format markdown` contract and npm install path remain current.",
       "version_probe": "npm view @llamaindex/liteparse version --json",
       "contract_marker": "CLI command `lit parse <file> --format markdown`; npm package also exposes `liteparse` binary.",
       "sources": [
@@ -45,6 +48,7 @@
     },
     {
       "id": "markitdown",
+      "last_reviewed": "2026-06-30",
       "kind": "python-package",
       "display_name": "MarkItDown",
       "package": "markitdown",
@@ -80,6 +84,7 @@
     },
     {
       "id": "defuddle",
+      "last_reviewed": "2026-06-30",
       "kind": "npm-package",
       "display_name": "Defuddle",
       "package": "defuddle",
@@ -108,6 +113,7 @@
     },
     {
       "id": "coli",
+      "last_reviewed": "2026-06-30",
       "kind": "npm-package",
       "display_name": "coli",
       "package": "@marswave/coli",
@@ -136,6 +142,7 @@
     },
     {
       "id": "gws",
+      "last_reviewed": "2026-06-30",
       "kind": "npm-package",
       "display_name": "Google Workspace CLI",
       "package": "@googleworkspace/cli",
@@ -167,6 +174,7 @@
     },
     {
       "id": "mineru",
+      "last_reviewed": "2026-06-30",
       "kind": "cloud-api",
       "display_name": "MinerU API",
       "package": null,
@@ -195,6 +203,7 @@
     },
     {
       "id": "mistral-ocr",
+      "last_reviewed": "2026-06-30",
       "kind": "cloud-api",
       "display_name": "Mistral OCR",
       "package": null,
@@ -226,6 +235,7 @@
     },
     {
       "id": "paddleocr",
+      "last_reviewed": "2026-06-30",
       "kind": "python-package",
       "display_name": "PaddleOCR PP-StructureV3",
       "package": "paddleocr",
@@ -254,6 +264,7 @@
     },
     {
       "id": "groq",
+      "last_reviewed": "2026-06-30",
       "kind": "cloud-api",
       "display_name": "Groq Speech to Text",
       "package": null,
@@ -279,6 +290,7 @@
     },
     {
       "id": "gemini",
+      "last_reviewed": "2026-06-30",
       "kind": "cloud-api",
       "display_name": "Gemini video understanding",
       "package": null,
@@ -307,6 +319,7 @@
     },
     {
       "id": "youtube-transcript-api",
+      "last_reviewed": "2026-06-30",
       "kind": "python-package",
       "display_name": "youtube-transcript-api",
       "package": "youtube-transcript-api",
@@ -335,6 +348,7 @@
     },
     {
       "id": "codex-skills",
+      "last_reviewed": "2026-06-30",
       "kind": "host-harness",
       "display_name": "Codex Skills",
       "package": null,
@@ -360,6 +374,7 @@
     },
     {
       "id": "claude-code-skills",
+      "last_reviewed": "2026-06-30",
       "kind": "host-harness",
       "display_name": "Claude Code Skills",
       "package": null,
@@ -382,28 +397,39 @@
     },
     {
       "id": "claude-app-desktop",
+      "last_reviewed": "2026-07-10",
       "kind": "host-harness",
       "display_name": "Claude app, API, Desktop, and Cowork",
       "package": null,
       "observed_version": null,
       "version_probe": null,
-      "contract_marker": "Cloud/custom Agent Skills can run in containerized code execution; local vault writes require connected files, Desktop Extensions, local MCP, or Cowork/desktop flow.",
+      "contract_marker": "Cowork scheduled tasks are created with `/schedule` or the Scheduled page. Remote tasks can run without a device, but local-folder access requires the folder connection and Claude Desktop availability; `claude -p` is a credential-dependent advanced fallback.",
+      "review_note": "2026-07-10 refresh replaced the stale Desktop Schedule-tab flow with current Cowork scheduling and local-folder availability rules.",
       "sources": [
-        "https://support.anthropic.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop",
-        "https://support.anthropic.com/en/articles/12111783-create-and-edit-files-with-claude"
+        "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+        "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+        "https://code.claude.com/docs/en/headless"
       ],
       "refresh_checks": [
-        "Confirm whether app/API custom skills can access bundled scripts and how outputs return to local files.",
-        "Confirm Desktop/Cowork local-folder and extension behavior before claiming high compatibility."
+        "Confirm Cowork scheduling entry points and available cadence/model/folder options.",
+        "Confirm when scheduled tasks run remotely versus require Desktop for local-folder access.",
+        "Confirm `claude -p` authentication and non-interactive behavior before changing fallback guidance."
       ],
       "rationale": "Prevents overclaiming local-vault script portability on non-Code Claude surfaces.",
       "skill_references": [
-        "references/contracts/host-compatibility.md"
+        "references/contracts/host-compatibility.md",
+        "references/workflows/automation.md"
       ],
-      "repo_references": []
+      "repo_references": [
+        "CLAUDE.md",
+        "commands/carrel-setup.md",
+        "skills/automation/SKILL.md",
+        "skills/automation/references/cowork-scheduling-guide.md"
+      ]
     },
     {
       "id": "kimi-code-skills",
+      "last_reviewed": "2026-06-30",
       "kind": "host-harness",
       "display_name": "Kimi Code Skills",
       "package": null,
@@ -426,6 +452,7 @@
     },
     {
       "id": "opencode-skills",
+      "last_reviewed": "2026-06-30",
       "kind": "host-harness",
       "display_name": "OpenCode Skills",
       "package": null,
@@ -448,6 +475,7 @@
     },
     {
       "id": "gemini-cli-skills",
+      "last_reviewed": "2026-06-30",
       "kind": "host-harness",
       "display_name": "Gemini CLI Skills",
       "package": null,
@@ -470,34 +498,54 @@
     },
     {
       "id": "obsidian",
+      "last_reviewed": "2026-07-10",
       "kind": "desktop-app",
       "display_name": "Obsidian",
       "package": null,
       "observed_version": null,
       "version_probe": null,
-      "contract_marker": "Local Markdown vault viewer/editor; optional Web Clipper; Carrel writes plain folders and `.obsidian` templates.",
+      "contract_marker": "Local Markdown vault viewer/editor; Bases use mapping-valued YAML with plural `filters` and view `order`/`groupBy`; JSON Canvas follows spec 1.0.",
+      "review_note": "2026-07-10 refresh migrated shipped Bases to the current schema and revalidated Markdown and JSON Canvas guidance against pinned upstream sources.",
       "sources": [
         "https://obsidian.md",
-        "https://obsidian.md/clipper"
+        "https://obsidian.md/clipper",
+        "https://help.obsidian.md/bases/syntax",
+        "https://jsoncanvas.org/spec/1.0/",
+        "https://github.com/kepano/obsidian-skills/tree/a1dc48e68138490d522c04cbf5822214c6eb1202"
       ],
       "refresh_checks": [
         "Confirm install hints for macOS/Linux/Windows.",
-        "Confirm Web Clipper wording and vault config files still make sense."
+        "Confirm Web Clipper wording and vault config files still make sense.",
+        "Validate every shipped `.base` against current Bases syntax and paired portable assets.",
+        "Validate Canvas guidance against JSON Canvas 1.0."
       ],
       "rationale": "Human-facing GUI for the research vault.",
       "skill_references": [
+        "assets/templates/interview-tracker.base",
         "assets/templates/my-environment.md",
         "assets/templates/obsidian-config.json",
+        "assets/templates/paper-tracker.base",
+        "assets/templates/reading-progress.base",
+        "assets/templates/writing-tracker.base",
         "references/workflows/onboarding.md"
       ],
       "repo_references": [
         "README.md",
         "docs/self-setup-guide.md",
-        "src/carrel/env/install.py"
+        "skills/research-partner/references/concept-mapping.md",
+        "skills/self-improve/references/capability-registry.md",
+        "skills/vault-ops/references/obsidian-formatting.md",
+        "skills/vault-ops/references/research-databases.md",
+        "src/carrel/env/install.py",
+        "templates/interview-tracker.base",
+        "templates/paper-tracker.base",
+        "templates/reading-progress.base",
+        "templates/writing-tracker.base"
       ]
     },
     {
       "id": "zotero",
+      "last_reviewed": "2026-06-30",
       "kind": "external-service",
       "display_name": "Zotero",
       "package": null,
@@ -524,6 +572,7 @@
     },
     {
       "id": "vox-openrouter",
+      "last_reviewed": "2026-06-30",
       "kind": "host-adapter",
       "display_name": "Vox / OpenRouter multi-model access",
       "package": null,
@@ -550,6 +599,7 @@
     },
     {
       "id": "diagnostic-tools",
+      "last_reviewed": "2026-06-30",
       "kind": "runtime-prerequisites",
       "display_name": "Portable runtime diagnostic tools",
       "package": null,

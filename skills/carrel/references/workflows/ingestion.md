@@ -121,9 +121,9 @@ transcript text or calls local `coli`.
 
 For local audio, default to `coli`. Warn before suggesting `--tool groq`
 ("this sends audio to Groq's servers") unless sensitivity is low; groq is
-faster and gives word-level timestamps when sensitivity allows it. For
-YouTube, try local captions first and only offer `--tool gemini` (via a host
-adapter) if caption quality is poor. Pick
+faster, but Carrel's current adapter returns plain transcript text without
+word-level timestamps. For YouTube, try local captions first and only offer
+`--tool gemini` (via a host adapter) if caption quality is poor. Pick
 `--kind interview|meeting|lecture|recording` before running — it drives
 filing and downstream usefulness; ask when it is not obvious from context.
 

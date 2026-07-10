@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sysconfig
 from pathlib import Path
 
 from carrel.env.install import install_command
@@ -88,7 +89,17 @@ TOOL_COMMAND_EXAMPLES = {
 
 
 def template_root() -> Path:
-    return Path(__file__).resolve().parents[3] / "templates"
+    source_root = Path(__file__).resolve().parents[3] / "templates"
+    if source_root.is_dir():
+        return source_root
+
+    installed_root = Path(sysconfig.get_path("data")) / "share" / "carrel" / "templates"
+    if installed_root.is_dir():
+        return installed_root
+
+    raise FileNotFoundError(
+        "Carrel template data is missing; reinstall the package or run from a complete source checkout."
+    )
 
 
 def read_template(name: str) -> str:

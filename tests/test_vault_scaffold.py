@@ -1,7 +1,10 @@
 import json
 
+import pytest
+
 from carrel.models import ResearcherProfile
 from carrel.vault.scaffold import scaffold_vault
+from carrel.vault.templates import read_template
 
 
 def test_scaffold_vault_creates_structure_and_profile(tmp_path) -> None:
@@ -62,6 +65,31 @@ def test_scaffold_includes_bases_for_qualitative_profile(tmp_path) -> None:
     assert (result.vault / "paper-tracker.base").exists()
 
 
+@pytest.mark.parametrize(
+    ("preference", "tracker"),
+    [
+        ("many_papers", "paper-tracker.base"),
+        ("literature_review", "paper-tracker.base"),
+        ("qualitative", "interview-tracker.base"),
+        ("interviews", "interview-tracker.base"),
+        ("writing", "writing-tracker.base"),
+        ("thesis", "writing-tracker.base"),
+        ("dissertation", "writing-tracker.base"),
+    ],
+)
+def test_scaffold_profile_preferences_select_expected_tracker(
+    tmp_path,
+    preference: str,
+    tracker: str,
+) -> None:
+    profile = ResearcherProfile(preferences={preference: True})
+
+    result = scaffold_vault(tmp_path / preference, profile=profile)
+
+    assert (result.vault / "reading-progress.base").exists()
+    assert (result.vault / tracker).exists()
+
+
 def test_scaffold_skips_existing_base_files(tmp_path) -> None:
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -72,3 +100,22 @@ def test_scaffold_skips_existing_base_files(tmp_path) -> None:
 
     assert custom.read_text(encoding="utf-8") == "# custom content\n"
     assert "reading-progress.base" in result.skipped
+    assert result.unversioned_templates == ["reading-progress.base"]
+
+
+def test_scaffold_reports_outdated_base_without_overwriting(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    current = read_template("reading-progress.base")
+    outdated = current.replace(
+        current.splitlines()[0],
+        "# carrel-template: reading-progress v0.0.1",
+    )
+    target = vault / "reading-progress.base"
+    target.write_text(outdated, encoding="utf-8")
+
+    result = scaffold_vault(vault)
+
+    assert result.outdated_templates == ["reading-progress.base"]
+    assert result.unversioned_templates == []
+    assert target.read_text(encoding="utf-8") == outdated

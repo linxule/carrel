@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import shutil
 import sys
@@ -62,6 +61,11 @@ def assert_safe_write_target(vault: Path, path: Path) -> None:
             "Path escapes vault root",
             hint=f"Refusing to write outside {root}",
         ) from exc
+    if path.exists() and not path.is_file():
+        raise CarrelError(
+            "Invalid vault file target",
+            hint=f"Expected a regular file: {path}",
+        )
 
 
 def assert_safe_read_target(vault: Path, path: Path) -> None:

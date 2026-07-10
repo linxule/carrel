@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 279 tests
+uv run pytest                                    # Full test suite
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel env validate --vault .            # Validate environment.json + drift markers
 uv run carrel env fix --safe --vault .          # Apply safe environment.json repairs
@@ -32,7 +32,7 @@ uv run carrel vault reflect-log --append --from-stdin --vault . # Atomic append 
 uv run carrel vault share generate --mode quick --for alice --sensitivity medium --vault . # Collaborator handbook (v0.9.0)
 uv run carrel batch convert <folder> [--unattended] --vault . # Sequential PDF batch (v0.9.0)
 uv run carrel batch transcribe <folder> [--unattended] --vault . # Sequential audio/YouTube batch (v0.9.0)
-uv run carrel automate configure --enabled true --trust-level consultative --schedule daily --review-cadence weekly --vault . # Typed-flag automation config, no prompts (v0.9.0)
+uv run carrel automate configure --enabled --trust-level consultative --schedule daily --review-cadence quarterly --vault . # Typed-flag automation config, no prompts (v0.9.0)
 uv run carrel migrate apply [--plugin-root <path>] --vault . # Walk migrations registry, update plugin-state.json (v0.9.0)
 ```
 
@@ -66,9 +66,9 @@ carrel/
 │   ├── youtube_url.py    # Unified YouTube URL parser
 │   ├── source_hash.py    # Unified source-hash helper for idempotency
 │   └── errors.py         # CarrelError with actionable hints
-├── tests/                # pytest suite (279 tests)
+├── tests/                # pytest suite
 ├── templates/            # Vault templates (loaded by vault/templates.py)
-├── skills/               # 13 plugin skills (convert, transcribe, vault-ops, environment-setup, automation, knowledge-wiki, collaborator-onboarding, model-teammates, self-improve, research-partner, env-doctor, web-capture, session-reflection)
+├── skills/               # plugin skills (including the portable carrel skill pack)
 ├── agents/               # Plugin agents (setup-interviewer, research-partner)
 ├── hooks/                # 4 plugin hooks: SessionStart (check-environment.js), SessionEnd (session-reflect.js), UserPromptSubmit (inject-context.js, v0.9.0), PreToolUse Bash matcher (sensitivity-gate.js, v0.9.0)
 ├── commands/             # 15 plugin slash commands (/carrel-*); 7 are thin wrappers per CONVENTIONS.md
@@ -107,9 +107,9 @@ No markdownify fallback for audio. Missing coli → clear error.
 - **No AI imports**: Core library is deterministic. AI lives in the transport/skill layer.
 - **Router validation**: Routers validate tool+input combinations, not just enum membership. `--tool gemini` on a local file or `--tool coli` on a YouTube URL is rejected with an actionable error. The router is the validation boundary — transports trust it.
 
-## Scheduled Automation (v0.4)
+## Scheduled Automation
 
-Carrel can run overnight via Desktop App local scheduled tasks. The `automation` skill defines the contract; `/carrel-automate` configures it.
+Carrel can run unattended through Cowork scheduled tasks or a credential-dependent `claude -p` scheduler. The `automation` skill defines the contract; `/carrel-automate` configures the profile, and `carrel vault automation-prompt` generates the prompt separately. In Cowork, use `/schedule` or the Scheduled page. A task that needs a local vault requires the connected folder and Claude Desktop availability when local access is needed.
 
 - **Trust levels**: Advisory (suggest only) → Consultative (propose, researcher approves) → Delegated (act on new items, experimental) → Partnership (reorganize, experimental)
 - **AutomationConfig** in `models.py`: per-capability booleans, trust level, model, schedule, review cadence
@@ -135,12 +135,13 @@ Vocabulary: **teammates** ≠ Claude-side `agents/` (setup-interviewer, research
 
 Optional synthesis layer: agent-maintained entity/concept pages that compound knowledge across sources. Adapted from [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) + [Hermes Agent](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
 
-- **Trust-gated**: Advisory=off, Consultative=propose with approval, Delegated=autonomous. Activation implies at least consultative.
+- **Trust-gated**: `wiki:propose` drafts an exact batch, `wiki:apply-approved` applies that batch at Consultative trust, and autonomous `wiki:write` requires Delegated trust.
 - **Folder mapping**: `papers/`, `transcripts/`, `inbox/` = source layer. `wiki/` = synthesis layer. No separate `raw/`.
 - **Operations**: ingest, query (trust-gated filing), lint. See `skills/knowledge-wiki/SKILL.md`.
 - **Dialogue**: researcher callouts (`> [!researcher]`) on wiki pages — agent reads, never overwrites. Wiki = field's voice; `notes/` = researcher's voice; gap = contribution.
 - **Ephemeral agent**: log.md includes reasoning per decision (cross-instance handoff). Lazy orientation (full context only for writes).
-- **Automation**: `wiki_maintenance` in AutomationConfig. At delegated trust, briefs include per-file revert instructions + one-sentence insight.
+- **Provenance and quality**: optional confidence/contested/contradiction signals, source-body digests, and paragraph source markers on 3+ source pages.
+- **Automation**: `wiki_maintenance` in AutomationConfig. At delegated trust, briefs include quality/drift counts, per-file revert instructions, and one synthesis insight.
 - **Model fields**: `wiki_enabled`, `wiki_preference`, `wiki_proposal_deferred_until` on ResearcherProfile. Read by Claude, not code-enforced.
 - **Detection**: check `wiki/SCHEMA.md` existence (not just `wiki/`). Upstream in `capability-registry.md`.
 
@@ -157,9 +158,9 @@ The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from
 
 Spec 014 (CC-only re-scope) normalizes the three-layer rule for 7 high-value command paths. Deterministic file I/O moved to `carrel <subcmd>`; orchestration moved into skills; slash commands shrunk to thin `!carrel <subcmd> ${ARGS}` wrappers.
 
-- **7 new CLI subcommands**: `vault {feedback export, mirror, reflect-log, share generate}`, `batch {convert, transcribe}`, `migrate apply`, `automate configure`. All typed-flag, no prompting; `--explain` dry-run where routing applies.
+- **Deterministic CLI surfaces**: `vault {feedback export, mirror, reflect-log, share generate, automation-prompt}`, `batch {convert, transcribe}`, `migrate apply`, and `automate configure`. Skills retain interviews, synthesis, approval, and scheduling guidance.
 - **7 wrapper shrinks** (564 → 35 body lines): `/carrel-{feedback,migrate,mirror,reflect,share,batch,automate}`. Convention: `${ARGS}` (skill-constructed) vs `$ARGUMENTS` (raw user input) documented in `commands/CONVENTIONS.md`.
-- **Skill enrichments** absorbed the freed orchestration prose: `automation` (10-step flow + Desktop App walkthrough + unattended-batch contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
+- **Skill enrichments** absorbed the freed orchestration prose: `automation` (configuration interview + explicit prompt lifecycle + Cowork/`claude -p` scheduling + unattended contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
 - **3 CC plugin feature adds**: marketplace metadata (keywords, category, license, repository); `UserPromptSubmit` hook (`hooks/inject-context.js`) for per-turn vault context; `PreToolUse` Bash matcher (`hooks/sensitivity-gate.js`) for sensitivity ask-gate before cloud subprocesses (bypass via `# bypass-gate` comment).
 
 Spec: `planning/specs/014-cc-plugin-v090.md`. Cross-CLI port (Codex + Kimi) parked as future work; investigation artifacts preserved.

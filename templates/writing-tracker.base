@@ -1,52 +1,88 @@
-# carrel-template: writing-tracker v0.3.0
+# carrel-template: writing-tracker v0.4.0
 # Do not remove this marker — it helps Carrel detect updates.
 # Safe to customize everything below.
 
-properties:
-  - name: section
-    type: text
-  - name: status
-    type: text
-  - name: word-count
-    type: number
-  - name: due-date
-    type: date
-  - name: blockers
-    type: text
+filters:
+  and:
+    - 'file.inFolder("drafts")'
 
 formulas:
-  - name: days-until-due
-    formula: "if(due-date != \"\", (due-date - now()).days, \"\")"
-  - name: progress
-    formula: "if(status == \"done\", \"complete\", if(status == \"reviewing\", \"almost\", if(status == \"drafting\", \"in progress\", \"not started\")))"
+  days_until_due: 'if(note["due-date"], (date(note["due-date"]) - today()).days, "")'
+  progress: 'if(status == "done", "complete", if(status == "reviewing", "almost", if(status == "drafting", "in progress", "not started")))'
 
-filter: "file.folder = \"drafts\""
+properties:
+  section:
+    displayName: "Section"
+  status:
+    displayName: "Status"
+  word-count:
+    displayName: "Word count"
+  due-date:
+    displayName: "Due date"
+  blockers:
+    displayName: "Blockers"
+  formula.days_until_due:
+    displayName: "Days until due"
+  formula.progress:
+    displayName: "Progress"
 
-sort:
-  - property: due-date
-    direction: asc
+summaries:
+  Count: 'values.length'
 
 views:
   - type: table
     name: "All Sections"
+    order:
+      - file.name
+      - section
+      - status
+      - word-count
+      - due-date
+      - blockers
+      - formula.days_until_due
+      - formula.progress
     sort:
       - property: due-date
-        direction: asc
+        direction: ASC
+    summaries:
+      word-count: Sum
+      section: Count
 
   - type: table
     name: "In Progress"
-    filter: "status == \"drafting\" || status == \"reviewing\""
+    filters:
+      or:
+        - 'status == "drafting"'
+        - 'status == "reviewing"'
+    order:
+      - file.name
+      - section
+      - status
+      - word-count
+      - due-date
+      - formula.days_until_due
+      - formula.progress
 
   - type: table
     name: "Blocked"
-    filter: "blockers != \"\""
+    filters:
+      and:
+        - 'note["blockers"] != null'
+        - 'note["blockers"] != ""'
+    order:
+      - file.name
+      - section
+      - status
+      - blockers
+      - due-date
 
   - type: list
     name: "By Status"
-    group: status
-
-summaries:
-  - property: word-count
-    function: Sum
-  - property: section
-    function: Count
+    order:
+      - file.name
+      - section
+      - status
+      - due-date
+    groupBy:
+      property: status
+      direction: ASC

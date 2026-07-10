@@ -82,8 +82,11 @@ Cover these areas naturally:
 
 5. Propose a setup plan in plain language. Name what will be local, what would
    require a cloud service, and what can wait.
-6. After approval, run `vault init`, write or update the profile, update
-   `.carrel/agent-context.md`, then run `env validate`.
+6. After approval, write the complete profile to a temporary JSON file and run
+   `vault init <vault> --profile-file <profile.json>`. The runtime validates the
+   complete profile before any vault write, persists it, selects root `.base`
+   trackers from its preferences, and updates `.carrel/agent-context.md`. Then
+   run `env validate`.
 7. If validation reports drift, run `env fix --dry-run` first, explain the
    proposed repair, then run `env fix` only after approval unless the user
    already asked for repair.

@@ -47,7 +47,7 @@ NEVER apply a note template to a converted paper. The convert command handles pa
 
 ## Template Selection Judgment
 
-Use `carrel vault new <template> <name>` to create from template, or apply manually:
+Use `carrel vault new <name> --template <template>` to create from a template, or apply manually:
 
 1. **paper-notes** — researcher's thinking about a specific paper → `notes/`
 2. **meeting** — any synchronous conversation → `notes/`
@@ -92,7 +92,7 @@ Use `carrel vault search <query>` to surface related content before suggesting l
 - Use `carrel vault organize` to get sorting suggestions for inbox files
 - If inbox has 5+ files, proactively flag: "You have N files in inbox/ — want me to sort them?"
 - Update links when moving files: find and replace `[[old-name]]` → `[[new-name]]`
-- Every file has a home — nothing stays in vault root
+- Every content file has a home; only intentional root control files and selected `.base` trackers stay in the vault root
 
 ## Analytical Threads
 
@@ -189,7 +189,7 @@ When a researcher asks to track something not covered by the templates, **create
 
 1. Ask what they want to track and what columns matter
 2. Identify which vault folder (or frontmatter tags) to query
-3. Start with a `file.folder` filter + 3-5 frontmatter properties the researcher named; add formulas only if they ask for calculations
+3. Start with a plural `filters` block using `file.inFolder()` plus 3-5 frontmatter properties the researcher named; add formulas only if they ask for calculations
 4. Write the `.base` file, then run through the validation checklist in `references/research-databases.md` before saving (verify folder paths, escaped strings, property type alignment)
 5. Save to the vault root with a descriptive name (e.g., `grant-tracker.base`) — do NOT add a `carrel-template:` marker (this is vault-local)
 6. Tell the researcher: "Open `grant-tracker.base` in Obsidian — you can sort and filter it."
@@ -203,7 +203,7 @@ The same applies to **callouts and canvas files**. If a researcher's discipline 
 Database views are only as good as the frontmatter in the notes they query. When creating or editing notes:
 - Always include `status` (unread, reading, noted, cited)
 - Always include `tags` for thematic filtering
-- For transcripts: include `transcribed`, `coded`, `follow-up` booleans
+- For transcripts: store `transcribed` as the ISO transcription date; use booleans for `coded` and `follow-up`
 
 ## Guidelines
 

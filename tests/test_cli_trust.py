@@ -60,7 +60,11 @@ def test_trust_list_json_returns_all_actions(tmp_path) -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert len(payload) == 7
+    assert len(payload) == 8
+    assert payload["wiki:apply-approved"] == {
+        "required_trust": "consultative",
+        "allowed": True,
+    }
     assert payload["vault:reorganize"] == {
         "required_trust": "partnership",
         "allowed": False,

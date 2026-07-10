@@ -39,17 +39,21 @@ status. Do not duplicate the full reflection text.
 ## Feedback Digest
 
 When the researcher wants to share experience feedback, build a redaction list
-first. Include names, institutions, project names, and revealing filenames.
+first. Map profile `name` to `Researcher`; map optional
+`preferences.institution` to `University`; include project names and revealing
+filenames found in the source scan.
 Keep tool names, command names, workflow descriptions, and error messages.
 
-The redaction list can contain one term per line or `original -> replacement`
-mappings. Then run:
+The redaction list can contain one term per line or canonical
+`original -> replacement` mappings (legacy `original → replacement` is also
+accepted). Then run:
 
 ```bash
 python3 scripts/carrel.py feedback export --vault <vault> --redact-list <path>
 ```
 
-Preview the digest path and leave sharing to the researcher.
+Preview the digest path, inspect `redactions_applied` and `zero_match_terms`,
+and leave sharing to the researcher.
 
 ## Research Mirror
 

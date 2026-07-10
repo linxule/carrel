@@ -87,25 +87,22 @@ when needed. Custom local databases must not use Carrel template markers.
 
 ## Template Provenance
 
-Plugin-shipped templates (`.base`, `.md`, `.json` files copied from
-`assets/templates/`) carry a source marker so upgrades never clobber
-vault-local customizations:
-
-| File type | Marker syntax |
-|-----------|---------------|
-| `.base` | `# carrel-template: name v0.0.0` (YAML comment) |
-| `.md` | `<!-- carrel-template: name v0.0.0 -->` (HTML comment, first line) |
-| `.json` | `"_carrel_template": "name v0.0.0"` (top-level key) |
+The four shipped root `.base` trackers carry
+`# carrel-template: name v0.0.0` markers so upgrades can report drift without
+clobbering customization. Current marker scanning does not cover ordinary
+Markdown or JSON scaffold assets.
 
 | | Plugin-shipped | Vault-local |
 |---|---|---|
 | **Has `carrel-template:` marker** | Yes | Never |
 | **Created by** | `vault init` (scaffold) | Claude during sessions, or the researcher manually |
-| **Safe to overwrite on re-scaffold** | Yes, if unmodified | Never |
+| **Overwritten on re-scaffold** | Never; report marker drift instead | Never |
 
-The bundled scaffold step only checks whether a file already exists — it does
-not inspect the marker. When hand-editing or regenerating a vault template,
-preserve the existing marker line yourself, and never add a
+The bundled scaffold writes selected `.base` trackers at the vault root and
+skips every existing path. It reports outdated or unversioned shipped trackers
+without replacing them and leaves legacy `_templates/*.base` copies untouched.
+When hand-editing or regenerating a vault template, preserve the existing marker
+line yourself, and never add a
 `carrel-template:` marker to a vault-local or custom file; that namespace is
 reserved for plugin-shipped content.
 

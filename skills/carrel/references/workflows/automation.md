@@ -1,124 +1,87 @@
 # Automation
 
-Use this workflow when a researcher wants unattended vault maintenance,
-scheduled/background processing, a morning brief, or a change to automation
-trust settings. The portable skill persists preferences and prompt files; the
-host decides how to schedule the prompt.
+Use this workflow for unattended maintenance, scheduling discussions, morning
+briefs, pending decisions, or automation preference reviews. The skill owns the
+interview and judgment; the portable runtime persists settings and generates
+deterministic files only when explicitly commanded; the host owns scheduling.
 
-## Contents
+## Profile and Configure
 
-- Feature Filter
-- Automation Contract
-- Trust And Unattended Rules
-- Prompt And Briefs
-- Pending Decisions And Approvals
-- Configuration Flow
-- Cost Framing
+Automation preferences live under `automation` in
+`.carrel/environment.json`. Schedules are `daily`, `weekdays`, or `weekly`;
+review cadence is `monthly`, `quarterly`, or `biannual`.
 
-## Feature Filter
-
-Before enabling a capability, ask whether it amplifies the researcher's
-judgment or replaces it.
-
-- Accept mechanical work, visibility, and bounded delegation.
-- Make intimate work opt-in: draft feedback and gap analysis default off.
-- Keep reflection synthesis on by default because it summarizes researcher
-  supplied reflections rather than acting on sources.
-- Offer field-map maintenance only when `wiki_enabled` is true.
-
-## Automation Contract
-
-Automation preferences live in `.carrel/environment.json` under `automation`.
-Supported toggles are `inbox_processing`, `vault_health`,
-`cross_linking_suggestions`, `gap_analysis`, `draft_feedback`,
-`reflection_synthesis`, and `wiki_maintenance`.
-
-Schedules are `daily`, `weekdays`, or `weekly`. Review cadence is `monthly`,
-`quarterly`, or `biannual`. The model field is host-facing preference metadata;
-do not make one host's model names required portable behavior.
-
-Persist resolved settings with:
+The portable runtime accepts explicit boolean values:
 
 ```bash
-python3 scripts/carrel.py automation configure --vault <vault> --enabled true --trust-level consultative --schedule daily --review-cadence quarterly
+python3 scripts/carrel.py automation configure --vault <vault> \
+  --enabled true --trust-level consultative --model sonnet \
+  --schedule daily --review-cadence quarterly \
+  --inbox-processing true --vault-health true --cross-linking true \
+  --gap-analysis false --draft-feedback false \
+  --reflection-synthesis true --wiki-maintenance false
 ```
 
-The runtime sets `last_reviewed`, preserves existing optional fields unless
-overridden, and initializes pending files and `_meta/automation-prompt.md`
-without overwriting existing files.
+Configure updates only the profile and `last_reviewed`. It must not create
+pending files or `_meta/automation-prompt.md`.
 
-## Trust And Unattended Rules
+Generate the prompt separately:
 
-Trust levels govern what automation may do:
+```bash
+python3 scripts/carrel.py vault automation-prompt --vault <vault>
+```
 
-- `advisory`: write suggestions only; no operational changes.
-- `consultative`: write proposed actions to `_meta/pending-approvals.md`.
-- `delegated`: file new routine items inside configured boundaries and log
-  every action.
-- `partnership`: allow broader reorganization only after explicit opt-in.
+Use `--force` to replace an existing prompt. No `.prev` backup is automatic.
+The prompt locates the vault through `.carrel/environment.json`; it never embeds
+an absolute vault path.
 
-Unattended mode must never ask questions or wait for input. When judgment is
-needed, write to `_meta/pending-decisions.md` and skip that item.
+## Trust
 
-Defer rather than act on scanned PDFs needing cloud OCR, audio files with
-unknown speaker/sensitivity context, ambiguous file types, or any cloud route
-where consent is uncertain.
+- Advisory: suggestions only.
+- Consultative: exact proposals; no unattended execution.
+- Delegated *(experimental)*: file new items and log each action/revert.
+- Partnership *(experimental)*: may reorganize existing content within the
+  agreed epistemology; log every action/revert.
 
-## Prompt And Briefs
+Check the specific action immediately before it. A failed check stops the
+write. First-time trust escalation requires the researcher's explicit choice;
+do not infer it from an automation setup request. After that choice, configure
+may perform exactly one bootstrap transition from Advisory to Consultative in
+the same validated profile write. Direct jumps from Advisory to Delegated or
+Partnership are rejected.
 
-The portable automation prompt must not hard-code an absolute vault path. It
-should instruct the agent to find the vault root by locating
-`.carrel/environment.json`, then read `.carrel/environment.json` and
-`.carrel/agent-context.md`.
+## Unattended Rules
 
-Morning briefs should be saved by the running agent under
-`_meta/briefs/YYYY-MM-DD.md` when a host supports unattended writing. Include:
+- Never ask questions or wait for input.
+- Create/append `_meta/pending-decisions.md` only when an actual item is
+  deferred for ambiguity, sensitivity, OCR, quality, or cloud consent.
+- Create/append `_meta/pending-approvals.md` only when an actual Consultative
+  proposal exists.
+- Continue safe independent items after a defer.
+- Use `batch convert|transcribe --unattended` only in unattended runs.
+- At Delegated/Partnership trust, log every action and a usable revert.
+- Finish with `_meta/briefs/YYYY-MM-DD.md`.
 
-- Inbox: processed, failed, and pending-decision counts.
-- Vault health: papers, notes, drafts, stale drafts, orphan notes, broken links.
-- Suggestions: high-confidence cross-links or gaps only.
-- Field map: page counts, contradictions, lint status, and one insight.
-- Actions taken: only for delegated or partnership trust, with revert notes.
+## Morning Brief
 
-## Pending Decisions And Approvals
+Include inbox outcomes, vault health, high-confidence suggestions, active-plan
+next steps, and pending-item counts only when they exist. Include Actions Taken
+only at Delegated or Partnership trust.
 
-`_meta/pending-decisions.md` is for blocked items that require human input.
-Use checklist rows with the date, source, and reason.
+When field-map maintenance is enabled, add counts for new/updated pages, low
+confidence, contested pages, contradiction links, single-source confidence
+gaps, source drift, orphans, and un-ingested sources, plus one synthesis
+insight. Autonomous field-map writes require Delegated trust and `wiki:write`;
+an approved Consultative batch uses `wiki:apply-approved`.
 
-`_meta/pending-approvals.md` is for consultative proposed actions. Include
-enough structure for an interactive agent to execute after approval, but do not
-execute the item in the unattended run.
+## Scheduling
 
-When the researcher resolves an item interactively, mark it checked and add a
-short resolution note.
+After configuration and explicit prompt generation, schedule through the
+current host interface. In Claude Cowork, use `/schedule` or the Scheduled page.
+General tasks can run remotely, but a task that needs a local Carrel vault must
+have the folder connected and Claude Desktop available when local access is
+required. Carrel does not modify the host's saved schedule.
 
-## Configuration Flow
-
-For first-time automation setup, summarize current defaults, ask which
-capabilities should run unattended, explain the selected trust level, choose a
-schedule and review cadence, then run `automation configure`.
-
-`automation configure` is itself gated on the vault's *current* trust level
-(it requires at least consultative to run at all). On a fresh vault (default:
-advisory), write the researcher-approved `trust_level` directly into
-`.carrel/environment.json`'s `automation` object first — the same
-direct-write mechanism used for every other profile field set during
-onboarding — before running `automation configure`. The gate's real
-protection is a human explicitly approving the escalation in this
-conversation; that protection holds either way, only the write order
-changes. The runtime does not enforce one-level-at-a-time jumps, so walk the
-researcher through each intermediate level's implications yourself before
-applying a multi-level jump.
-
-For returning users, summarize current automation settings and ask what changed.
-Update only requested fields.
-
-After configuration, update `.carrel/agent-context.md` and `_meta/my-environment.md`
-if those files exist. Do not generate host-specific scheduling files from this
-portable workflow.
-
-## Cost Framing
-
-Give approximate cost only when the selected host charges for scheduled model
-work. Frame estimates as dependent on vault size, enabled capabilities, model,
-and schedule. Weekly runs are roughly one seventh of daily runs.
+`claude -p` plus a system scheduler is an advanced, credential-dependent
+fallback. Do not quote fixed dollar estimates: Cowork uses paid-plan allocation,
+while programmatic/API usage depends on the configured account and model.

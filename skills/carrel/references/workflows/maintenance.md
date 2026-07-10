@@ -31,3 +31,9 @@ python3 scripts/carrel.py share generate --vault <vault> --for "Name" --sensitiv
 ```bash
 python3 scripts/carrel.py automation configure --vault <vault> --enabled true --trust-level consultative --schedule daily --review-cadence quarterly
 ```
+
+This persists the profile only. Generate the prompt separately after review:
+
+```bash
+python3 scripts/carrel.py vault automation-prompt --vault <vault>
+```

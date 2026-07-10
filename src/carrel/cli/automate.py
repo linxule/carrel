@@ -20,14 +20,15 @@ from carrel.models import (
     TrustLevel,
 )
 from carrel.policy.trust import is_allowed, required_trust
+from carrel.safe_path import safe_atomic_write, safe_vault_join
 
 app = typer.Typer(help="Configure overnight automation (typed flags only, no prompting)")
 console = Console()
 
 # `carrel automate configure` calls into the trust enforcement boundary using
-# automation:propose (consultative). Configuring overnight automation is a
-# proposal-grade action: advisory researchers must explicitly opt up before
-# carrel will persist an AutomationConfig that downstream tooling can act on.
+# automation:propose (consultative). The one bootstrap exception is an explicit
+# Advisory -> Consultative request: the skill obtains approval, then the runtime
+# validates and persists that transition with the rest of the approved config.
 AUTOMATE_CONFIGURE_ACTION = "automation:propose"
 
 
@@ -100,10 +101,17 @@ def configure_command(
                 ),
             )
 
-        # Internal trust gate: writing automation config requires
-        # write-prompt-level trust (the most restrictive automation action).
+        # Internal trust gate: persisting automation settings is a
+        # consultative proposal-grade action.
         current_trust = profile.automation.trust_level
-        if not is_allowed(AUTOMATE_CONFIGURE_ACTION, current_trust):
+        advisory_bootstrap = (
+            current_trust == TrustLevel.ADVISORY
+            and trust_level == TrustLevel.CONSULTATIVE
+        )
+        if not (
+            is_allowed(AUTOMATE_CONFIGURE_ACTION, current_trust)
+            or advisory_bootstrap
+        ):
             required = required_trust(AUTOMATE_CONFIGURE_ACTION)
             raise CarrelError(
                 (
@@ -111,8 +119,9 @@ def configure_command(
                     f"'{required.value}'; current is '{current_trust.value}'"
                 ),
                 hint=(
-                    f"Raise trust to {required.value} before configuring automation. "
-                    "On a fresh setup, run `/carrel-setup` and pick the trust level interactively."
+                    "A fresh advisory profile may transition only to consultative in this "
+                    "command, after explicit approval. Higher trust levels require a later, "
+                    "separately reviewed transition."
                 ),
             )
 
@@ -173,14 +182,12 @@ def configure_command(
 
 def _atomic_write_profile(vault: Path, profile: ResearcherProfile) -> Path:
     """Atomic profile write via tmp + replace (matches setup_state pattern)."""
-    path = vault / ".carrel" / "environment.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.parent / f"{path.name}.tmp"
-    tmp.write_text(
+    path = safe_vault_join(vault, ".carrel", "environment.json")
+    safe_atomic_write(
+        vault,
+        path,
         profile.model_dump_json(indent=2, by_alias=True),
-        encoding="utf-8",
     )
-    tmp.replace(path)
     return path
 
 

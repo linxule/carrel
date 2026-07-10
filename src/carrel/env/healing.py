@@ -10,7 +10,6 @@ from carrel import __version__
 from carrel.models import AuditResult, ResearcherProfile
 from carrel.env.sync import sync_tools_configured
 from carrel.env.validation import (
-    DriftIssue,
     detect_raw_marker_conflicts,
     format_validation_errors,
     unknown_environment_keys,

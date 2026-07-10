@@ -15,7 +15,7 @@ task needs deeper workflow or contract context.
 Run the bundled runtime with Python 3.10 or newer from this skill folder:
 
 ```bash
-python3 scripts/carrel.py vault init <vault>
+python3 scripts/carrel.py vault init <vault> --profile-file <profile.json>
 python3 scripts/carrel.py env validate --vault <vault> --format json
 python3 scripts/carrel.py env doctor --vault <vault> --format json
 python3 scripts/carrel.py capture url https://example.com/article --vault <vault> --content "Article body"
@@ -75,6 +75,7 @@ treating the skill as unavailable.
 Use `scripts/carrel.py` for low-freedom operations:
 
 - `vault init`
+- `vault automation-prompt`
 - `env validate`
 - `env fix`
 - `env doctor`

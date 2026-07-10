@@ -54,7 +54,7 @@ Use `references/handbook-template.md` for the markdown structure. Each section h
 
 The skill has two operating modes — choose based on how the researcher framed the request.
 
-### Interactive (default)
+### Interactive behavior (canonical path)
 
 A short brief exchange up front, then conversational refinement at the end. Use this when the researcher says "share with my RA" or "onboard Jane" without further detail.
 
@@ -63,7 +63,7 @@ A short brief exchange up front, then conversational refinement at the end. Use 
 - What do they need to do in this vault? (read papers? add transcripts? write drafts? review?)
 - How experienced are they with research workflows? (new grad student, senior PhD, faculty)
 
-**Refinement (after synthesis):** show the draft, ask one focused question: "Anything missing, or anything that shouldn't go to [name]?" Apply edits, save the final.
+**Synthesis and refinement:** read the sources above, apply the selected sensitivity rules yourself, draft the handbook, and show it to the researcher. Ask one focused question: "Anything missing, or anything that shouldn't go to [name]?" Apply edits and obtain approval of the exact final body.
 
 **Canonical copy (optional):** offer "Want me to also save this as `_meta/lab-handbook.md` — your canonical 'latest version' you can update over time?" If yes, copy the file. If no, the dated handbook stands alone.
 
@@ -71,23 +71,23 @@ A short brief exchange up front, then conversational refinement at the end. Use 
 
 Skip the brief, use defaults (new lab member, general access), save the dated handbook, skip the canonical copy. Use this when the researcher says "just generate one", "quick handbook", "draft something I can edit", or otherwise signals they want a starting point rather than a conversation.
 
-Quick mode is a behavioral shortcut. The CLI does not have a separate flag for it — it surfaces as `--mode quick` on the generate call.
+Quick mode is a behavioral shortcut and uses the CLI's deterministic fallback synthesis via `--mode quick`. It is not the canonical path for a polished handoff.
 
 ## Calling Pattern
 
-Once mode + collaborator + sensitivity are resolved, hand off to the CLI for synthesis and the file write:
+For the interactive path, pipe the exact approved handbook body to the CLI:
 
 ```bash
-carrel vault share generate \
-  --mode interactive|quick \
+printf '%s\n' "<approved handbook body>" | carrel vault share generate \
+  --mode full \
   --for <collaborator-slug> \
   --sensitivity low|medium|high \
-  [--vault PATH]
+  --from-stdin [--canonical] [--vault PATH]
 ```
 
-The CLI owns: source-material reads, handbook synthesis emission, sensitivity-rule application (what gets redacted at each level), idempotent dated-filename writes under `_meta/handbook/`, and the optional canonical-copy write. This skill owns: mode selection, the brief (interactive), the refinement loop (interactive), and the sensitivity conversation when redaction is uncertain.
+The CLI owns vault-safe path validation and exact persistence to the dated file and, only with `--canonical`, `_meta/lab-handbook.md`. On the stdin path it does not read vault sources, synthesize prose, or sanitize/redact the supplied body. This skill owns source reads, synthesis, sensitivity judgment, preview, refinement, and approval.
 
-Use `--explain` to preview what the CLI would write — including which sources it would pull from and which sections sensitivity rules would redact — without committing.
+Use `--explain --from-stdin` with the same body to preview destinations and metadata without writing. For a quick starter only, omit stdin and call `--mode quick`; the deterministic fallback is backward-compatible but less context-rich.
 
 ## Output
 
@@ -100,7 +100,7 @@ Optionally also save as `_meta/lab-handbook.md` — the canonical "latest" versi
 
 ## Sensitivity Considerations
 
-The `--sensitivity` flag controls how the CLI applies redaction; this skill resolves it with the researcher before invoking.
+The `--sensitivity` flag records the selected policy tier. This skill must apply that tier while choosing sources and drafting the approved stdin body; do not claim the stdin persistence path sanitizes it.
 
 **Default:** read the researcher's `sensitivity` from `.carrel/environment.json` and pass it through. Override only when the collaborator's access is narrower than the researcher's vault-wide setting (e.g., a HIGH-sensitivity vault but the new RA only needs the public-facing project — pass `--sensitivity medium` with the researcher's confirmation).
 

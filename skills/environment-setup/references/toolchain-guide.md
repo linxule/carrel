@@ -47,7 +47,7 @@ The carrel CLI handles conversion directly — no MCP servers needed. Tool selec
 
 | File type | Tool | How it's installed |
 |-----------|------|--------------------|
-| PDF | `liteparse` | `brew tap run-llama/liteparse && brew install llamaindex-liteparse` |
+| PDF | `liteparse` | `npm install -g @llamaindex/liteparse` |
 | DOCX, PPTX, XLSX, images, web | `markitdown` | Auto-installed with carrel (Python package) |
 | Web pages (standalone extraction) | `defuddle` | `bun add -g defuddle` |
 

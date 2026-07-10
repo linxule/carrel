@@ -138,7 +138,6 @@ def test_carrel_skill_legacy_only_surfaces_are_rejected_by_portable_runtime(tmp_
         ("vault", "add-markers"),
         ("vault", "new"),
         ("vault", "dashboard"),
-        ("vault", "automation-prompt"),
         ("paper", "list"),
         ("transcript", "list"),
     ]
@@ -197,7 +196,8 @@ def test_carrel_skill_onboarding_is_host_neutral_and_script_bounded() -> None:
 def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
     manifest_path = SKILL / "references" / "contracts" / "external-refresh.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["manifest_version"] == 1
+    assert manifest["manifest_version"] == 2
+    assert manifest["last_full_reviewed"] == "2026-06-30"
     assert manifest["refresh_cadence"] == "monthly"
     entries = manifest["entries"]
     required_ids = {
@@ -230,6 +230,7 @@ def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
     for entry in entries:
         for field in manifest["entry_required_fields"]:
             assert field in entry, entry["id"]
+        date.fromisoformat(entry["last_reviewed"])
         assert entry["sources"], entry["id"]
         assert entry["skill_references"] or entry["repo_references"], entry["id"]
         assert entry["refresh_checks"], entry["id"]
@@ -244,6 +245,10 @@ def test_carrel_skill_external_refresh_manifest_is_actionable() -> None:
                 entry["id"],
                 repo_ref,
             )
+
+    liteparse = next(entry for entry in entries if entry["id"] == "liteparse")
+    assert liteparse["last_reviewed"] == "2026-07-10"
+    assert liteparse["observed_version"] == "2.5.0"
 
 
 def test_carrel_skill_env_doctor_separates_tool_ids_executables_and_candidates(tmp_path) -> None:
@@ -290,6 +295,12 @@ def test_carrel_skill_runtime_initializes_portable_vault(tmp_path) -> None:
     assert Path(payload["profile"]) == vault / ".carrel" / "environment.json"
     assert Path(payload["context"]) == vault / ".carrel" / "agent-context.md"
     assert (vault / "_templates" / "paper.md").exists()
+    assert (vault / "reading-progress.base").exists()
+    assert payload["bases_created"] == ["reading-progress.base"]
+    assert payload["outdated_templates"] == []
+    assert payload["unversioned_templates"] == []
+    assert not (vault / "_templates" / "reading-progress.base").exists()
+    assert not (vault / "_templates" / "paper-tracker.base").exists()
     assert not (vault / "_templates" / "agent-context.md").exists()
     assert not (vault / "_templates" / "vault-scaffold.json").exists()
     assert not (vault / "_templates" / "obsidian-config.json").exists()
@@ -300,6 +311,162 @@ def test_carrel_skill_runtime_initializes_portable_vault(tmp_path) -> None:
     profile = json.loads((vault / ".carrel" / "environment.json").read_text(encoding="utf-8"))
     assert profile["sensitivity"] == "medium"
     assert profile["cloud_consent"] is False
+
+
+def test_carrel_skill_runtime_init_uses_validated_profile_and_selected_bases(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    seed = tmp_path / "seed"
+    assert _run(skill, "vault", "init", str(seed)).returncode == 0
+    profile = json.loads((seed / ".carrel" / "environment.json").read_text(encoding="utf-8"))
+    profile.update({"version": "0.9.0", "name": "Ada", "field": "History"})
+    profile["_unknown_keys"] = {"recognized-container": "preserved"}
+    profile["arbitrary_top_level"] = "discarded like Pydantic extra fields"
+    profile["preferences"] = {
+        "literature_review": True,
+        "interviews": True,
+        "dissertation": True,
+    }
+    profile_file = tmp_path / "profile.json"
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+    vault = tmp_path / "profiled-vault"
+
+    result = _run(
+        skill,
+        "vault",
+        "init",
+        str(vault),
+        "--profile-file",
+        str(profile_file),
+        "--format",
+        "json",
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert set(payload["bases_created"]) == {
+        "reading-progress.base",
+        "paper-tracker.base",
+        "interview-tracker.base",
+        "writing-tracker.base",
+    }
+    written = json.loads((vault / ".carrel" / "environment.json").read_text(encoding="utf-8"))
+    assert written == {key: value for key, value in profile.items() if key != "arbitrary_top_level"}
+    assert written["version"] == "0.9.0"
+    assert written["_unknown_keys"] == {"recognized-container": "preserved"}
+    assert not list((vault / "_templates").glob("*.base"))
+
+    repeated = _run(
+        skill,
+        "vault",
+        "init",
+        str(vault),
+        "--profile-file",
+        str(profile_file),
+        "--format",
+        "json",
+    )
+    assert repeated.returncode == 0, repeated.stderr
+    assert json.loads(repeated.stdout)["bases_created"] == []
+
+
+def test_carrel_skill_runtime_init_reuses_profile_and_rejects_conflicts(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    profile_path = vault / ".carrel" / "environment.json"
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    profile["preferences"] = {"thesis": True}
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+
+    reused = _run(skill, "vault", "init", str(vault), "--format", "json")
+    assert reused.returncode == 0, reused.stderr
+    assert (vault / "writing-tracker.base").exists()
+
+    equivalent = {**profile, "version": None, "ignored_extra": True}
+    equivalent_file = tmp_path / "equivalent.json"
+    equivalent_file.write_text(json.dumps(equivalent), encoding="utf-8")
+    equivalent_result = _run(
+        skill,
+        "vault",
+        "init",
+        str(vault),
+        "--profile-file",
+        str(equivalent_file),
+    )
+    assert equivalent_result.returncode == 0, equivalent_result.stderr
+    assert "version" not in json.loads(profile_path.read_text(encoding="utf-8"))
+    assert "ignored_extra" not in json.loads(profile_path.read_text(encoding="utf-8"))
+
+    conflicting = {**profile, "name": "Different Researcher"}
+    conflict_file = tmp_path / "conflict.json"
+    conflict_file.write_text(json.dumps(conflicting), encoding="utf-8")
+    before = profile_path.read_text(encoding="utf-8")
+    conflict = _run(
+        skill,
+        "vault",
+        "init",
+        str(vault),
+        "--profile-file",
+        str(conflict_file),
+    )
+    assert conflict.returncode == 1
+    assert "conflicts with existing" in conflict.stderr
+    assert profile_path.read_text(encoding="utf-8") == before
+
+
+def test_carrel_skill_runtime_init_validates_profile_before_target_creation(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    invalid_json = tmp_path / "invalid-json.json"
+    invalid_json.write_text("{not json", encoding="utf-8")
+    invalid_schema = tmp_path / "invalid-schema.json"
+    invalid_schema.write_text(json.dumps({"cloud_consent": "yes"}), encoding="utf-8")
+
+    for index, profile_file in enumerate((invalid_json, invalid_schema)):
+        vault = tmp_path / f"invalid-vault-{index}"
+        result = _run(
+            skill,
+            "vault",
+            "init",
+            str(vault),
+            "--profile-file",
+            str(profile_file),
+        )
+        assert result.returncode == 1
+        assert not vault.exists()
+
+
+def test_carrel_skill_runtime_init_reports_template_drift_without_overwriting(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    reading = vault / "reading-progress.base"
+    old_body = reading.read_text(encoding="utf-8").replace(
+        "# carrel-template: reading-progress v0.4.0",
+        "# carrel-template: reading-progress v0.0.1",
+    ).replace(
+        "# carrel-template: reading-progress v0.3.0",
+        "# carrel-template: reading-progress v0.0.1",
+    )
+    reading.write_text(old_body, encoding="utf-8")
+    custom = vault / "paper-tracker.base"
+    custom.write_text("# Researcher-owned custom tracker\n", encoding="utf-8")
+    interview_source = skill / "assets" / "templates" / "interview-tracker.base"
+    newer = interview_source.read_text(encoding="utf-8").splitlines()
+    newer[0] = "# carrel-template: interview-tracker v99.0.0"
+    (vault / "interview-tracker.base").write_text("\n".join(newer) + "\n", encoding="utf-8")
+    writing_source = skill / "assets" / "templates" / "writing-tracker.base"
+    mismatched = writing_source.read_text(encoding="utf-8").splitlines()
+    mismatched[0] = mismatched[0].replace("writing-tracker", "different-template")
+    (vault / "writing-tracker.base").write_text("\n".join(mismatched) + "\n", encoding="utf-8")
+
+    result = _run(skill, "vault", "init", str(vault), "--format", "json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["outdated_templates"] == ["reading-progress.base"]
+    assert payload["unversioned_templates"] == ["paper-tracker.base", "writing-tracker.base"]
+    assert reading.read_text(encoding="utf-8") == old_body
+    assert custom.read_text(encoding="utf-8") == "# Researcher-owned custom tracker\n"
 
 
 def test_carrel_skill_runtime_rejects_symlink_write_escape(tmp_path) -> None:
@@ -313,6 +480,45 @@ def test_carrel_skill_runtime_rejects_symlink_write_escape(tmp_path) -> None:
     assert result.returncode == 1
     assert "Path escapes vault root" in result.stderr
     assert not (tmp_path / "outside-context.md").exists()
+    assert not (vault / "inbox").exists()
+    assert not (vault / ".carrel" / "environment.json").exists()
+
+
+def test_carrel_skill_runtime_init_preflights_tracker_and_scaffold_hazards(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+
+    tracker_vault = tmp_path / "tracker-vault"
+    tracker_vault.mkdir()
+    outside_tracker = tmp_path / "outside-tracker.base"
+    outside_tracker.write_text("outside stays unchanged\n", encoding="utf-8")
+    (tracker_vault / "reading-progress.base").symlink_to(outside_tracker)
+    tracker = _run(skill, "vault", "init", str(tracker_vault))
+    assert tracker.returncode == 1
+    assert "Path escapes vault root" in tracker.stderr
+    assert outside_tracker.read_text(encoding="utf-8") == "outside stays unchanged\n"
+    assert not (tracker_vault / "inbox").exists()
+    assert not (tracker_vault / ".carrel").exists()
+
+    template_vault = tmp_path / "template-vault"
+    template_vault.mkdir()
+    outside_templates = tmp_path / "outside-templates"
+    outside_templates.mkdir()
+    (template_vault / "_templates").symlink_to(outside_templates, target_is_directory=True)
+    templates = _run(skill, "vault", "init", str(template_vault))
+    assert templates.returncode == 1
+    assert "Path escapes vault root" in templates.stderr
+    assert list(outside_templates.iterdir()) == []
+    assert not (template_vault / "inbox").exists()
+    assert not (template_vault / ".carrel").exists()
+
+    blocked_vault = tmp_path / "blocked-vault"
+    blocked_vault.mkdir()
+    (blocked_vault / "papers").write_text("not a directory\n", encoding="utf-8")
+    blocked = _run(skill, "vault", "init", str(blocked_vault))
+    assert blocked.returncode == 1
+    assert "Expected directory" in blocked.stderr
+    assert not (blocked_vault / "inbox").exists()
+    assert not (blocked_vault / ".carrel").exists()
 
 
 def test_carrel_skill_runtime_validate_and_fix_environment(tmp_path) -> None:
@@ -566,9 +772,72 @@ def test_carrel_skill_runtime_doctor_google_batch_trust_and_automation(tmp_path)
     assert json.loads(trust.stdout)["required_trust"] == "consultative"
 
     profile_path = vault / ".carrel" / "environment.json"
-    profile = json.loads(profile_path.read_text(encoding="utf-8"))
-    profile["automation"]["trust_level"] = "delegated"
-    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+    before_jump = profile_path.read_text(encoding="utf-8")
+    rejected_jump = _run(
+        skill,
+        "automation",
+        "configure",
+        "--vault",
+        str(vault),
+        "--enabled",
+        "true",
+        "--trust-level",
+        "delegated",
+        "--schedule",
+        "daily",
+        "--review-cadence",
+        "quarterly",
+    )
+    assert rejected_jump.returncode == 1
+    assert "transition only to consultative" in rejected_jump.stderr
+    assert profile_path.read_text(encoding="utf-8") == before_jump
+
+    bootstrap = _run(
+        skill,
+        "automation",
+        "configure",
+        "--vault",
+        str(vault),
+        "--enabled",
+        "false",
+        "--trust-level",
+        "consultative",
+        "--schedule",
+        "daily",
+        "--review-cadence",
+        "quarterly",
+    )
+    assert bootstrap.returncode == 0, bootstrap.stderr
+    assert json.loads(profile_path.read_text(encoding="utf-8"))["automation"][
+        "trust_level"
+    ] == "consultative"
+    assert not (vault / "_meta" / "pending-decisions.md").exists()
+    assert not (vault / "_meta" / "pending-approvals.md").exists()
+    assert not (vault / "_meta" / "automation-prompt.md").exists()
+    approved = _run(
+        skill,
+        "trust",
+        "check",
+        "wiki:apply-approved",
+        "--vault",
+        str(vault),
+        "--format",
+        "json",
+    )
+    autonomous = _run(
+        skill,
+        "trust",
+        "check",
+        "wiki:write",
+        "--vault",
+        str(vault),
+        "--format",
+        "json",
+    )
+    assert approved.returncode == 0
+    assert json.loads(approved.stdout)["required_trust"] == "consultative"
+    assert autonomous.returncode == 1
+
     automation = _run(
         skill,
         "automation",
@@ -592,9 +861,110 @@ def test_carrel_skill_runtime_doctor_google_batch_trust_and_automation(tmp_path)
     assert configured["schedule"] == "weekdays"
     assert configured["gap_analysis"] is True
     assert configured["last_reviewed"] == date.today().isoformat()
-    assert (vault / "_meta" / "pending-decisions.md").exists()
-    assert (vault / "_meta" / "pending-approvals.md").exists()
+    assert not (vault / "_meta" / "pending-decisions.md").exists()
+    assert not (vault / "_meta" / "pending-approvals.md").exists()
+    assert not (vault / "_meta" / "automation-prompt.md").exists()
+    assert _run(
+        skill,
+        "trust",
+        "check",
+        "wiki:apply-approved",
+        "--vault",
+        str(vault),
+    ).returncode == 0
+    assert _run(
+        skill,
+        "trust",
+        "check",
+        "wiki:write",
+        "--vault",
+        str(vault),
+    ).returncode == 0
+
+    prompt = _run(skill, "vault", "automation-prompt", "--vault", str(vault))
+    assert prompt.returncode == 0, prompt.stderr
+    assert json.loads(prompt.stdout)["action"] == "created"
+    prompt_path = vault / "_meta" / "automation-prompt.md"
+    prompt_body = prompt_path.read_text(encoding="utf-8")
+    assert "UNATTENDED mode" in prompt_body
+    assert "- Trust level: `delegated`" in prompt_body
+    assert "**Gap analysis**" in prompt_body
+    assert "{{" not in prompt_body
+    assert _run(
+        skill,
+        "vault",
+        "automation-prompt",
+        "--vault",
+        str(vault),
+    ).returncode == 1
+    forced = _run(
+        skill,
+        "vault",
+        "automation-prompt",
+        "--vault",
+        str(vault),
+        "--force",
+    )
+    assert forced.returncode == 0, forced.stderr
+    assert json.loads(forced.stdout)["action"] == "updated"
+
+
+def test_carrel_skill_automation_prompt_requires_consultative_trust(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    _run(skill, "vault", "init", str(vault))
+
+    denied = _run(skill, "vault", "automation-prompt", "--vault", str(vault))
+    assert denied.returncode == 1
+    assert "Requires consultative" in denied.stderr
+    assert not (vault / "_meta" / "automation-prompt.md").exists()
+
+    profile_path = vault / ".carrel" / "environment.json"
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    profile["automation"]["trust_level"] = "consultative"
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+
+    allowed = _run(skill, "vault", "automation-prompt", "--vault", str(vault))
+    assert allowed.returncode == 0, allowed.stderr
     assert (vault / "_meta" / "automation-prompt.md").exists()
+
+
+def test_carrel_skill_runtime_automation_prompt_rejects_invalid_profile_cleanly(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    profile_path = vault / ".carrel" / "environment.json"
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    profile["automation"]["trust_level"] = "invalid"
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+
+    result = _run(skill, "vault", "automation-prompt", "--vault", str(vault))
+
+    assert result.returncode == 1
+    assert "Invalid researcher profile" in result.stderr
+    assert "automation.trust_level" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not (vault / "_meta" / "automation-prompt.md").exists()
+
+    configure = _run(
+        skill,
+        "automation",
+        "configure",
+        "--vault",
+        str(vault),
+        "--enabled",
+        "true",
+        "--trust-level",
+        "delegated",
+        "--schedule",
+        "daily",
+        "--review-cadence",
+        "quarterly",
+    )
+    assert configure.returncode == 1
+    assert "Invalid researcher profile" in configure.stderr
+    assert "Traceback" not in configure.stderr
+    assert json.loads(profile_path.read_text(encoding="utf-8"))["automation"]["trust_level"] == "invalid"
 
 
 def test_carrel_skill_runtime_local_markitdown_adapter_is_bounded_and_used(tmp_path) -> None:
@@ -698,6 +1068,8 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
         input_text="# Mirror\n\nPattern synthesis.",
     )
     feedback = _run(skill, "feedback", "export", "--vault", str(vault), "--redact-list", str(redact))
+    approved_handbook = "  # Approved Handbook\n\nUse this lab process.\n\n"
+    (vault / ".carrel" / "environment.json").write_text("{broken json", encoding="utf-8")
     share = _run(
         skill,
         "share",
@@ -710,7 +1082,7 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
         "high",
         "--from-stdin",
         "--canonical",
-        input_text="# Approved Handbook\n\nUse this lab process.",
+        input_text=approved_handbook,
     )
 
     assert reflection.returncode == 0, reflection.stderr
@@ -727,10 +1099,162 @@ def test_carrel_skill_runtime_maintenance_artifacts(tmp_path) -> None:
     assert "legacy flat log trouble" in digest.read_text(encoding="utf-8")
     handbook = Path(json.loads(share.stdout)["path"])
     assert handbook.exists()
-    assert handbook.read_text(encoding="utf-8").startswith("# Approved Handbook")
+    assert handbook.read_text(encoding="utf-8") == approved_handbook
     canonical = Path(json.loads(share.stdout)["canonical_path"])
     assert canonical == meta / "lab-handbook.md"
     assert canonical.read_text(encoding="utf-8") == handbook.read_text(encoding="utf-8")
+
+
+def test_carrel_skill_runtime_share_rejects_names_without_slug_characters(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+
+    for name in ("   ", "😀✨"):
+        result = _run(
+            skill,
+            "share",
+            "generate",
+            "--vault",
+            str(vault),
+            "--for",
+            name,
+            "--from-stdin",
+            input_text="# Approved\n",
+        )
+        assert result.returncode == 1
+        assert "Traceback" not in result.stderr
+    assert list((vault / "_meta" / "handbook").iterdir()) == []
+
+
+def test_carrel_skill_runtime_share_preflights_canonical_target(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    canonical = vault / "_meta" / "lab-handbook.md"
+    canonical.mkdir()
+
+    result = _run(
+        skill,
+        "share",
+        "generate",
+        "--vault",
+        str(vault),
+        "--for",
+        "New RA",
+        "--sensitivity",
+        "high",
+        "--from-stdin",
+        "--canonical",
+        input_text="# Approved handbook\n",
+    )
+
+    assert result.returncode == 1
+    assert "Invalid vault file target" in result.stderr
+    assert canonical.is_dir()
+    assert list((vault / "_meta" / "handbook").iterdir()) == []
+
+
+def test_carrel_skill_runtime_feedback_mapping_grammar_and_metrics(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    profile_path = vault / ".carrel" / "environment.json"
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    profile["name"] = "Alice Smith"
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+    friction = vault / "_meta" / "friction_log.md"
+    friction.write_text(
+        "ALICE SMITH met Acme Lab and Acme. Token token exposed a SECRET. LongPerson joined.\n",
+        encoding="utf-8",
+    )
+    redact = tmp_path / "redact.txt"
+    redact.write_text(
+        "# literal replacement rules\n"
+        "Acme -> Company\n"
+        "Acme Lab → Institution\n"
+        "Token -> \\1\\vault\n"
+        "LongPerson -> Acme\n"
+        "Secret\n"
+        "Never Seen\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        skill,
+        "feedback",
+        "export",
+        "--vault",
+        str(vault),
+        "--redact-list",
+        str(redact),
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    digest = Path(payload["path"]).read_text(encoding="utf-8")
+    assert "Alice Smith" not in digest
+    assert "Researcher met Institution and Company" in digest
+    assert "\\1\\vault \\1\\vault" in digest
+    assert "Acme joined" in digest
+    assert "Company joined" not in digest
+    assert "SECRET" not in digest
+    assert "[REDACTED]" in digest
+    assert payload["redaction_rules"] == 7
+    assert payload["redacted_terms"] == 7
+    assert payload["redactions_applied"] == 7
+    assert payload["zero_match_terms"] == ["Never Seen"]
+
+
+def test_carrel_skill_runtime_feedback_rejects_empty_mapping_source(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    redact = tmp_path / "redact.txt"
+    redact.write_text("# comment\n  → replacement\n", encoding="utf-8")
+
+    result = _run(
+        skill,
+        "feedback",
+        "export",
+        "--vault",
+        str(vault),
+        "--redact-list",
+        str(redact),
+    )
+
+    assert result.returncode == 1
+    assert "Line 2" in result.stderr
+    assert not (vault / "_meta" / f"feedback-digest-{date.today().isoformat()}.md").exists()
+
+
+def test_carrel_skill_runtime_feedback_redacts_heading_and_unicode_i_variants(tmp_path) -> None:
+    skill = _copy_skill(tmp_path)
+    vault = tmp_path / "vault"
+    assert _run(skill, "vault", "init", str(vault)).returncode == 0
+    source = vault / "_meta" / "reflections" / "x.md"
+    source.write_text("i İ ı I\n", encoding="utf-8")
+    redact = tmp_path / "redact.txt"
+    redact.write_text("x.md\ni -> X\n", encoding="utf-8")
+
+    result = _run(
+        skill,
+        "feedback",
+        "export",
+        "--vault",
+        str(vault),
+        "--redact-list",
+        str(redact),
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    body = Path(payload["path"]).read_text(encoding="utf-8")
+    assert "## [REDACTED]" in body
+    assert "X X X X" in body
+    assert payload["redacted_terms"] == 5
+    assert payload["redactions_applied"] == 5
+    assert payload["zero_match_terms"] == []
 
 
 def test_carrel_skill_runtime_feedback_rejects_symlinked_sources(tmp_path) -> None:

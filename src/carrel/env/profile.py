@@ -7,10 +7,11 @@ from pydantic import ValidationError
 
 from carrel.errors import CarrelError
 from carrel.models import ResearcherProfile
+from carrel.safe_path import safe_vault_join
 
 
 def _profile_path(vault: Path) -> Path:
-    return vault / ".carrel" / "environment.json"
+    return safe_vault_join(vault, ".carrel", "environment.json")
 
 
 def read_profile(vault: Path) -> ResearcherProfile | None:

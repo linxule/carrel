@@ -10,7 +10,7 @@ idempotency, policy gates, structured output, or dated artifact paths.
 
 | Legacy surface | Portable runtime surface | Notes |
 | --- | --- | --- |
-| `vault init` | `vault init` | Creates portable folders, templates, `.carrel/environment.json`, `.carrel/agent-context.md`, and `.obsidian/` config. |
+| `vault init` | `vault init` | Validates an optional `--profile-file` before writes; creates folders, note templates, selected root trackers, profile/context, and `.obsidian/` config. |
 | `env doctor` | `env doctor` | Reports optional adapter availability without requiring third-party imports. |
 | `env validate`, `env fix` | `env validate`, `env fix` | Repairs profile drift with backups and preserves adapter-owned fields. |
 | `paper convert` | `convert file` | Uses stdlib text filing or optional adapters; no `src/carrel` import. |
@@ -24,7 +24,7 @@ idempotency, policy gates, structured output, or dated artifact paths.
 | `vault mirror` | `mirror write` | Writes monthly mirror from supplied synthesis. |
 | `vault reflect-log` | `reflection append` | Appends dated reflection entries. |
 | `vault share generate` | `share generate` | Writes collaborator handoff with sensitivity redactions; accepts agent-synthesized stdin and optional canonical handbook writes. |
-| automation prompt seed | `automation configure` | Initializes pending decision, pending approval, and automation prompt files idempotently. |
+| `vault automation-prompt` | `vault automation-prompt` | Generates the deterministic prompt explicitly; `--force` replaces it without a `.prev` backup. |
 
 ## Agent Workflows
 
@@ -40,7 +40,6 @@ for final persistence.
 | `vault organize` | Agent proposes moves; do not auto-move files without explicit approval. |
 | `vault cheatsheet` | Agent drafts from profile, templates, and current tools; persist only after review. |
 | `vault dashboard` | Agent synthesizes dashboard prose from profile and activity; runtime should not own judgment-heavy layout. |
-| `vault automation-prompt` | Agent drafts the prompt from automation settings; `automation configure` owns only profile persistence. |
 | `env profile` | Agent reads `.carrel/environment.json` directly when profile display is needed. |
 | `paper list`, `transcript list` | Agent lists `papers/*/paper.md` or `transcripts/*.md` directly. |
 | wiki/research partner workflows | Agent proposes and writes only after approval unless the trust profile allows the action. |
@@ -62,7 +61,7 @@ Keep these outside the portable core.
 | `setup-state advance`, `complete`, `show`, `reset` | Host adapter setup flow only. Portable setup state is `.carrel/environment.json` plus `.carrel/agent-context.md`. |
 | `vault check-sync`, `vault add-markers` | Claude adapter only because they manage `CLAUDE.md` markers. |
 | Slash commands and hooks | Host adapter only. They should call the bundled runtime or read these references. |
-| Claude Desktop scheduling walkthroughs | Adapter documentation only. Portable automation produces prompt files and contracts, not click-path setup. |
+| Host scheduling walkthroughs | Adapter documentation only. Portable Carrel generates the prompt; Cowork or another host owns the saved schedule. |
 | marketplace/plugin state | Adapter only. Portable Carrel is the skill folder plus bundled scripts. |
 | model teammate install commands | Adapter only. Portable Carrel records `model_teammates`, sensitivity gates, and research use cases. |
 

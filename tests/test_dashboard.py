@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from carrel.models import (
     ApiKeyStatus,
     AuditResult,
@@ -69,6 +67,7 @@ def test_render_dashboard_includes_expected_sections() -> None:
     assert "## Trust-unlocked actions" in rendered
     assert "- `vault:move-file`" in rendered
     assert "- `automation:write-prompt`" in rendered
+    assert "- `wiki:apply-approved`" in rendered
     assert "Regenerate via `carrel vault dashboard --force`" in rendered
 
 

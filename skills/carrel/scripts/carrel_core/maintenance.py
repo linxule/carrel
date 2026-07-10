@@ -7,21 +7,50 @@ import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from .constants import TRUST_ACTIONS, TRUST_LEVELS
+from .constants import TRUST_ACTIONS
 from .core import (
     CarrelError,
+    assert_safe_write_target,
     current_trust,
     read_profile,
     require_profile,
     safe_atomic_write,
     safe_read_text,
     safe_vault_join,
-    slugify,
     trust_allowed,
     write_profile,
 )
+from .vault_setup import normalize_profile
 
-
+AUTOMATION_CAPABILITIES = {
+    "inbox_processing": (
+        "Inbox processing",
+        "Process new inbox items conservatively; defer judgment calls to `_meta/pending-decisions.md`.",
+    ),
+    "vault_health": (
+        "Vault health",
+        "Check for broken links, orphaned notes, and stale drafts before writing the morning brief.",
+    ),
+    "cross_linking_suggestions": (
+        "Cross-linking suggestions",
+        "Surface high-confidence links between recent notes and write them to `_meta/suggestions/`.",
+    ),
+    "gap_analysis": ("Gap analysis", "Flag gaps as suggestions, not conclusions."),
+    "draft_feedback": ("Draft feedback", "Give structural feedback without rewriting the researcher's voice."),
+    "reflection_synthesis": ("Reflection synthesis", "Synthesize reflections when enough new material exists."),
+    "wiki_maintenance": ("Wiki maintenance", "Maintain the field map and log every change in the brief."),
+}
+AUTOMATION_TRUST_RULES = {
+    "advisory": (
+        "Never modify research content. Write only operational suggestions and briefs under `_meta/`."
+    ),
+    "consultative": "Write suggestions and proposed actions, but never execute them without approval.",
+    "delegated": "You may file new items following the vault conventions. Never reorganize existing files.",
+    "partnership": (
+        "You may file new items and reorganize existing files within the vault epistemology. "
+        "Log every action with revert instructions."
+    ),
+}
 def cmd_reflection_append(args) -> int:
     body = sys.stdin.read().rstrip()
     if not body:
@@ -33,7 +62,6 @@ def cmd_reflection_append(args) -> int:
     safe_atomic_write(args.vault, target, f"{previous.rstrip()}\n\n## {stamp}\n\n{body}\n")
     print(json.dumps({"path": str(target), "action": "appended" if existed else "created"}))
     return 0
-
 
 def cmd_mirror_write(args) -> int:
     body = sys.stdin.read()
@@ -49,35 +77,77 @@ def cmd_mirror_write(args) -> int:
     print(json.dumps({"path": str(target), "action": "updated" if existed else "created"}))
     return 0
 
-
 def read_redactions(path: Path) -> list[tuple[str, str]]:
     if not path.exists():
         raise CarrelError("Redact list not found", hint=str(path))
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise CarrelError("Could not read redact list", hint="Provide a readable UTF-8 file") from exc
     redactions: list[tuple[str, str]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line_number, line in enumerate(lines, start=1):
         value = line.strip()
         if not value or value.startswith("#"):
             continue
-        if "->" in value:
-            source, replacement = [part.strip() for part in value.split("->", 1)]
-            if source:
-                redactions.append((source, replacement or "[REDACTED]"))
+        arrows = [(value.find(arrow), arrow) for arrow in ("->", "→") if arrow in value]
+        if arrows:
+            index, arrow = min(arrows)
+            source = value[:index].strip()
+            replacement = value[index + len(arrow) :].strip()
+            if not source:
+                raise CarrelError(
+                    "Invalid redact list",
+                    hint=f"Line {line_number}: mapping source must not be empty",
+                )
+            redactions.append((source, replacement or "[REDACTED]"))
         else:
             redactions.append((value, "[REDACTED]"))
     return redactions
 
+def normalize_redactions(redactions: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    unique: dict[str, tuple[str, str]] = {}
+    for term, replacement in redactions:
+        unique.setdefault(term.casefold(), (term, replacement))
+    return sorted(unique.values(), key=lambda item: -len(item[0]))
 
 def apply_redactions(text: str, redactions: list[tuple[str, str]]) -> tuple[str, dict[str, int]]:
-    counts: dict[str, int] = {}
-    for term, replacement in redactions:
-        text, count = re.subn(re.escape(term), replacement, text, flags=re.IGNORECASE)
-        counts[term] = counts.get(term, 0) + count
-    return text, counts
+    normalized = normalize_redactions(redactions)
+    counts = {term: 0 for term, _ in normalized}
+    if not normalized:
+        return text, counts
+    by_group = {
+        f"rule_{index}": (term, replacement)
+        for index, (term, replacement) in enumerate(normalized)
+    }
+    pattern = re.compile(
+        "|".join(
+            f"(?P<{group_name}>{re.escape(term)})"
+            for group_name, (term, _replacement) in by_group.items()
+        ),
+        flags=re.IGNORECASE,
+    )
+
+    def replace(match: re.Match[str]) -> str:
+        if match.lastgroup is None:  # pragma: no cover - every branch is named
+            raise AssertionError("redaction regex matched without a rule branch")
+        term, replacement = by_group[match.lastgroup]
+        counts[term] += 1
+        return replacement
+
+    return pattern.sub(replace, text), counts
 
 
 def cmd_feedback_export(args) -> int:
     terms = read_redactions(args.redact_list)
-    meta = safe_vault_join(args.vault, "_meta")
+    profile = read_profile(args.vault)
+    researcher_name = profile.get("name")
+    if (
+        isinstance(researcher_name, str)
+        and researcher_name.strip()
+        and not any(term.casefold() == researcher_name.strip().casefold() for term, _ in terms)
+    ):
+        terms.append((researcher_name.strip(), "Researcher"))
+    terms = normalize_redactions(terms)
     sources = []
     for folder in ["friction-log", "capability-log", "reflections"]:
         folder_path = safe_vault_join(args.vault, "_meta", folder)
@@ -93,9 +163,10 @@ def cmd_feedback_export(args) -> int:
     parts = [f"# Feedback Digest - {date.today().isoformat()}\n"]
     total_counts: dict[str, int] = {term: 0 for term, _ in terms}
     for source in sources:
-        parts.append(f"\n## {source.name}\n\n")
-        redacted, counts = apply_redactions(safe_read_text(args.vault, source, encoding="utf-8"), terms)
-        parts.append(redacted)
+        body = safe_read_text(args.vault, source, encoding="utf-8")
+        section = f"## {source.name}\n\n{body.rstrip()}\n"
+        redacted, counts = apply_redactions(section, terms)
+        parts.append(f"\n{redacted.rstrip()}\n")
         for term, count in counts.items():
             total_counts[term] = total_counts.get(term, 0) + count
     zero_match_terms = [term for term, count in total_counts.items() if count == 0]
@@ -106,6 +177,7 @@ def cmd_feedback_export(args) -> int:
             {
                 "path": str(target),
                 "sources": [str(path) for path in sources],
+                "redacted_terms": sum(total_counts.values()),
                 "redaction_rules": len(terms),
                 "redactions_applied": sum(total_counts.values()),
                 "zero_match_terms": zero_match_terms,
@@ -115,17 +187,28 @@ def cmd_feedback_export(args) -> int:
     return 0
 
 
-def cmd_share_generate(args) -> int:
-    if ".." in args.name or "/" in args.name or "\\" in args.name:
+def collaborator_slug(name: str) -> str:
+    if not name or not name.strip():
+        raise CarrelError("Collaborator name is required")
+    if ".." in name or "/" in name or "\\" in name:
         raise CarrelError("Invalid collaborator name")
-    profile = read_profile(args.vault)
+    slug = re.sub(r"\s+", "-", name.strip().lower())
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    if not slug:
+        raise CarrelError("Collaborator name has no usable characters")
+    return slug
+
+
+def cmd_share_generate(args) -> int:
+    name_slug = collaborator_slug(args.name)
     redactions: list[str] = []
     if args.from_stdin:
-        supplied = sys.stdin.read().strip()
-        if not supplied:
+        rendered = sys.stdin.read()
+        if not rendered.strip():
             raise CarrelError("Empty collaborator handbook received on stdin")
-        body = [supplied]
     else:
+        profile = read_profile(args.vault)
         if args.sensitivity == "high":
             researcher = "Researcher details omitted for high sensitivity."
             redactions.extend(["researcher-field-omitted", "threads-section-omitted"])
@@ -166,12 +249,21 @@ def cmd_share_generate(args) -> int:
                     body.append(f"- {thread.name}")
             if args.sensitivity == "medium":
                 redactions.append("threads-contents-omitted")
-    target = safe_vault_join(args.vault, "_meta", "handbook", f"{date.today().isoformat()}-for-{slugify(args.name)}.md")
-    safe_atomic_write(args.vault, target, "\n".join(body).rstrip() + "\n")
+        rendered = "\n".join(body).rstrip() + "\n"
+    target = safe_vault_join(
+        args.vault,
+        "_meta",
+        "handbook",
+        f"{date.today().isoformat()}-for-{name_slug}.md",
+    )
+    canonical = safe_vault_join(args.vault, "_meta", "lab-handbook.md") if args.canonical else None
+    assert_safe_write_target(args.vault, target)
+    if canonical is not None:
+        assert_safe_write_target(args.vault, canonical)
+    safe_atomic_write(args.vault, target, rendered)
     canonical_path = None
-    if args.canonical:
-        canonical = safe_vault_join(args.vault, "_meta", "lab-handbook.md")
-        safe_atomic_write(args.vault, canonical, "\n".join(body).rstrip() + "\n")
+    if canonical is not None:
+        safe_atomic_write(args.vault, canonical, rendered)
         canonical_path = str(canonical)
     print(json.dumps({"path": str(target), "canonical_path": canonical_path, "sensitivity": args.sensitivity, "redactions_applied": redactions}))
     return 0
@@ -220,12 +312,17 @@ def cmd_trust_show(args) -> int:
 
 
 def cmd_automation_configure(args) -> int:
-    profile = require_profile(args.vault)
-    required, allowed = trust_allowed("automation:propose", current_trust(args.vault))
-    if not allowed:
+    profile = normalize_profile(require_profile(args.vault))
+    current_trust = profile["automation"]["trust_level"]
+    required, allowed = trust_allowed("automation:propose", current_trust)
+    bootstrap = current_trust == "advisory" and args.trust_level == "consultative"
+    if not (allowed or bootstrap):
         raise CarrelError(
             "Automation configuration is not allowed at current trust level",
-            hint=f"Requires {required}; update trust through setup or an explicit profile edit.",
+            hint=(
+                f"Requires {required}. A fresh advisory profile may transition only to "
+                "consultative here after explicit approval."
+            ),
         )
     automation = dict(profile.get("automation", {}))
     automation["enabled"] = args.enabled == "true"
@@ -248,38 +345,55 @@ def cmd_automation_configure(args) -> int:
             automation[key] = value == "true"
     profile["automation"] = automation
     path = write_profile(args.vault, profile)
-    pending_decisions = safe_vault_join(args.vault, "_meta", "pending-decisions.md")
-    if not pending_decisions.exists():
-        safe_atomic_write(args.vault, pending_decisions, "# Pending Decisions\n\nItems deferred from automated processing.\n")
-    pending_approvals = safe_vault_join(args.vault, "_meta", "pending-approvals.md")
-    if not pending_approvals.exists():
-        safe_atomic_write(args.vault, pending_approvals, "# Pending Approvals\n\nProposed actions awaiting researcher approval.\n")
-    automation_prompt = safe_vault_join(args.vault, "_meta", "automation-prompt.md")
-    if not automation_prompt.exists():
-        safe_atomic_write(
-            args.vault,
-            automation_prompt,
-            "\n".join(
-                [
-                    "# Carrel Automation Prompt",
-                    "",
-                    "Find the vault root by locating `.carrel/environment.json`.",
-                    "Read `.carrel/environment.json` and `.carrel/agent-context.md` before acting.",
-                    "Run unattended: do not ask questions; write uncertain items to `_meta/pending-decisions.md`.",
-                    "Respect the configured sensitivity, cloud consent, and trust level.",
-                ]
-            )
-            + "\n",
-        )
-    print(
-        json.dumps(
-            {
-                "path": str(path),
-                "automation": automation,
-                "pending_decisions": str(pending_decisions),
-                "pending_approvals": str(pending_approvals),
-                "automation_prompt": str(automation_prompt),
-            }
-        )
+    print(json.dumps({"path": str(path), "automation": automation}))
+    return 0
+
+
+def _render_automation_prompt(profile: dict) -> str:
+    automation = profile["automation"]
+    enabled = [
+        f"- **{label}**: {instruction}"
+        for field, (label, instruction) in AUTOMATION_CAPABILITIES.items()
+        if automation.get(field)
+    ]
+    capability_block = "\n".join(enabled) or (
+        "- No automation capabilities are enabled. Stop after confirming that the vault is idle."
     )
+    skill_root = Path(__file__).resolve().parents[2]
+    template = (skill_root / "assets" / "templates" / "automation-prompt.md").read_text(
+        encoding="utf-8"
+    )
+    return (
+        template.replace("{{researcher_name}}", profile.get("name") or "this researcher")
+        .replace("{{researcher_field}}", profile.get("field") or "Unknown")
+        .replace("{{sensitivity}}", profile["sensitivity"])
+        .replace("{{cloud_consent}}", str(profile["cloud_consent"]).lower())
+        .replace("{{trust_level}}", automation["trust_level"])
+        .replace("{{trust_unlocks}}", AUTOMATION_TRUST_RULES[automation["trust_level"]])
+        .replace("{{schedule}}", automation["schedule"])
+        .replace("{{model}}", automation["model"])
+        .replace("{{enabled_capabilities}}", capability_block)
+    )
+
+
+def cmd_vault_automation_prompt(args) -> int:
+    profile = normalize_profile(require_profile(args.vault))
+    required, allowed = trust_allowed(
+        "automation:write-prompt",
+        profile["automation"]["trust_level"],
+    )
+    if not allowed:
+        raise CarrelError(
+            "Automation prompt generation is not allowed at current trust level",
+            hint=f"Requires {required}; approve automation configuration first.",
+        )
+    target = safe_vault_join(args.vault, "_meta", "automation-prompt.md")
+    existed = target.exists()
+    if existed and not args.force:
+        raise CarrelError(
+            "Automation prompt already exists",
+            hint=f"{target} exists; pass --force to overwrite.",
+        )
+    safe_atomic_write(args.vault, target, _render_automation_prompt(profile))
+    print(json.dumps({"path": str(target), "action": "updated" if existed else "created"}))
     return 0

@@ -121,29 +121,26 @@ Two namespaces of capabilities coexist in every vault. They must never collide.
 
 ### Plugin-shipped (updates with Carrel)
 
-These come from Carrel's `templates/` directory, copied to the vault during scaffold. Each has a **source marker** (format varies by file type):
-
-| File type | Marker syntax |
-|-----------|---------------|
-| `.base` | `# carrel-template: name v0.0.0` (YAML comment) |
-| `.md` | `<!-- carrel-template: name v0.0.0 -->` (HTML comment, first line) |
-| `.json` | `"_carrel_template": "name v0.0.0"` (top-level key) |
+The four shipped root `.base` trackers come from Carrel's `templates/`
+directory and carry `# carrel-template: name v0.0.0` markers. Current drift
+detection is deliberately limited to these Base trackers; ordinary scaffolded
+Markdown and JSON files are not marker-versioned by this contract.
 
 Example for `.base` files:
 ```yaml
-# carrel-template: paper-tracker v0.3.0
+# carrel-template: paper-tracker v0.4.0
 # Do not remove this marker — it helps Carrel detect updates.
 # Safe to customize everything below.
 ```
 
 **Rules:**
-- Plugin updates NEVER overwrite vault copies. Templates in `templates/` update; vault copies are untouched.
-- `/carrel-migrate` compares the marker version against the plugin's current templates. If there's a newer version, it shows the diff and asks: "Your paper tracker is customized. The new plugin version has improvements — want to see what changed?"
+- Plugin updates NEVER overwrite vault tracker copies. Templates in `templates/` update; vault copies are untouched.
+- `/carrel-migrate` reports marker-version drift against the plugin's current templates. The skill may then offer a diff; the CLI never overwrites the vault copy or claims to have applied the template update.
 - Researchers can freely edit plugin-shipped files. The marker stays for version tracking, but the content is theirs.
 
 ### Vault-local (researcher's own)
 
-These are capabilities Claude creates during sessions or the researcher builds themselves. They have **no `carrel-template:` marker**.
+These are capabilities Claude creates during sessions or the researcher builds themselves. They have **no `carrel-template:` marker**. Arbitrary custom filenames are outside migration tracking; a file that reuses a known shipped template filename but lacks a valid marker is reported as `unversioned_templates` so the collision is visible without changing it.
 
 **Where they live:**
 - `.base` files → vault root (alongside plugin-shipped ones)
@@ -153,7 +150,7 @@ These are capabilities Claude creates during sessions or the researcher builds t
 **Rules:**
 - Plugin updates NEVER touch files without a `carrel-template:` marker.
 - Plugin updates NEVER touch `_meta/local/` or `_meta/capability-log.md`.
-- `/carrel-migrate` ignores vault-local files entirely — they're the researcher's.
+- `/carrel-migrate` ignores arbitrary vault-local filenames. It only reports a known shipped-template filename without a valid marker as unversioned, and never modifies it.
 - When creating a new vault-local capability, NEVER add a `carrel-template:` marker. That namespace is reserved for plugin-shipped content.
 
 ### How to tell them apart
@@ -163,12 +160,12 @@ These are capabilities Claude creates during sessions or the researcher builds t
 | **Has `carrel-template:` marker** | Yes | Never |
 | **Updated by plugin** | Template source updates; vault copy untouched | Never touched |
 | **Created by** | `carrel vault init` (scaffold) | Claude during sessions, or researcher manually |
-| **Migrate behavior** | Compares versions, offers diff | Ignored |
+| **Migrate behavior** | Reports marker version drift; never overwrites vault copies | Arbitrary names ignored; known shipped-name collisions reported as unversioned |
 | **Examples** | `paper-tracker.base`, `interview-tracker.base` | `grant-tracker.base`, custom callout patterns |
 
 ### Scaffold behavior
 
-When `carrel vault init` copies a template to the vault:
+When `carrel vault init` copies a root `.base` tracker to the vault:
 1. Check if a file with the same name already exists
 2. If yes AND it has a `carrel-template:` marker → skip (already installed, possibly customized)
 3. If yes AND it has NO marker → skip (it's vault-local; don't overwrite)
@@ -219,54 +216,44 @@ Researchers who already created a local version keep it. The plugin-shipped vers
 
 ## Walking a Researcher Through a Plugin Upgrade
 
-When the researcher invokes `/carrel-migrate` (or asks "what's new", "check for updates", "anything I should upgrade"), orchestrate the upgrade as a brief conversation around a single CLI call. The CLI does the registry walk, version comparison, and `plugin-state.json` write atomically; the skill handles assessment, framing, and any manual steps each migration calls out.
+When the researcher invokes `/carrel-migrate` or asks about updates, use a
+review-first sequence. The CLI computes registry and template drift
+deterministically; the skill explains consequences and paces manual work.
 
-### Calling pattern
+### Sequence
 
-```
-carrel migrate apply [--plugin-root <path>]
-```
+1. **Dry-run:**
 
-`--plugin-root` defaults to `${CLAUDE_PLUGIN_ROOT}` — only override when the researcher is running migrations against a non-active plugin install (rare). The CLI returns the list of applied migrations with their manual steps; the skill narrates them.
+   ```bash
+   carrel migrate apply --dry-run --format json [--plugin-root <path>] --vault .
+   ```
 
-### Before calling the CLI
+   `--plugin-root` normally comes from `${CLAUDE_PLUGIN_ROOT}`. Override it only
+   when deliberately inspecting another installation.
+2. **Inspect:** for every `pending[].file` in the dry-run payload, read that file
+   under `<plugin-root>/migrations/` before summarizing or performing its manual
+   steps; the payload names migration files but does not contain the step
+   bodies. Also summarize `outdated_templates` and `unversioned_templates`. Template findings
+   are informational: never overwrite a vault copy automatically, even when it
+   still carries a Carrel marker.
+3. **Manual steps:** perform only the steps the researcher approves, one at a
+   time. A template update means offer a diff or a new copy; preserve local
+   customization.
+4. **Final apply:** only after review/manual work, run the same command without
+   `--dry-run`. This atomically advances `plugin-state.json`; it does not rewrite
+   tracker templates.
 
-Quickly assess the current environment so suggestions land in context, not in the abstract:
+Before the dry-run, briefly inspect `.carrel/environment.json`, installed tools,
+and vault guidance so migration advice is contextual. Translate migration prose
+into researcher-facing capabilities rather than reciting implementation notes.
 
-- Read `.carrel/environment.json` — note configured tools, sensitivity, trust level, what the researcher said they wanted but skipped
-- Check what's actually installed on the machine (the env-doctor skill already knows how) and flag gaps the researcher might want to close in this session
-- Confirm the vault `CLAUDE.md` exists and looks current — if it's stale, mention that the upgrade is a good moment to refresh it
+If `plugin-state.json` is missing, the first run establishes tracking at the
+current plugin version and reports no historical migration replay. Explain that
+the vault is now enrolled in migration tracking; do not claim every past
+migration was applied.
 
-This is a 15-second pass, not a full audit. The point is to have one or two concrete suggestions ready alongside the version bump.
-
-### After the CLI returns
-
-For each applied migration:
-
-- Tell the researcher what changed in terms of what they can now do — not in terms of code changes or refactors
-- Walk them through any manual steps the migration flagged (the CLI surfaces these; the skill paces them)
-- Confirm when a step is done before moving to the next
-- If a migration reports no action required, say so explicitly so the researcher doesn't wonder what they missed
-
-Then offer the 1-2 suggestions you noted in the pre-pass:
-
-- New commands or skills that became available since their last version
-- Tools they expressed interest in at setup but haven't configured (cloud tools if comfort has grown, Zotero if they've started a literature review, etc.)
-- Vault structure or configuration improvements the upgrade enables
-
-Frame these as options, not requirements. Researchers aren't obligated to adopt every new capability the moment it ships.
-
-### Already up to date
-
-If the CLI reports no migrations applied and your pre-pass found no gaps: tell the researcher they're on the latest version and the setup looks good. Show the current version and the last-check date from `plugin-state.json`. Don't manufacture suggestions to justify the conversation.
-
-### Pre-versioning installs
-
-If `.carrel/environment.json` exists but `.carrel/plugin-state.json` doesn't, the researcher is on a pre-versioning install. The CLI treats this as "apply all migrations from the earliest tracked version forward" — the skill's job is to set expectations: "Your vault predates the migration system, so I'll walk you through everything that's changed since you installed."
-
-### Tone
-
-Be brief and friendly. Researchers aren't developers — keep language at the level the setup interview established. Frame suggestions as options. Don't recite the migration file verbatim; translate it.
+If no migrations or template findings remain, report that directly. Do not
+manufacture recommendations merely to fill the conversation.
 
 ## Reviewing Upstream Sources
 

@@ -258,7 +258,7 @@ def cmd_google_export(args) -> int:
         if not gws:
             raise CarrelError("No Google export adapter available", hint="Install gws/authenticate it or pass --content.")
         export_path.parent.mkdir(parents=True, exist_ok=True)
-        proc = run_adapter(
+        run_adapter(
             [
                 gws,
                 "drive",

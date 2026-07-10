@@ -63,6 +63,8 @@ def apply_command(
                 }
                 for entry in plan.pending
             ],
+            "outdated_templates": plan.outdated_templates,
+            "unversioned_templates": plan.unversioned_templates,
         }
 
         if not dry_run:
@@ -78,8 +80,9 @@ def apply_command(
             return
 
         if plan.first_run:
+            verb = "Would record" if dry_run else "Recorded"
             console.print(
-                f"First run with version tracking. Recorded plugin_version={plan.current_version}."
+                f"First run with version tracking. {verb} plugin_version={plan.current_version}."
             )
         elif not plan.pending:
             console.print(
@@ -93,6 +96,16 @@ def apply_command(
                 breaking = " [breaking]" if entry.breaking else ""
                 summary = f" — {entry.summary}" if entry.summary else ""
                 console.print(f"  - {entry.from_version} -> {entry.to_version}{breaking}{summary}")
+        if plan.outdated_templates:
+            console.print(
+                "Outdated customized templates (not overwritten): "
+                + ", ".join(plan.outdated_templates)
+            )
+        if plan.unversioned_templates:
+            console.print(
+                "Unversioned customized templates (not overwritten): "
+                + ", ".join(plan.unversioned_templates)
+            )
         if dry_run:
             console.print("(dry-run: plugin-state.json was NOT written)")
     except CarrelError as error:

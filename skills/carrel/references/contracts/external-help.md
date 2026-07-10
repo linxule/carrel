@@ -3,6 +3,10 @@
 Use `external-refresh.json` as Carrel's source map for upstream packages,
 cloud APIs, host harness claims, and documentation contracts.
 
+Manifest v2 separates `last_full_reviewed` from each entry's `last_reviewed`.
+Update only the entry actually checked; advance `last_full_reviewed` only after
+the complete manifest has been revalidated.
+
 ## When To Open Upstream Sources
 
 Open the `sources` links for an entry when:

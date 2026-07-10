@@ -28,7 +28,8 @@ You are running in UNATTENDED mode.
 ## Overnight run rules
 
 - Never ask questions or wait for input.
-- When human judgment is required, write to `_meta/pending-decisions.md` and skip the item.
+- Create or append `_meta/pending-decisions.md` only when an actual ambiguous item is deferred for human judgment; record the path and reason, then skip that item.
+- At consultative trust, create or append `_meta/pending-approvals.md` only when proposing a concrete action. Record the exact paths and edits; never execute the proposal unattended.
 - If you take any write action at delegated or partnership trust, log it in the morning brief with revert instructions.
 - Save the brief to `_meta/briefs/YYYY-MM-DD.md`.
 - Stop when the brief is complete.

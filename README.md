@@ -33,7 +33,7 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 
 - **15 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery, model teammates — 7 of these are now thin wrappers over typed CLI subcommands; see [`commands/CONVENTIONS.md`](commands/CONVENTIONS.md))
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **13 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, model teammates, self-improve, session-reflection)
+- **Workflow-specific plugin skills plus a portable Carrel umbrella skill** (setup, ingestion, vault operations, research partnership, automation, collaboration, field maps, maintenance, and host-neutral routing)
 - **4 hooks** (session start environment check, session end reflection prompt, per-turn vault context injection, pre-tool-use sensitivity gate for cloud subprocesses)
 - **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust`, `automate`, `batch`, `migrate` subcommand groups)
 

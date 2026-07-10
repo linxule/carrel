@@ -24,6 +24,7 @@ from pathlib import Path
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.models import ResearcherProfile, Sensitivity
+from carrel.safe_path import safe_atomic_write
 
 QUICK_MODE = "quick"
 FULL_MODE = "full"
@@ -60,6 +61,14 @@ def slug_name(name: str) -> str:
             hint="Pass --for <name> with at least one letter or digit.",
         )
     return slug
+
+
+def validate_mode(mode: str) -> None:
+    if mode not in VALID_MODES:
+        raise CarrelError(
+            f"Unknown share mode: {mode}",
+            hint=f"Use --mode {QUICK_MODE} or --mode {FULL_MODE}.",
+        )
 
 
 def _read_optional_text(path: Path, *, max_chars: int | None = None) -> str | None:
@@ -128,11 +137,7 @@ def synthesize_handbook(
 ) -> tuple[str, list[str]]:
     """Build the handbook markdown plus a list of redactions actually applied."""
 
-    if mode not in VALID_MODES:
-        raise CarrelError(
-            f"Unknown share mode: {mode}",
-            hint=f"Use --mode {QUICK_MODE} or --mode {FULL_MODE}.",
-        )
+    validate_mode(mode)
     iso_today = today or date.today().isoformat()
     profile = read_profile(vault)
 
@@ -246,10 +251,7 @@ def write_handbook(
         vault, mode=mode, name=name, sensitivity=sensitivity, today=today
     )
     existed = output_path.exists()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = output_path.parent / f"{output_path.name}.tmp"
-    tmp.write_text(body, encoding="utf-8")
-    tmp.replace(output_path)
+    safe_atomic_write(vault, output_path, body)
     return HandbookResult(
         path=output_path,
         mode=mode,

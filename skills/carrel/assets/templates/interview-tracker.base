@@ -1,64 +1,98 @@
-# carrel-template: interview-tracker v0.3.0
+# carrel-template: interview-tracker v0.4.0
 # Do not remove this marker — it helps Carrel detect updates.
 # Safe to customize everything below.
 
-properties:
-  - name: participant
-    type: text
-  - name: date
-    type: date
-  - name: kind
-    type: text
-  - name: transcribed
-    type: checkbox
-  - name: coded
-    type: checkbox
-  - name: themes
-    type: tags
-  - name: follow-up
-    type: checkbox
+filters:
+  and:
+    - 'file.inFolder("transcripts")'
 
 formulas:
-  - name: days-since
-    formula: "(now() - file.ctime).days"
-  - name: coding-status
-    formula: "if(coded, \"done\", if(transcribed, \"ready to code\", \"needs transcription\"))"
+  days_since: '(now() - file.ctime).days'
+  coding_status: 'if(coded, "done", if(transcribed, "ready to code", "needs transcription"))'
 
-filter: "file.folder = \"transcripts\""
+properties:
+  participant:
+    displayName: "Participant"
+  date:
+    displayName: "Interview date"
+  kind:
+    displayName: "Kind"
+  transcribed:
+    displayName: "Transcribed on"
+  coded:
+    displayName: "Coded"
+  themes:
+    displayName: "Themes"
+  follow-up:
+    displayName: "Follow-up"
+  formula.days_since:
+    displayName: "Days since added"
+  formula.coding_status:
+    displayName: "Coding status"
 
-sort:
-  - property: date
-    direction: desc
+summaries:
+  Count: 'values.length'
 
 views:
   - type: table
     name: "All Interviews"
+    order:
+      - file.name
+      - participant
+      - date
+      - kind
+      - transcribed
+      - coded
+      - themes
+      - follow-up
+      - formula.coding_status
     sort:
       - property: date
-        direction: desc
+        direction: DESC
+    summaries:
+      participant: Count
+      transcribed: Filled
+      coded: Checked
 
   - type: table
     name: "Needs Coding"
-    filter: "transcribed == true && coded == false"
+    filters:
+      and:
+        - transcribed
+        - 'coded != true'
+    order:
+      - file.name
+      - participant
+      - date
+      - transcribed
+      - coded
+      - formula.coding_status
     sort:
       - property: date
-        direction: asc
+        direction: ASC
 
   - type: table
     name: "Follow-ups Due"
-    filter: "follow-up == true"
+    filters:
+      and:
+        - 'note["follow-up"] == true'
+    order:
+      - file.name
+      - participant
+      - date
+      - follow-up
+      - themes
     sort:
       - property: date
-        direction: asc
+        direction: ASC
 
   - type: list
     name: "By Theme"
-    group: themes
-
-summaries:
-  - property: participant
-    function: Count
-  - property: transcribed
-    function: Count
-  - property: coded
-    function: Count
+    order:
+      - file.name
+      - participant
+      - date
+      - themes
+    groupBy:
+      property: themes
+      direction: ASC

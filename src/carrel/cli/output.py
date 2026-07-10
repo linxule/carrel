@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from enum import Enum
 
+import typer
 from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
@@ -20,7 +21,8 @@ def print_result(result: BaseModel, fmt: OutputFormat, quiet_field: str = "path"
     """Print result in requested format."""
 
     if fmt == OutputFormat.JSON:
-        console.print(result.model_dump_json())
+        # JSON is a wire format; bypass Rich's wrapping/highlighting entirely.
+        typer.echo(result.model_dump_json())
         return
     if fmt == OutputFormat.QUIET:
         if quiet_field:

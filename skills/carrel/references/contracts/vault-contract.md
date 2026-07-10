@@ -11,7 +11,9 @@ paths through the vault-safe path helper before writing.
 - `papers/`: converted papers, using `papers/<slug>/paper.md`.
 - `transcripts/`: transcript markdown files.
 - `notes/`, `drafts/`, `talks/`, `admin/`: researcher workspace folders.
-- `_templates/`: copied markdown/base templates from `assets/templates/`.
+- `_templates/`: copied Markdown note templates. Legacy `.base` copies may remain here but are never deleted.
+- Vault root `.base` trackers: `reading-progress.base` always, with paper,
+  interview, and writing trackers selected from the validated profile.
 - `_meta/`: operational records and generated handoff material.
 
 ## Generated Artifact Paths

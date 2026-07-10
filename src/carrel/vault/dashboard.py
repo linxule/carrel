@@ -58,12 +58,18 @@ def _trust_unlocked_actions(trust_level: TrustLevel) -> list[str]:
 
     fallback = {
         TrustLevel.ADVISORY: [],
-        TrustLevel.CONSULTATIVE: ["automation:propose", "wiki:propose"],
+        TrustLevel.CONSULTATIVE: [
+            "automation:propose",
+            "automation:write-prompt",
+            "wiki:propose",
+            "wiki:apply-approved",
+        ],
         TrustLevel.DELEGATED: [
             "automation:propose",
             "automation:execute",
             "automation:write-prompt",
             "wiki:propose",
+            "wiki:apply-approved",
             "wiki:write",
             "vault:move-file",
         ],
@@ -72,6 +78,7 @@ def _trust_unlocked_actions(trust_level: TrustLevel) -> list[str]:
             "automation:execute",
             "automation:write-prompt",
             "wiki:propose",
+            "wiki:apply-approved",
             "wiki:write",
             "vault:move-file",
             "vault:reorganize",

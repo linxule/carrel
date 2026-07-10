@@ -1,60 +1,96 @@
-# carrel-template: paper-tracker v0.3.0
+# carrel-template: paper-tracker v0.4.0
 # Do not remove this marker — it helps Carrel detect updates.
 # Safe to customize everything below.
 
-properties:
-  - name: title
-    type: text
-  - name: authors
-    type: text
-  - name: year
-    type: number
-  - name: tags
-    type: tags
-  - name: status
-    type: text
-  - name: method
-    type: text
-  - name: key-finding
-    type: text
+filters:
+  and:
+    - 'file.inFolder("papers")'
 
 formulas:
-  - name: days-in-vault
-    formula: "(now() - file.ctime).days"
+  days_in_vault: '(now() - file.ctime).days'
 
-filter: "file.folder = \"papers\""
+properties:
+  title:
+    displayName: "Title"
+  authors:
+    displayName: "Authors"
+  year:
+    displayName: "Year"
+  tags:
+    displayName: "Tags"
+  status:
+    displayName: "Status"
+  method:
+    displayName: "Method"
+  key-finding:
+    displayName: "Key finding"
+  formula.days_in_vault:
+    displayName: "Days in vault"
 
-sort:
-  - property: year
-    direction: desc
+summaries:
+  Count: 'values.length'
 
 views:
   - type: table
     name: "All Papers"
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - status
+      - method
+      - key-finding
+      - tags
+      - formula.days_in_vault
     sort:
       - property: year
-        direction: desc
+        direction: DESC
+    summaries:
+      title: Count
+      formula.days_in_vault: Average
 
   - type: table
     name: "Needs Notes"
-    filter: "status == \"unread\" || status == \"reading\""
+    filters:
+      or:
+        - 'status == "unread"'
+        - 'status == "reading"'
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - status
+      - tags
     sort:
       - property: file.ctime
-        direction: asc
+        direction: ASC
 
   - type: table
     name: "By Method"
-    group: method
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - method
+      - key-finding
+    groupBy:
+      property: method
+      direction: ASC
     sort:
       - property: year
-        direction: desc
+        direction: DESC
 
   - type: list
     name: "By Theme"
-    group: tags
-
-summaries:
-  - property: title
-    function: Count
-  - property: days-in-vault
-    function: Average
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - tags
+    groupBy:
+      property: tags
+      direction: ASC

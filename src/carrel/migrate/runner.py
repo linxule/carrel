@@ -17,6 +17,7 @@ from datetime import date
 from pathlib import Path
 
 from carrel.errors import CarrelError
+from carrel.vault.template_drift import detect_template_drift
 
 PLUGIN_MANIFEST = Path(".claude-plugin") / "plugin.json"
 REGISTRY_FILE = Path("migrations") / "registry.json"
@@ -38,6 +39,8 @@ class MigrationPlan:
     last_seen_version: str | None
     pending: list[MigrationEntry]
     first_run: bool
+    outdated_templates: list[str]
+    unversioned_templates: list[str]
 
 
 def _parse_version_tuple(version: str) -> tuple[int, ...]:
@@ -128,6 +131,10 @@ def plan_migrations(vault: Path, plugin_root: Path) -> MigrationPlan:
     registry = _read_registry(plugin_root)
     state = _read_plugin_state(vault)
     last_seen = (state or {}).get("plugin_version") if state else None
+    template_drift = detect_template_drift(
+        vault,
+        source_root=plugin_root / "templates",
+    )
 
     if last_seen is None:
         # Fresh install: no migrations to apply (state file will simply be created).
@@ -136,6 +143,8 @@ def plan_migrations(vault: Path, plugin_root: Path) -> MigrationPlan:
             last_seen_version=None,
             pending=[],
             first_run=True,
+            outdated_templates=template_drift.outdated_templates,
+            unversioned_templates=template_drift.unversioned_templates,
         )
 
     if last_seen == current:
@@ -144,6 +153,8 @@ def plan_migrations(vault: Path, plugin_root: Path) -> MigrationPlan:
             last_seen_version=last_seen,
             pending=[],
             first_run=False,
+            outdated_templates=template_drift.outdated_templates,
+            unversioned_templates=template_drift.unversioned_templates,
         )
 
     try:
@@ -165,6 +176,8 @@ def plan_migrations(vault: Path, plugin_root: Path) -> MigrationPlan:
         last_seen_version=last_seen,
         pending=pending,
         first_run=False,
+        outdated_templates=template_drift.outdated_templates,
+        unversioned_templates=template_drift.unversioned_templates,
     )
 
 

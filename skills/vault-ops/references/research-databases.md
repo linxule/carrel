@@ -1,199 +1,122 @@
 # Research Databases with Obsidian Bases
 
-<!-- Source: kepano/obsidian-skills/skills/obsidian-bases @ v1.0.1 (2026-04-02) -->
-<!-- Curated for Carrel research context -->
-<!-- Review cadence: quarterly (next: 2026-07-01) -->
+<!-- Source: kepano/obsidian-skills/skills/obsidian-bases @ a1dc48e68138490d522c04cbf5822214c6eb1202 (reviewed 2026-07-10) -->
+<!-- Includes recursive-filter correction @ 9b736ba8da230341054cc668bedc0bcb041baa98 -->
+<!-- Curated for Carrel research context; next review: 2026-10-10 -->
 
-Obsidian Bases (`.base` files) create live, filterable, sortable database views over vault notes. Think Notion databases but local. They query note frontmatter and file metadata — no data duplication.
+Obsidian Bases (`.base` files) create live database views over note frontmatter and file metadata without duplicating vault content.
 
 ## When to Suggest
 
-- Researcher has 10+ papers and asks "what have I read?" or "I'm losing track"
-- Qualitative researcher managing interviews, coding progress, participants
-- Researcher tracking writing progress across draft sections
-- Any "show me everything that matches X" request
+- A researcher has 10+ papers and is losing track of reading status.
+- A qualitative project needs interview, coding, or follow-up tracking.
+- A writing project needs section, deadline, or blocker views.
+- The researcher asks to sort, filter, group, or summarize vault files.
 
-## File Format
+## Current File Shape
 
-`.base` files are YAML. Save to vault root or relevant folder.
+`.base` files are valid YAML. Use plural `filters`; mapping-valued `formulas`, `properties`, and custom `summaries`; and one or more named `views`.
 
 ```yaml
-# paper-tracker.base
+filters:
+  and:
+    - 'file.inFolder("papers")'
+
+formulas:
+  days_in_vault: '(now() - file.ctime).days'
+
 properties:
-  - name: title
-    type: text
-  - name: status
-    type: text
-  - name: year
-    type: number
+  title:
+    displayName: "Title"
+  formula.days_in_vault:
+    displayName: "Days in vault"
 
-filter: "file.folder = \"papers\""
+summaries:
+  Count: 'values.length'
 
-sort:
-  - property: year
-    direction: desc
+views:
+  - type: table
+    name: "Needs Notes"
+    filters:
+      or:
+        - 'status == "unread"'
+        - 'status == "reading"'
+    order:
+      - file.name
+      - title
+      - status
+      - formula.days_in_vault
+    sort:
+      - property: file.ctime
+        direction: ASC
+    groupBy:
+      property: status
+      direction: ASC
+    summaries:
+      title: Count
+      formula.days_in_vault: Average
 ```
 
-## Core Structure
-
-```yaml
-# Required
-properties:          # Columns to display (from note frontmatter or file metadata)
-
-# Optional
-filter: "..."        # Which notes to include
-sort:                # Default ordering
-  - property: name
-    direction: asc | desc
-formulas:            # Computed columns
-views:               # Named view configurations
-summaries:           # Aggregations (sum, count, average)
-```
-
-## Properties (Columns)
-
-Map to YAML frontmatter fields in your notes, or use built-in file properties.
-
-```yaml
-properties:
-  - name: title          # From note frontmatter
-    type: text
-  - name: year
-    type: number
-  - name: status
-    type: text
-  - name: tags
-    type: tags
-  - name: coded          # Boolean checkbox
-    type: checkbox
-  - name: date
-    type: date
-```
-
-**Built-in file properties** (no frontmatter needed):
-
-| Property | Description |
-|----------|-------------|
-| `file.name` | Filename without extension |
-| `file.folder` | Parent folder path |
-| `file.ctime` | Creation date |
-| `file.mtime` | Last modified date |
-| `file.size` | File size in bytes |
-| `file.tags` | All tags in the file |
+Do not use the superseded top-level `filter`/`sort`, list-valued property or formula declarations, view `filter`, or view `group` shapes.
 
 ## Filters
 
-Control which notes appear. Use frontmatter values and file metadata.
+A filter is a string expression or a recursive object containing one of `and`, `or`, or `not`.
 
 ```yaml
-# Single condition
-filter: "status == \"reading\""
-
-# Multiple conditions
-filter: "file.folder = \"papers\" && year >= 2020"
-
-# Tags
-filter: "tags includes \"qualitative\""
-
-# Negation
-filter: "!(status == \"cited\")"
+filters:
+  and:
+    - 'file.inFolder("papers")'
+    - not:
+        - 'status == "cited"'
 ```
 
-**Operators:**
+View-specific filters use exactly the same shape. Useful operations include `==`, `!=`, comparisons, `&&`, `||`, `!`, `file.inFolder()`, and `file.hasTag()`.
 
-| Operator | Meaning |
-|----------|---------|
-| `=` | Path/folder matching (use for `file.folder`) |
-| `==`, `!=` | Value equality (use for frontmatter properties) |
-| `>`, `<`, `>=`, `<=` | Comparisons (numbers, dates) |
-| `&&`, `\|\|` | AND, OR |
-| `!` | NOT |
-| `includes` | Tag/list contains value |
-| `= ""`, `!= ""` | Empty, not empty |
+## Properties and Formulas
 
-**Common compound filter** (most-requested research query):
-```yaml
-filter: "file.folder = \"papers\" && tags includes \"identity\""
+- Note properties come from frontmatter: `status`, `note.status`, or `note["status"]`.
+- Use bracket access for names containing hyphens: `note["due-date"]`, never subtraction-like `due-date` in an expression.
+- File properties include `file.name`, `file.folder`, `file.ctime`, `file.mtime`, `file.size`, and `file.tags`.
+- Formula properties are referenced as `formula.formula_name`.
+- Guard optional values before date arithmetic: `'if(note["due-date"], (date(note["due-date"]) - today()).days, "")'`.
+
+The `transcribed` field created by Carrel is an ISO date, not a checkbox. Treat it as a truthy/date value and label it “Transcribed on.”
+
+## Views and Summaries
+
+Each view needs `type`, `name`, and an `order` list. It may also use `filters`, `sort`, `groupBy`, and property-to-summary mappings. Sort and group directions are `ASC` or `DESC`.
+
+Built-in summaries include `Average`, `Min`, `Max`, `Sum`, `Median`, `Checked`, `Unchecked`, `Empty`, `Filled`, and `Unique`. Define a custom row count once with `Count: 'values.length'` when needed.
+
+## Embedding
+
+Embed the default or a named view from a Markdown note:
+
+```markdown
+![[paper-tracker.base]]
+![[paper-tracker.base#Needs Notes]]
 ```
 
-## Formulas (Computed Columns)
+## Carrel Templates
 
-Add calculated fields that update automatically.
+| Template | Created when | Source folder |
+|----------|--------------|---------------|
+| `reading-progress.base` | Always | `papers/` |
+| `paper-tracker.base` | Many papers or literature review | `papers/` |
+| `interview-tracker.base` | Qualitative or interview work | `transcripts/` |
+| `writing-tracker.base` | Writing, thesis, or dissertation work | `drafts/` |
 
-```yaml
-formulas:
-  - name: days-since-added
-    formula: "(now() - file.ctime).days"
-  - name: is-stale
-    formula: "if((now() - file.mtime).days > 30, \"stale\", \"active\")"
-  - name: reading-time
-    formula: "round(file.size / 1500)"
-```
-
-**Useful functions for research:**
-
-| Function | Example | Use |
-|----------|---------|-----|
-| `now()` | `(now() - file.ctime).days` | Days since added |
-| `if(cond, then, else)` | `if(coded, "done", "pending")` | Status logic |
-| `round(n)` | `round(file.size / 1500)` | Estimated reading time |
-| `length(list)` | `length(tags)` | Count tags |
-| `contains(str, sub)` | `contains(title, "identity")` | Text search |
-
-## Views
-
-Named configurations for different perspectives on the same data.
-
-```yaml
-views:
-  - type: table
-    name: "All Papers"
-    sort:
-      - property: year
-        direction: desc
-
-  - type: table
-    name: "Needs Notes"
-    filter: "status == \"reading\" || status == \"unread\""
-    sort:
-      - property: file.ctime
-        direction: asc
-
-  - type: list
-    name: "By Theme"
-    group: tags
-```
-
-## Summaries (Aggregations)
-
-Show totals at the bottom of table columns.
-
-```yaml
-summaries:
-  - property: title
-    function: Count
-  - property: days-since-added
-    function: Average
-```
-
-**Available functions:** Count, Sum, Average, Min, Max, Median, Earliest, Latest
-
-## Research Templates
-
-Carrel includes 4 research-specific .base templates in `templates/`. These are created during vault scaffolding based on the setup interview:
-
-| Template | Created when | Queries |
-|----------|-------------|---------|
-| `paper-tracker.base` | Researcher works with papers | `papers/` folder |
-| `interview-tracker.base` | Qualitative researcher with interviews | `transcripts/` folder |
-| `reading-progress.base` | Always (default) | `papers/` folder (aggregation view) |
-| `writing-tracker.base` | Researcher actively writing | `drafts/` folder |
+Carrel-shipped templates carry a `carrel-template:` marker. Never add that marker to a custom vault-local Base.
 
 ## Validation Checklist
 
-Before saving a .base file:
-- [ ] All referenced properties exist in note frontmatter (or are built-in `file.*` properties)
-- [ ] String values in filters are escaped: `"status == \"reading\""`
-- [ ] Filter paths match actual vault folders: `file.folder = "papers"` not `file.folder = "papers/"`
-- [ ] Formula parentheses are balanced
-- [ ] Property types match actual data (don't use `number` for text fields)
+- Parse the file as YAML.
+- Require mapping-valued `properties`, `formulas`, and `summaries`.
+- Require plural `filters` and view `order`; reject legacy `filter` and `group` keys.
+- Confirm every `formula.X` reference has a matching formula.
+- Confirm every folder, frontmatter property, and group/sort property exists.
+- Use bracket access for hyphenated property names in expressions.
+- Open the Base in Obsidian and check every named view after a schema change.
+
+Source contract: [Obsidian Bases syntax](https://help.obsidian.md/bases/syntax).
