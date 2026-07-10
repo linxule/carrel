@@ -18,7 +18,7 @@ Uses the `web-capture` skill:
 
 1. Fetch the URL using `carrel capture url <url>` — defuddle extracts content cleanly, with markitdown as fallback
 2. Strip navigation, ads, boilerplate
-3. Add frontmatter: title, source URL, capture date, tags
+3. Write frontmatter: title, source_url, author, published, captured (date), domain, capture_tool. (No `tags` field is written automatically — add tags yourself afterward if you want them.)
 4. Save to `inbox/` (or researcher-specified folder)
 5. Suggest: "Want me to move this to papers/ or notes/?"
 

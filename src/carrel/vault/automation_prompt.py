@@ -24,7 +24,9 @@ CAPABILITY_INSTRUCTIONS = {
 }
 
 TRUST_RULES = {
-    TrustLevel.ADVISORY: "Suggestions only. Never modify vault files directly.",
+    TrustLevel.ADVISORY: (
+        "Never modify research content. Write only operational suggestions and briefs under `_meta/`."
+    ),
     TrustLevel.CONSULTATIVE: "Write suggestions and proposed actions, but never execute them without approval.",
     TrustLevel.DELEGATED: "You may file new items following the vault conventions. Never reorganize existing files.",
     TrustLevel.PARTNERSHIP: "You may file new items and reorganize existing files within the vault epistemology. Log every action with revert instructions.",

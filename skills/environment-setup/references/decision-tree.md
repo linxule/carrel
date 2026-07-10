@@ -74,7 +74,7 @@ These are set up for every researcher regardless of answers:
 | `.obsidian/` config | `carrel vault init` | Core plugins, templates; see `references/obsidian-setup.md` |
 | `CLAUDE.md` | Generated | Researcher profile + guidelines |
 | Cheat sheet | `carrel vault init` writes initial; `carrel vault cheatsheet --force` regenerates | Reference card in `_meta/` |
-| liteparse | `bun add -g @llamaindex/liteparse` | Local PDF conversion — always install |
+| liteparse | `npm install -g @llamaindex/liteparse` | Local PDF conversion — always install |
 | markitdown | Auto-installed with carrel | Office docs (Word, PowerPoint, Excel), EPUB, Jupyter |
 
 ## Sensitivity Assessment
@@ -145,8 +145,9 @@ Interview: "Do you record meetings or interviews?"
         plus the matching ffmpeg command from the "Installing ffmpeg" table above
     - Offer groq as a cloud option for large batches or faster turnaround:
         "There's also a fast cloud service (Groq) — useful if you have a lot of
-        recordings. It adds timestamps. Needs a free account."
-        GROQ_API_KEY from console.groq.com (free tier available)
+        recordings. Carrel currently receives plain transcript text, not word
+        timestamps. Needs an account."
+        GROQ_API_KEY from console.groq.com
         Complexity: LOW friction
 
 → NO:
@@ -206,7 +207,7 @@ After the interview, install additional tools based on what the researcher needs
 Interview results → Install silently:
 
 → Works with PDFs (almost every researcher):
-  - bun add -g @llamaindex/liteparse
+  - npm install -g @llamaindex/liteparse
   - Local, free, no account. Always install this.
 
 → Records audio (interviews, meetings):
@@ -232,12 +233,12 @@ Interview: "What kinds of files do you work with most?"
 + Hardware audit + Sensitivity check
 
 → ALWAYS install liteparse (local, free, no account):
-  bun add -g @llamaindex/liteparse
+  npm install -g @llamaindex/liteparse
   Handles most academic papers well. Fast (~500 pages/2 sec). Sensitive-data safe.
 
-→ COMPLEX PDFs (scanned, tables, multi-column, figures, formulas):
+→ COMPLEX PDFs (tables, multi-column, figures, formulas):
   + NOT SENSITIVE:
-    - Offer mineru as a higher-quality cloud option for complex cases
+    - Offer mineru as a higher-quality cloud option for complex table/formula cases
     - "For papers with dense tables and figures, there's a cloud service that
       handles them much better. It requires a free account."
     - MINERU_API_KEY from mineru.net (free signup)
@@ -247,6 +248,14 @@ Interview: "What kinds of files do you work with most?"
   + SENSITIVE (IRB data, confidential docs):
     - liteparse only — no cloud
     - "Everything stays on your machine."
+
+→ SCANNED OR IMAGE-ONLY PDFs:
+  + NOT SENSITIVE:
+    - Offer mistral_ocr as cloud OCR for scanned/layout-heavy PDFs
+    - MISTRAL_API_KEY from console.mistral.ai
+    - Researcher uses: carrel paper convert scan.pdf --tool mistral_ocr
+  + SENSITIVE (IRB data, confidential docs):
+    - keep local; do not use cloud OCR under high sensitivity
 
 → markitdown handles Word, PowerPoint, Excel, EPUB, Jupyter — not PDF.
   Routing is automatic; researchers don't need to know which tool handles what.
@@ -367,10 +376,12 @@ Instead, infer from their workflow and paper volume.
 Note: Bases require structured frontmatter in notes (status, tags, etc.).
 The convert, transcribe, and vault-ops skills already add this frontmatter.
 
-Note: carrel vault init copies .base files automatically based on the profile's
-preferences dict. Set preferences.qualitative, preferences.many_papers, or
-preferences.writing to true before running scaffold. reading-progress.base is
-always included regardless of profile.
+Note: write the completed interview profile first, then pass it to
+`carrel vault init <path> --profile-file <profile.json>`. The command validates
+the full profile before writing and installs selected `.base` files at the vault
+root. Paper tracking uses `many_papers` or `literature_review`; interview
+tracking uses `qualitative` or `interviews`; writing tracking uses `writing`,
+`thesis`, or `dissertation`. `reading-progress.base` is always included.
 ```
 
 ## Multi-Model Access (Vox)
@@ -492,7 +503,8 @@ Quick reference for when to push vs. when to offer:
 | coli | Zero | Whenever audio is involved |
 | defuddle | Zero | Whenever web is involved |
 | youtube-transcript-api | Zero | Auto-installed with carrel |
-| Gemini key | Low | YouTube cloud, complex PDFs (non-sensitive) |
+| Gemini key | Low | YouTube/video cloud and model access |
 | Groq key | Low | Audio cloud, large batches |
-| mineru key | Medium | Complex PDFs only, non-sensitive |
+| mineru key | Medium | Complex table/formula PDFs only, non-sensitive |
+| Mistral key | Medium | Scanned/layout-heavy PDF OCR only, non-sensitive |
 | Google Workspace (gws) | HIGH | Only if they live in Google Docs; warn about setup time |

@@ -20,13 +20,14 @@ from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.feedback.exporter import export_feedback
 from carrel.models import FileResult, Sensitivity
-from carrel.safe_path import safe_vault_join
-from carrel.share.synthesizer import slug_name, write_handbook
+from carrel.policy.trust import is_allowed, required_trust
+from carrel.safe_path import assert_safe_write_target, safe_atomic_write, safe_vault_join
+from carrel.share.synthesizer import slug_name, validate_mode, write_handbook
 from carrel.vault.automation_prompt import render_automation_prompt
 from carrel.vault.dashboard import collect_activity_stats, render_dashboard
 from carrel.vault.markers import ensure_markers, parse_markers
 from carrel.vault.organize import sort_inbox
-from carrel.vault.scaffold import scaffold_vault
+from carrel.vault.scaffold import load_profile_file, scaffold_vault
 from carrel.vault.sync import compare_markers, marker_values
 from carrel.vault.templates import read_template, render_cheat_sheet
 
@@ -54,7 +55,7 @@ def _safe_slug(name: str) -> str:
 
 
 def _require_profile(vault_path: Path):
-    profile_path = vault_path / ".carrel" / "environment.json"
+    profile_path = safe_vault_join(vault_path, ".carrel", "environment.json")
     if not profile_path.exists():
         raise CarrelError(
             "No ResearcherProfile found",
@@ -69,11 +70,8 @@ def _require_profile(vault_path: Path):
     return profile
 
 
-def _atomic_write(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.parent / f"{path.name}.tmp"
-    tmp_path.write_text(content, encoding="utf-8")
-    tmp_path.replace(path)
+def _atomic_write(vault: Path, path: Path, content: str) -> None:
+    safe_atomic_write(vault, path, content)
 
 
 def _render_drift_table(drifts: list[dict[str, str]]) -> None:
@@ -89,15 +87,23 @@ def _render_drift_table(drifts: list[dict[str, str]]) -> None:
 @app.command("init")
 def init_command(
     path: Path = typer.Argument(...),
+    profile_file: Path | None = typer.Option(
+        None,
+        "--profile-file",
+        help="Validated ResearcherProfile JSON to use for profile-driven scaffolding.",
+    ),
     fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
 ) -> None:
     try:
-        result = scaffold_vault(normalize_path(path))
+        profile = load_profile_file(profile_file) if profile_file is not None else None
+        result = scaffold_vault(normalize_path(path), profile=profile)
         if fmt == OutputFormat.HUMAN:
             console.print(f"Created vault at {result.vault}")
             console.print(f"  profile: {result.profile_path}")
             console.print(f"  created: {len(result.created)}")
             console.print(f"  skipped: {len(result.skipped)}")
+            console.print(f"  outdated templates: {len(result.outdated_templates)}")
+            console.print(f"  unversioned templates: {len(result.unversioned_templates)}")
         else:
             print_result(result, fmt, quiet_field="vault")
     except CarrelError as error:
@@ -273,7 +279,7 @@ def dashboard_command(
             "`(set by CLI at write time)`",
             f"`{vault_path}`",
         )
-        _atomic_write(dashboard_path, content)
+        _atomic_write(vault_path, dashboard_path, content)
         print_result(
             FileResult(path=dashboard_path, action="updated" if existed else "created"),
             fmt,
@@ -291,7 +297,17 @@ def automation_prompt_command(
     try:
         vault_path = resolve_vault(vault)
         profile = _require_profile(vault_path)
-        prompt_path = vault_path / "_meta" / "automation-prompt.md"
+        action = "automation:write-prompt"
+        if not is_allowed(action, profile.automation.trust_level):
+            required = required_trust(action)
+            raise CarrelError(
+                f"Action '{action}' requires trust level '{required.value}'",
+                hint=(
+                    f"Current trust is '{profile.automation.trust_level.value}'. "
+                    "Approve automation configuration before generating its prompt."
+                ),
+            )
+        prompt_path = safe_vault_join(vault_path, "_meta", "automation-prompt.md")
         existed = prompt_path.exists()
         if existed and not force:
             raise CarrelError(
@@ -299,7 +315,11 @@ def automation_prompt_command(
                 hint=f"{prompt_path} exists; pass --force to overwrite.",
             )
 
-        _atomic_write(prompt_path, render_automation_prompt(profile, profile.automation))
+        _atomic_write(
+            vault_path,
+            prompt_path,
+            render_automation_prompt(profile, profile.automation),
+        )
         print_result(
             FileResult(path=prompt_path, action="updated" if existed else "created"),
             fmt,
@@ -366,7 +386,7 @@ def add_markers_command(
         updated = ensure_markers(original, marker_values(profile))
         action = "updated" if updated != original else "skipped"
         if updated != original:
-            _atomic_write(claude_path, updated)
+            _atomic_write(vault_path, claude_path, updated)
         print_result(
             FileResult(
                 path=claude_path,
@@ -424,7 +444,11 @@ def feedback_export_command(
                         "path": str(result.path),
                         "action": result.action,
                         "sources": [str(s) for s in result.sources],
+                        "unreadable_sources": [str(s) for s in result.skipped],
                         "redacted_terms": result.redacted_terms,
+                        "redaction_rules": result.redaction_rules,
+                        "redactions_applied": result.redactions_applied,
+                        "zero_match_terms": result.zero_match_terms,
                     }
                 )
             )
@@ -436,6 +460,11 @@ def feedback_export_command(
             f"{result.action.capitalize()} {result.path} "
             f"(sources={len(result.sources)}, redactions={result.redacted_terms})"
         )
+        if result.skipped:
+            console.print(
+                f"  [yellow]skipped {len(result.skipped)} unreadable source(s):[/yellow] "
+                + ", ".join(str(s) for s in result.skipped)
+            )
     except CarrelError as error:
         emit_carrel_error(error)
 
@@ -502,10 +531,7 @@ def mirror_command(
                 )
                 return
             action = "overwritten"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = output_path.parent / f"{output_path.name}.tmp"
-        tmp.write_text(body, encoding="utf-8")
-        tmp.replace(output_path)
+        _atomic_write(vault_path, output_path, body)
         print_result(FileResult(path=output_path, action=action), fmt)
     except CarrelError as error:
         emit_carrel_error(error)
@@ -570,9 +596,7 @@ def reflect_log_command(
         # Atomic append: read-modify-write through a tmp file so a crash mid-write
         # cannot leave a half-truncated reflect-log.
         previous = output_path.read_text(encoding="utf-8") if existed else ""
-        tmp = output_path.parent / f"{output_path.name}.tmp"
-        tmp.write_text(previous + entry, encoding="utf-8")
-        tmp.replace(output_path)
+        _atomic_write(vault_path, output_path, previous + entry)
         print_result(
             FileResult(
                 path=output_path,
@@ -603,12 +627,23 @@ def share_generate_command(
         "--explain",
         help="Print what would be written + redactions, do not persist.",
     ),
+    from_stdin: bool = typer.Option(
+        False,
+        "--from-stdin",
+        help="Persist an approved handbook body from stdin without reading vault sources.",
+    ),
+    canonical: bool = typer.Option(
+        False,
+        "--canonical",
+        help="Also write the approved body to _meta/lab-handbook.md.",
+    ),
     fmt: OutputFormat = typer.Option(OutputFormat.HUMAN, "--format"),
 ) -> None:
     """Write _meta/handbook/<YYYY-MM-DD>-for-<name>.md from the vault state."""
     try:
         vault_path = resolve_vault(vault)
         collaborator_slug = slug_name(name)
+        validate_mode(mode)
         today = date.today().isoformat()
         output_path = safe_vault_join(
             vault_path,
@@ -616,27 +651,88 @@ def share_generate_command(
             "handbook",
             f"{today}-for-{collaborator_slug}.md",
         )
+        canonical_path = (
+            safe_vault_join(vault_path, "_meta", "lab-handbook.md") if canonical else None
+        )
         if explain:
-            from carrel.share.synthesizer import synthesize_handbook
+            # Short-circuit before the unconditional stdin read below: a dry run
+            # must never block waiting on an interactive stdin the user did not
+            # pipe. Only consume a genuinely piped body (not a TTY).
+            redactions: list[str] = []
+            if from_stdin:
+                explain_body = sys.stdin.read() if not sys.stdin.isatty() else ""
+            else:
+                from carrel.share.synthesizer import synthesize_handbook
 
-            body, redactions = synthesize_handbook(
-                vault_path,
-                mode=mode,
-                name=name,
-                sensitivity=sensitivity,
-                today=today,
-            )
+                explain_body, redactions = synthesize_handbook(
+                    vault_path,
+                    mode=mode,
+                    name=name,
+                    sensitivity=sensitivity,
+                    today=today,
+                )
             payload = {
                 "would_write": str(output_path),
+                "canonical_would_write": str(canonical_path) if canonical_path else None,
                 "mode": mode,
                 "sensitivity": sensitivity.value,
+                "from_stdin": from_stdin,
                 "redactions_applied": redactions,
-                "bytes": len(body.encode("utf-8")),
+                "bytes": len(explain_body.encode("utf-8")),
             }
             if fmt == OutputFormat.JSON:
                 typer.echo(json.dumps(payload))
+            elif fmt == OutputFormat.QUIET:
+                typer.echo(str(output_path))
             else:
-                typer.echo(json.dumps(payload, indent=2))
+                body_source = "stdin" if from_stdin else "synthesized from vault"
+                console.print(
+                    "\n".join(
+                        [
+                            f"Would write: {output_path}",
+                            f"Canonical: {canonical_path if canonical_path else '(none)'}",
+                            f"Mode: {mode}",
+                            f"Sensitivity: {sensitivity.value}",
+                            f"Body source: {body_source}",
+                            f"Bytes: {payload['bytes']}",
+                            f"Redactions: {len(redactions)}",
+                        ]
+                    )
+                )
+            return
+        supplied_body: str | None = None
+        if from_stdin:
+            supplied_body = sys.stdin.read()
+            if not supplied_body.strip():
+                raise CarrelError(
+                    "Empty collaborator handbook received on stdin",
+                    hint="Pipe the approved non-empty handbook body with --from-stdin.",
+                )
+        assert_safe_write_target(vault_path, output_path)
+        if canonical_path is not None:
+            assert_safe_write_target(vault_path, canonical_path)
+        if supplied_body is not None:
+            existed = output_path.exists()
+            _atomic_write(vault_path, output_path, supplied_body)
+            if canonical_path is not None:
+                _atomic_write(vault_path, canonical_path, supplied_body)
+            payload = {
+                "path": str(output_path),
+                "canonical_path": str(canonical_path) if canonical_path else None,
+                "action": "overwritten" if existed else "created",
+                "mode": mode,
+                "sensitivity": sensitivity.value,
+                "redactions_applied": [],
+            }
+            if fmt == OutputFormat.JSON:
+                typer.echo(json.dumps(payload))
+            elif fmt == OutputFormat.QUIET:
+                typer.echo(str(output_path))
+            else:
+                console.print(
+                    f"{payload['action'].capitalize()} {output_path} "
+                    f"(mode={mode}, sensitivity={sensitivity.value}, redactions=0)"
+                )
             return
         result = write_handbook(
             vault_path,
@@ -646,11 +742,18 @@ def share_generate_command(
             output_path=output_path,
             today=today,
         )
+        if canonical_path is not None:
+            _atomic_write(
+                vault_path,
+                canonical_path,
+                result.path.read_text(encoding="utf-8"),
+            )
         if fmt == OutputFormat.JSON:
             typer.echo(
                 json.dumps(
                     {
                         "path": str(result.path),
+                        "canonical_path": str(canonical_path) if canonical_path else None,
                         "action": result.action,
                         "mode": result.mode,
                         "sensitivity": result.sensitivity.value,

@@ -8,7 +8,7 @@
  * replace policy.sensitivity:select_tool — that stays the authoritative
  * enforcement at the CLI boundary. This hook is a UX checkpoint.
  *
- * Triggers only on `carrel (paper|transcript|capture|google) <verb> ... --tool (mineru|groq|gemini)`.
+ * Triggers only on `carrel (paper|transcript|capture|google) <verb> ... --tool (mineru|mistral_ocr|groq|gemini)`.
  * Silent pass-through on anything else, on `# bypass-gate` comment, and on any error.
  */
 
@@ -20,9 +20,99 @@ function debug(msg) {
   if (DEBUG) process.stderr.write(`[carrel:sensitivity-gate] ${msg}\n`);
 }
 
+// Minimal POSIX-ish shell-word tokenizer. Splits a command line into argv the
+// way a shell would for the simple cases we re-invoke: whitespace separators,
+// single quotes (fully literal), double quotes (with backslash escapes), and
+// backslash escapes outside quotes. Returns an array of tokens, or `null` on
+// any uncertainty — an unterminated quote, a trailing backslash, or an
+// UNQUOTED shell control operator (`;& | < > ` + "`" + ` $`) that means the line
+// does more than a single carrel invocation or expands a value we cannot see.
+// Per the hook's fail-open convention, `null` makes the caller pass through.
+function shellTokenize(input) {
+  const CTRL = new Set([';', '&', '|', '<', '>', '`', '$']);
+  const tokens = [];
+  let cur = '';
+  let started = false;
+  let i = 0;
+  const n = input.length;
+  while (i < n) {
+    const c = input[i];
+    if (c === "'") {
+      started = true;
+      i++;
+      let closed = false;
+      while (i < n) {
+        if (input[i] === "'") {
+          closed = true;
+          i++;
+          break;
+        }
+        cur += input[i];
+        i++;
+      }
+      if (!closed) return null; // unterminated single quote
+      continue;
+    }
+    if (c === '"') {
+      started = true;
+      i++;
+      let closed = false;
+      while (i < n) {
+        const d = input[i];
+        if (d === '"') {
+          closed = true;
+          i++;
+          break;
+        }
+        if (d === '\\') {
+          const nx = input[i + 1];
+          if (nx === undefined) return null; // trailing backslash
+          if (nx === '"' || nx === '\\' || nx === '$' || nx === '`') {
+            cur += nx;
+            i += 2;
+            continue;
+          }
+          cur += d; // literal backslash otherwise
+          i++;
+          continue;
+        }
+        cur += d; // `$`, `` ` `` kept literal inside our re-invocation
+        i++;
+      }
+      if (!closed) return null; // unterminated double quote
+      continue;
+    }
+    if (c === '\\') {
+      const nx = input[i + 1];
+      if (nx === undefined) return null; // trailing backslash / line continuation
+      cur += nx;
+      started = true;
+      i += 2;
+      continue;
+    }
+    if (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
+      if (started) {
+        tokens.push(cur);
+        cur = '';
+        started = false;
+      }
+      i++;
+      continue;
+    }
+    if (CTRL.has(c)) return null; // unquoted shell control operator → uncertainty
+    cur += c;
+    started = true;
+    i++;
+  }
+  if (started) tokens.push(cur);
+  return tokens;
+}
+
 // `capture` deliberately excluded — `carrel capture` has no --tool flag today.
 // `google` retained even though its cloud-route is implicit, in case --tool is added later.
-const GATE_REGEX = /\bcarrel\s+(paper|transcript|google)\s+\S+\s+.*--tool\s+(mineru|groq|gemini)\b/;
+// Match both the spaced (`--tool mineru`) and equals (`--tool=mineru`) forms;
+// the equals form otherwise slips past the checkpoint entirely.
+const GATE_REGEX = /\bcarrel\s+(paper|transcript|google)\s+\S+\s+.*--tool[=\s]+(mineru|mistral_ocr|groq|gemini)\b/;
 
 function readStdin() {
   try {
@@ -50,30 +140,30 @@ function main() {
   const m = command.match(GATE_REGEX);
   if (!m) return;
 
-  // Re-execute the same command with --explain appended. To avoid shell-injection
-  // risk from quoted operators or unspaced terminators, reject any command whose
-  // carrel-invocation tail contains shell metacharacters that can chain commands.
-  // execFileSync passes argv literally (no shell), so the worst case is a failed
-  // subprocess — but the reject path also catches cases where naive splitting
-  // would drop the actual operation. Conservative: only proceed if the tail is
-  // a clean argv-shaped command.
+  // Re-execute the same command with --explain appended. execFileSync passes
+  // argv literally (no shell), so we tokenize the command ourselves rather than
+  // splitting on whitespace — naive splitting mangles quoted paths
+  // ('/path/with spaces/scan.pdf') into broken argv, the --explain subprocess
+  // fails, and the gate silently passes the original cloud command through.
+  // The tokenizer returns null on any uncertainty (unbalanced quotes, unquoted
+  // shell operators); we then pass through per the fail-open convention.
   const subcmd = m[1];
-  const idx = command.search(/\bcarrel\b/);
-  if (idx < 0) return;
-  const tail = command.slice(idx);
-  // Reject if the tail contains shell control operators (anywhere, quoted or not).
-  // A real shell parser would be safer but is overkill for a UX gate;
-  // researchers can append `# bypass-gate` if their command needs operators.
-  if (/[;&|<>$`]/.test(tail) || /\\$/m.test(tail)) {
-    debug('command contains shell control characters; passing through');
+  const tokens = shellTokenize(command);
+  if (tokens === null) {
+    debug('tokenizer uncertainty (quotes/escapes/shell operators); passing through');
     return;
   }
-  const args = tail.split(/\s+/).filter(Boolean).slice(1); // drop the leading "carrel"
+  // Locate the carrel invocation: bare `carrel` or a path ending in `/carrel`
+  // (e.g. /usr/local/bin/carrel). Everything after it is the argv we re-run.
+  const carrelIdx = tokens.findIndex((t) => t === 'carrel' || t.endsWith('/carrel'));
+  if (carrelIdx < 0) return;
+  const carrelBin = tokens[carrelIdx];
+  const args = tokens.slice(carrelIdx + 1);
   args.push('--explain');
 
   let stdout = '';
   try {
-    stdout = execFileSync('carrel', args, {
+    stdout = execFileSync(carrelBin, args, {
       timeout: 2500,
       stdio: ['ignore', 'pipe', DEBUG ? 'pipe' : 'ignore'],
       encoding: 'utf8',

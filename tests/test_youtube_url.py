@@ -1,3 +1,6 @@
+import pytest
+
+from carrel.errors import CarrelError
 from carrel.transcribe.youtube_url import extract_video_id, is_youtube_url, slug_for_filename
 
 
@@ -19,3 +22,15 @@ def test_extract_video_id_handles_supported_url_forms() -> None:
 
 def test_slug_for_filename_falls_back_to_video_id() -> None:
     assert slug_for_filename("https://www.youtube.com/watch?v=AbC-123_xyz") == "abc-123-xyz"
+
+
+def test_slug_for_filename_raises_on_youtube_url_without_video_id() -> None:
+    # A YouTube URL that parses but yields no id must fail loudly instead of
+    # slugging to a colliding "watch" filename.
+    with pytest.raises(CarrelError, match="could not extract a YouTube video id"):
+        slug_for_filename("https://www.youtube.com/watch")
+
+
+def test_slug_for_filename_leaves_non_youtube_urls_unaffected() -> None:
+    assert slug_for_filename("https://example.com/articles/my-post") == "my-post"
+    assert slug_for_filename("https://example.com/") == "video"

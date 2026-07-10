@@ -77,18 +77,25 @@ Does this sound right? Anything you'd add or skip?"
 
 ### Step 4: Scaffold Vault (~2 min)
 
-Run `carrel vault init <path>` to create:
+Write the complete interview result to a temporary profile JSON file, then run:
+
+```bash
+carrel vault init <path> --profile-file <profile.json>
+```
+
+The CLI validates the whole profile before any vault write. It creates:
 - Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration (core plugins, templates setup)
-- `.carrel/environment.json` (structured profile with defaults)
+- `.carrel/environment.json` (the validated interview profile)
 - `_templates/` (paper, meeting, reflection, daily note templates)
 - `_meta/cheat_sheet.md` (customized reference card)
+- selected `.base` trackers at the vault root
 
-After scaffolding, update `.carrel/environment.json` with the researcher's profile from the interview.
+After confirming that init succeeded and `.carrel/environment.json` contains the intended profile, remove the temporary profile file; do not leave a second copy of researcher metadata in a general temp directory.
 
 #### Research Database Views
 
-`carrel vault init` automatically includes `.base` database templates based on the researcher's profile preferences. To control which ones are included, set the relevant preference keys before scaffolding (e.g., `preferences.qualitative`, `preferences.many_papers`, `preferences.writing`). `reading-progress.base` is always included. See `references/decision-tree.md` → Research Databases for the full mapping:
+`carrel vault init` includes `.base` trackers from the already-validated profile. `reading-progress.base` is always included. Paper tracking uses `many_papers` or `literature_review`; interview tracking uses `qualitative` or `interviews`; writing tracking uses `writing`, `thesis`, or `dissertation`. See `references/decision-tree.md` → Research Databases for the full mapping:
 
 - `reading-progress.base` — always include (lightweight reading pipeline dashboard)
 - `paper-tracker.base` — for researchers with many papers or doing literature reviews
@@ -117,7 +124,7 @@ Write CLAUDE.md with these sections:
 
 ## Available Tools
 [List what was installed and configured, in plain language]
-- PDF conversion: liteparse (local) [+ mineru if configured]
+- PDF conversion: liteparse (local) [+ mineru or mistral_ocr if configured]
 - Audio: coli (local) [+ groq if configured]
 - YouTube: [local captions / Gemini — based on what was set up]
 - Web capture: defuddle
@@ -144,7 +151,7 @@ Write CLAUDE.md with these sections:
 
 ### Step 6: Configure Optional Tools
 
-If the decision tree indicates mineru, zotero, or gws:
+If the decision tree indicates mineru, mistral_ocr, zotero, or gws:
 - Add them to the project `.mcp.json` (for MCP-based tools like zotero/vox)
 - Guide the researcher through API key setup (see API Key Storage section in `references/decision-tree.md`)
 - For gws: see `references/gws-setup-guide.md` — this is a high-friction setup, set expectations
@@ -176,7 +183,7 @@ Regenerate the cheat sheet so it reflects the personalized profile and any tools
 carrel vault cheatsheet --vault <path> --force
 ```
 
-The CLI reads `.carrel/environment.json` via Pydantic and writes `_meta/cheat_sheet.md`. The vault scaffold in Step 4 wrote a starter version with default values; this regenerates against the real profile.
+The CLI reads `.carrel/environment.json` via Pydantic and writes `_meta/cheat_sheet.md`. The vault scaffold in Step 4 generated a starter from the validated profile; this refreshes it after tool setup.
 
 After regeneration, read the cheat sheet and edit it directly to add researcher-specific touches (workflow examples, named projects, custom shortcuts).
 
@@ -185,7 +192,7 @@ Update the researcher's environment dashboard at `_meta/my-environment.md` (the 
 - Which trackers were installed (from Step 4)
 - Which cloud services are configured vs. available-but-not-configured (from the interview)
 - Vault path and Obsidian setup details
-- "Available but Not Configured" table: list tools/services the researcher skipped or deferred (Zotero, mineru, gws, groq, vox — whatever was noted as "available later" in environment.json), with a one-line description and how to activate
+- "Available but Not Configured" table: list tools/services the researcher skipped or deferred (Zotero, mineru, mistral_ocr, gws, groq, vox — whatever was noted as "available later" in environment.json), with a one-line description and how to activate
 
 This dashboard is the researcher's living view of their environment. It grows as they add tools, MCPs, custom trackers, and Obsidian plugins. Claude updates it whenever the environment changes (see `skills/self-improve/SKILL.md` for the maintenance protocol).
 
@@ -196,7 +203,7 @@ Test one operation end-to-end:
 
 Offer this briefly — it's an opt-in, not a required step:
 
-> "Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. This uses Claude Desktop's scheduled tasks feature and costs approximately $3-8/month in API usage via Sonnet."
+> "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Claude Cowork can schedule this from `/schedule` or the Scheduled page. Because Carrel needs your local vault, the folder must be connected and Claude Desktop available when the task needs local access. Scheduled Cowork work uses your paid-plan allocation."
 
 - **Interested** → Run `/carrel-automate` now to configure it, or note it for later.
 - **Not now** → Skip. Mention they can always run `/carrel-automate` later to enable it.

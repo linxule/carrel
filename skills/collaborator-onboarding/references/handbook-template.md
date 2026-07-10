@@ -40,7 +40,7 @@ If automation is enabled, mention what it does and doesn't touch.]
 ## Tools Available
 
 [From environment.json tools_configured. Brief, plain language:
-- PDF conversion: liteparse (local) [+ mineru (cloud) if configured]
+- PDF conversion: liteparse (local) [+ mineru or mistral_ocr (cloud) if configured]
 - Audio: coli (local) [+ groq (cloud) if configured]
 - Web pages: defuddle
 - YouTube: youtube_captions [+ Gemini if configured]
@@ -83,7 +83,7 @@ If no threads exist, look at the most recent reflection for current preoccupatio
 ## Friction & Workarounds
 
 [From friction_log.md. Recurring pain points + what's been tried. Example:
-- Scanned PDFs sometimes fail conversion → manually re-scan or use mineru
+- Scanned PDFs sometimes fail conversion → manually re-scan or use mistral_ocr/mineru when policy allows cloud tools
 - Long interview recordings (>2 hr) timeout coli → split into chunks first
 
 Don't include one-off frustrations. Three+ occurrences is the threshold.]

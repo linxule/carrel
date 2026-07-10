@@ -46,23 +46,19 @@ Consult `skills/environment-setup/references/decision-tree.md` to map answers + 
 
 ### Phase 4: Scaffold (~2 min)
 
-Run `carrel vault init <path>` to create:
+Write the complete approved interview result to a temporary profile JSON file,
+then run `carrel vault init <path> --profile-file <profile.json>` to create:
 - Vault folder structure (inbox, papers, notes, transcripts, drafts, talks, admin)
 - `.obsidian/` configuration
-- `.carrel/environment.json` (writes a default `ResearcherProfile`; replace with the interview profile below)
+- `.carrel/environment.json` (the validated interview profile)
 - `CLAUDE.md` starter with profile-sync HTML markers
 - Note templates + research-database `.base` files (selected from `preferences.*`)
 - `_meta/cheat_sheet.md`, `_meta/my-environment.md`, `_meta/capability-log.md`, `_meta/friction_log.md`
 
-After scaffolding, overwrite `.carrel/environment.json` with the researcher's profile from the interview (Claude does this directly — write the full `ResearcherProfile` JSON).
-
-Then update or regenerate the root `CLAUDE.md` so its HTML markers match the interview profile. If you rewrote `.carrel/environment.json` after `carrel vault init`, run:
-
-```bash
-carrel vault add-markers --vault <path>
-```
-
-Keep the narrative guidance in `CLAUDE.md`, but preserve the marker block so `carrel vault check-sync` can detect drift in future sessions.
+The profile is validated before any vault write, so its preferences determine
+the initial root `.base` trackers and the generated `CLAUDE.md` markers. Verify
+the persisted profile, then remove the temporary profile file. Do not overwrite
+`environment.json` after scaffolding.
 
 **Natural pause point.** Ask the researcher: *"Your vault is set up and Claude knows your profile. We can keep going to optional tools and automation, or you can pause here and pick this up later — the session-start hook will remember where we stopped. Want to keep going?"*
 
@@ -73,7 +69,7 @@ Keep the narrative guidance in `CLAUDE.md`, but preserve the marker block so `ca
 
 ### Phase 5: Optional MCPs [skippable]
 
-If the decision tree indicates mineru or zotero, add to project `.mcp.json` and guide through API key setup. Tool recommendations in this phase are platform-gated: use the install row that matches the `audit.platform` value you extracted in Phase 2. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF processing). Skip if you're not sure — you can add any of them later."
+If the decision tree indicates mineru, mistral_ocr, or zotero, guide through API key setup and add project MCPs only for tools that actually require MCP configuration. Tool recommendations in this phase are platform-gated: use the install row that matches the `audit.platform` value you extracted in Phase 2. This phase is **fully optional** — say so to the researcher: "These add specific tools (Zotero integration, cloud PDF/OCR processing). Skip if you're not sure — you can add any of them later."
 
 After this phase (whether you configured anything or skipped), run:
 
@@ -120,7 +116,7 @@ carrel setup-state advance --phase 7 --vault <path>
 
 ### Phase 8: Overnight Maintenance [skippable]
 
-Offer automation: "Carrel can maintain your vault between sessions — processing new files, checking health, surfacing connections. Costs about $3-8/month with Sonnet on top of your Claude subscription."
+Offer automation: "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Cowork can schedule this with `/schedule` or the Scheduled page. Local-vault runs need the connected folder and Claude Desktop availability, and usage counts against your paid-plan allocation."
 
 If interested → run `/carrel-automate` inline. If not → skip, mention they can always run `/carrel-automate` later.
 

@@ -5,186 +5,120 @@ description: "This skill should be used when a researcher wants to build, query,
 
 # knowledge-wiki
 
-Maintain a persistent, compounding knowledge base as interlinked markdown pages inside the researcher's vault. Based on [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), adapted for carrel's vault structure and trust model. Upstream reference: [Hermes Agent implementation](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
+Maintain a persistent field map as interlinked Markdown pages inside a Carrel vault. This is a curated adaptation of [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) and [Hermes Agent llm-wiki 2.1](https://github.com/NousResearch/hermes-agent/blob/8e3f9537db21b49ebe796f7b5a6ff489028fe1fb/skills/research/llm-wiki/SKILL.md).
 
-Unlike traditional RAG (which rediscovers knowledge per query), the wiki compiles knowledge once and keeps it current. Cross-references already exist. Contradictions have already been flagged. Synthesis reflects everything ingested.
+The researcher curates sources and directs analysis. The agent synthesizes, cross-references, preserves provenance, and maintains navigation. Call it a “field map” in researcher-facing conversation; reserve “wiki” for paths and technical explanation.
 
-**Division of labor:** The researcher curates sources and directs analysis. The agent summarizes, cross-references, files, and maintains consistency.
+## Activation
 
-## When to Use
+Use an active wiki when `wiki/SCHEMA.md` exists. Consider proposing one when the researcher explicitly asks, repeatedly asks cross-source questions, or has 15+ substantial sources and needs durable synthesis. Do not propose when `wiki_preference` is `researcher-managed` or a deferral date has not passed.
 
-**Active wiki exists** (wiki/ folder with SCHEMA.md):
-- Researcher asks a question about their domain → query operation
-- Researcher adds new source material → ingest operation
-- Researcher asks about wiki health or consistency → lint operation
-- Running in overnight automation with `wiki_maintenance` enabled
-
-**No wiki yet — consider proposing** (see `references/trust-activation.md`):
-- Researcher has 15+ papers and asks cross-source questions
-- Researcher re-asks questions they've asked before (knowledge slipping)
-- Researcher explicitly asks for a "knowledge base", "field map", "literature review", or "wiki"
-- Trust level is consultative or higher
-- Agent observes repeated cross-source questions in a vault with 15+ papers
-
-Before writing, run:
+Before presenting a proposed schema or write batch, run:
 
 ```bash
 carrel trust check wiki:propose --vault .
 ```
 
-If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:propose but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
-If the check exits 0, proceed:
+A direct request does not bypass the trust boundary. If the check fails, explain the required level and help the researcher raise trust through `/carrel-automate`; do not write.
 
-**Do NOT activate:**
-- Researcher has fewer than 15 sources and hasn't asked
-- Trust level is advisory and researcher hasn't explicitly requested
-- Researcher has expressed preference for managing their own synthesis (`wiki_preference: "researcher-managed"` in environment.json)
+## Trust-Gated Actions
 
-## Trust-Gated Behavior
+| Action | Minimum trust | Meaning |
+|--------|---------------|---------|
+| `wiki:propose` | Consultative | Inspect sources and present an exact proposed batch without changing wiki files. |
+| `wiki:apply-approved` | Consultative | Apply only the exact batch the researcher just approved. |
+| `wiki:write` | Delegated | Perform autonomous or unattended wiki maintenance. |
 
-The wiki follows carrel's graduated trust model. The same `trust_level` in `automation.trust_level` governs wiki behavior:
+At Consultative trust, use this sequence:
 
-| Trust | Wiki behavior | Agent writes to wiki/ |
-|-------|--------------|----------------------|
-| **Advisory** | No wiki. Research-partner suggests themes. | Never |
-| **Consultative** | Agent proposes wiki, drafts SCHEMA.md, creates pages WITH approval. | Only after researcher approves each batch |
-| **Delegated** | Agent maintains wiki autonomously for new sources. Logs every action with reasoning. | Yes — new pages, updates, index maintenance |
-| **Partnership** | Agent reorganizes structure, splits/merges pages, identifies research gaps. | Yes — including structural changes |
+1. Orient and draft the exact file additions/edits.
+2. Show the batch, including every path and material change.
+3. Receive explicit approval for that batch.
+4. Run `carrel trust check wiki:apply-approved --vault .`.
+5. Apply only the approved batch; re-propose any expansion.
 
-**Explicit opt-in overrides trust gating.** If a researcher says "set up a knowledge wiki" at any trust level, proceed — their request IS the trust grant. Wiki operations then behave at consultative level (propose, await approval) unless the researcher's global trust level is already higher.
+At Delegated or Partnership trust, run `carrel trust check wiki:write --vault .` before autonomous writes. Enabling the wiki does not silently raise global trust.
 
-**Invariant:** If `wiki_enabled: true`, the wiki operates at least at consultative level for wiki-specific actions, regardless of `automation.trust_level`. A vault cannot have an active wiki at advisory — activation implies consultative.
+## Vault Mapping
 
-## Vault Integration — Folder Mapping
+Carrel does not import Hermes' separate `raw/` layer or `WIKI_PATH` environment variable. Existing vault folders remain the source layer:
 
-The wiki lives INSIDE the carrel vault. Carrel's existing folders ARE the raw source layer — no separate `raw/` tree:
-
-```
-vault/
-├── papers/          ← Source layer (immutable, created by carrel paper convert)
-├── transcripts/     ← Source layer (immutable, created by carrel transcript create)
-├── notes/           ← Researcher's own notes (NOT wiki-managed)
-├── inbox/           ← Unsorted incoming (processed by automation)
-├── wiki/            ← Synthesis layer (agent-maintained)
-│   ├── SCHEMA.md    ← Conventions, domain, tag taxonomy
-│   ├── index.md     ← Sectioned content catalog
-│   ├── log.md       ← Chronological action log with reasoning
-│   ├── entities/    ← People, organizations, models, tools
-│   ├── concepts/    ← Topics, theories, methods, debates
-│   ├── comparisons/ ← Side-by-side analyses
-│   └── queries/     ← Filed query results worth keeping
-├── drafts/          ← Researcher's writing (reads from wiki, not managed by it)
-└── _meta/           ← Briefs, suggestions, automation state
+```text
+papers/          converted source papers; read only during wiki work
+transcripts/     converted transcripts; read only during wiki work
+inbox/           sources awaiting normal Carrel routing
+notes/           researcher's voice; never wiki-managed
+wiki/            agent-maintained synthesis
+  SCHEMA.md
+  index.md
+  log.md
+  entities/
+  concepts/
+  comparisons/
+  queries/
+drafts/          researcher writing; never wiki-managed
 ```
 
-**Critical distinctions:**
-- `papers/` and `transcripts/` = source material. The wiki READS these. Never writes to them.
-- `notes/` = researcher's own thinking. Separate from wiki pages. The researcher may link to wiki pages from their notes, but wiki never overwrites notes.
-- `wiki/` = agent-maintained synthesis. The agent owns these files. The researcher reviews and corrects.
-- `drafts/` = researcher's writing. May reference wiki pages but is never wiki-managed.
+The wiki skill reads already-converted Markdown. Use `convert`, `transcribe`, or `web-capture` before ingestion when needed.
 
-## Source Ingestion Pipeline
+## Read Mode
 
-When new sources arrive, the conversion pipeline feeds the wiki:
+1. Read `wiki/index.md` and search `wiki/` for relevant terms.
+2. Read only the relevant pages; use source files when the compiled page lacks needed detail.
+3. Cite field-map pages with wikilinks and expose contradictions rather than flattening them.
+4. Propose filing a durable answer at Consultative trust. Apply it only through the approved-batch sequence. At Delegated+ trust, autonomous filing uses `wiki:write`.
+5. Log only queries that become wiki pages.
 
-| Source type | Carrel command | Lands in | Wiki reads from |
-|-------------|---------------|----------|-----------------|
-| PDF paper | `carrel paper convert` | `papers/<author-year>/paper.md` | `papers/` |
-| Audio/video | `carrel transcript create` | `transcripts/<name>.md` | `transcripts/` |
-| Web page | `carrel capture url` | `papers/<slug>.md` or `inbox/` | `papers/` or `inbox/` |
-| Google Doc | `carrel google export` | `papers/` or `notes/` | wherever it lands |
+## Write Mode
 
-The wiki skill does NOT run conversion — that's the convert/transcribe/web-capture skills. The wiki reads already-converted markdown.
+Before drafting a write batch, read `wiki/SCHEMA.md`, `wiki/index.md`, the last 30 lines of `wiki/log.md`, relevant researcher callouts, and related existing pages. Then follow `references/wiki-protocol.md`.
 
-## Two Operating Modes
+Every page uses required frontmatter plus optional quality signals:
 
-### Read mode (query)
-Lightweight. For answering questions about the researcher's domain.
-
-1. Read `wiki/index.md` to find relevant pages
-2. For large wikis (50+ pages), also search across `wiki/**/*.md` for key terms
-3. Read relevant wiki pages
-4. Synthesize answer, **always citing the wiki source**: "Based on the wiki's [[wiki/concepts/sensemaking]] page and [[wiki/entities/weick]]..." — citation transparency lets the researcher trace and verify.
-5. If the answer is a substantial synthesis worth keeping:
-   - At **consultative** trust: propose filing — "This synthesis might be worth keeping as a wiki page. Want me to save it to `wiki/queries/`?"
-   - At **delegated+** trust: file directly to `wiki/queries/` or `wiki/comparisons/`, update index.md, append to log.md
-
-**Logging:** Only log queries that result in a filed wiki page. Trivial lookups do NOT require logging — this keeps read mode lightweight.
-
-**Context cost:** index.md + 2-5 relevant pages. No full orientation needed. Only load log.md if filing a query result.
-
-### Write mode (ingest, lint)
-Full orientation required before writing.
-
-Before writing, run:
-
-```bash
-carrel trust check wiki:write --vault .
+```yaml
+---
+title: Page Title
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+type: entity | concept | comparison | query
+tags: [taxonomy-tag]
+sources: [papers/author-year/paper.md]
+source_digests:
+  papers/author-year/paper.md: <sha256-of-markdown-body>
+confidence: high | medium | low
+contested: true
+contradictions: [other-page-slug]
+---
 ```
 
-If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:write but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
-If the check exits 0, proceed:
+`confidence`, `contested`, and `contradictions` are optional. Existing pages without quality fields or `source_digests` remain valid; backfill them only when editing that page or applying an approved repair.
 
-1. Read `wiki/SCHEMA.md` — conventions, domain, tag taxonomy
-2. Read `wiki/index.md` — what pages exist
-3. Read last 30 lines of `wiki/log.md` — recent activity and reasoning
-4. Then proceed with ingest or lint operations (see `references/wiki-protocol.md`)
+Compute each `source_digests` value over the source Markdown body after its closing frontmatter delimiter. This wiki-level map is distinct from Carrel's source-file `source_hash` idempotency field. On pages synthesizing three or more sources, append a marker such as `^[papers/author-year/paper.md]` to paragraphs whose claims depend on a particular source.
 
-**Context cost:** schema + index + recent log + source material + relevant existing pages. Budget for this.
+## Lint
 
-## Context Management
+Quick lint new or changed pages for outbound links, index membership, required fields, valid taxonomy tags, and current source digests. Full lint additionally reports:
 
-**Session-start:** Do NOT auto-load the wiki. The session-start hook surfaces a one-liner:
-`Wiki: 47 pages, last updated 2026-04-07, 1 contradiction pending review`
+- orphan pages and broken wikilinks;
+- stale, oversized, and unindexed pages;
+- low-confidence pages;
+- pages with `contested: true`;
+- contradiction links needing review;
+- single-source pages without `confidence`;
+- source digest drift.
 
-**On-demand:** Full orientation only when the researcher asks a wiki question or when running in automation mode.
+Report counts and exact paths. Drift is a review signal, not permission to rewrite a page or source automatically.
 
-**Large wikis (100+ pages):** Read index.md to identify the relevant SECTION, then search within wiki/ for specific terms. Don't read the entire index into context.
+## Automation
 
-## Automation Integration
+When `automation.wiki_maintenance` is true, autonomous maintenance requires Delegated trust and a successful `wiki:write` check. Run wiki work after inbox processing, then include these counts in the morning brief: pages new/updated, low confidence, contested, contradictions, missing single-source confidence, source drift, orphans, and un-ingested sources. Include one synthesis insight and every changed path with revert guidance.
 
-When `wiki_maintenance` is enabled in `environment.json → automation`:
+## Durable Handoff
 
-The overnight prompt includes wiki operations AFTER inbox processing (so newly converted papers are available):
-
-1. Orient: read SCHEMA.md, index.md, recent log.md
-2. Scan `papers/`, `transcripts/`, and `inbox/` for files newer than last wiki log entry
-3. For each new source: run ingest protocol (see `references/wiki-protocol.md`)
-4. Quick lint: verify new pages have 2+ outbound links, index is current
-5. Add wiki status to morning brief:
-   - Pages: N total (+N new, +N updated)
-   - Contradictions: N pending review
-   - Orphans: N (if any)
-6. Full lint: run weekly (check log.md for last full lint date)
-
-## Log Format — Reasoning for Handoff
-
-Because each Claude session is stateless, log.md entries include WHY, not just WHAT. This lets the next Claude instance follow precedent:
-
-```markdown
-## [2026-04-07] ingest | Smith & Jones 2025
-- Created: entities/organizational-ambidexterity.md
-  (split from 'organizational-adaptation' — 3 sources define it differently, warrants own page)
-- Updated: concepts/sensemaking.md
-  (added crisis subsection rather than separate page — only 1 source so far, below page threshold)
-- Updated: entities/weick.md (added new publication reference)
-- Cross-linked: [[organizational-ambidexterity]] ↔ [[dynamic-capabilities]]
-- Index updated: +1 entity, 2 entities updated
-```
-
-One line of reasoning per non-trivial decision. This is how consistency is maintained across ephemeral agent instances.
-
-## Researcher-Facing Language
-
-Call it a "field map" in conversation, not a "knowledge wiki":
-
-> "I could maintain a field map for you — topic pages that synthesize what your sources say, track key researchers and concepts, and flag where sources disagree. You'd review what I write. Think of it as a living summary of your field that gets smarter with every paper you add."
-
-Use "wiki" only in technical contexts (file paths, skill name, protocol references).
+Append reasoning—not just actions—to `wiki/log.md`. Never remove `> [!researcher]` callouts. Update `index.md` for every created, archived, or renamed page. Ask before a batch touching 10 or more existing pages even when interactive trust permits it.
 
 ## Related
 
-- **Protocol**: `references/wiki-protocol.md` — full ingest/query/lint operations, templates, conventions
-- **Trust**: `references/trust-activation.md` — graduation signals, proposal script, cold-start procedure
-- **Skills**: `vault-ops` for note templates and vault hygiene; `automation` for overnight scheduling; `convert`/`transcribe`/`web-capture` for source conversion
-- **Upstream**: [Karpathy's gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), [Hermes Agent skill](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md)
+- `references/wiki-protocol.md`: schemas, ingest/query/lint details, and provenance rules.
+- `references/trust-activation.md`: proposal, initialization, and trust-graduation flow.
+- `automation`: unattended scheduling and morning-brief behavior.

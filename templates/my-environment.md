@@ -17,6 +17,7 @@
 | Service | Status | What it does |
 |---------|--------|-------------|
 | mineru | {{status}} | Better PDF conversion for complex tables/figures |
+| mistral_ocr | {{status}} | Cloud OCR for scanned or layout-heavy PDFs |
 | groq | {{status}} | Faster audio transcription |
 | gemini | {{status}} | YouTube video transcription, multi-model access |
 | vox | {{status}} | Access to other AI models (Gemini, GPT, Grok) |

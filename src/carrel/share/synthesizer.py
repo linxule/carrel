@@ -5,18 +5,25 @@ takes the resolved parameters and walks the vault deterministically to produce
 a dated handbook under ``_meta/handbook/``. Sensitivity drives redaction depth:
 
 - ``low``: include researcher name, vault layout, friction log excerpts verbatim
-- ``medium``: include researcher name + layout, omit specific project codenames
-  from friction-log; drop notes/threads file contents (keep titles only)
+- ``medium``: include researcher name + layout; truncate friction-log excerpts to
+  a fixed length cap; drop notes/threads file contents (keep titles only). NOTE:
+  MEDIUM does not detect or redact project codenames — that is content-level
+  judgment left to the skill/researcher (see future work below).
 - ``high``: omit researcher name (use "Researcher"), omit friction-log details,
   drop notes/threads section entirely
 
 The skill explains the redaction depth before the file is produced; the CLI
 just applies the rules so the output is reproducible.
+
+Future work: automatic project-codename redaction at MEDIUM would require a
+judgment-heavy detector (which strings are codenames vs. ordinary nouns); it is
+intentionally not implemented here and belongs in the skill layer if added.
 """
 
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -24,6 +31,7 @@ from pathlib import Path
 from carrel.env.profile import read_profile
 from carrel.errors import CarrelError
 from carrel.models import ResearcherProfile, Sensitivity
+from carrel.safe_path import safe_atomic_write
 
 QUICK_MODE = "quick"
 FULL_MODE = "full"
@@ -50,7 +58,10 @@ def slug_name(name: str) -> str:
             "Invalid collaborator name",
             hint="Use letters/numbers/spaces only. Names with path separators are rejected.",
         )
-    slug = name.strip().lower()
+    # Transliterate accented characters before stripping non-ASCII so "José"
+    # decomposes to "jose" rather than colliding with a literal "Jos".
+    decomposed = unicodedata.normalize("NFKD", name.strip())
+    slug = decomposed.encode("ascii", "ignore").decode("ascii").lower()
     slug = re.sub(r"\s+", "-", slug)
     slug = re.sub(r"[^a-z0-9-]", "", slug)
     slug = re.sub(r"-+", "-", slug).strip("-")
@@ -60,6 +71,14 @@ def slug_name(name: str) -> str:
             hint="Pass --for <name> with at least one letter or digit.",
         )
     return slug
+
+
+def validate_mode(mode: str) -> None:
+    if mode not in VALID_MODES:
+        raise CarrelError(
+            f"Unknown share mode: {mode}",
+            hint=f"Use --mode {QUICK_MODE} or --mode {FULL_MODE}.",
+        )
 
 
 def _read_optional_text(path: Path, *, max_chars: int | None = None) -> str | None:
@@ -107,7 +126,12 @@ def _vault_layout(vault: Path) -> list[str]:
 
 
 def _redact_friction_excerpts(text: str, sensitivity: Sensitivity) -> str:
-    """Trim friction-log excerpts at higher sensitivity levels."""
+    """Trim friction-log excerpts at higher sensitivity levels.
+
+    This is a length cap only — it does not inspect or redact codenames or any
+    other content. HIGH omits the section entirely upstream, so it never reaches
+    here.
+    """
 
     if sensitivity == Sensitivity.LOW:
         return text
@@ -128,11 +152,7 @@ def synthesize_handbook(
 ) -> tuple[str, list[str]]:
     """Build the handbook markdown plus a list of redactions actually applied."""
 
-    if mode not in VALID_MODES:
-        raise CarrelError(
-            f"Unknown share mode: {mode}",
-            hint=f"Use --mode {QUICK_MODE} or --mode {FULL_MODE}.",
-        )
+    validate_mode(mode)
     iso_today = today or date.today().isoformat()
     profile = read_profile(vault)
 
@@ -246,10 +266,7 @@ def write_handbook(
         vault, mode=mode, name=name, sensitivity=sensitivity, today=today
     )
     existed = output_path.exists()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = output_path.parent / f"{output_path.name}.tmp"
-    tmp.write_text(body, encoding="utf-8")
-    tmp.replace(output_path)
+    safe_atomic_write(vault, output_path, body)
     return HandbookResult(
         path=output_path,
         mode=mode,

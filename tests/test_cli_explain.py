@@ -48,6 +48,82 @@ def test_paper_convert_explain_prints_policy_decision_without_running_pipeline(
     assert "No local tool available; cloud consent enabled so routing to cloud" in normalized
 
 
+def test_paper_convert_explain_non_pdf_explicit_cloud_names_cloud_tool(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """--explain must agree with the router: a supported non-PDF + explicit cloud
+    tool + configured key resolves to the cloud tool, not markdownify."""
+    vault = tmp_path / "vault"
+    source = tmp_path / "notes.docx"
+    _init_vault(vault)
+    source.write_bytes(b"docx")
+
+    def fail_pipeline(*args, **kwargs):  # noqa: ARG001
+        raise AssertionError("convert pipeline should not run for --explain")
+
+    monkeypatch.setattr("carrel.cli.paper.select_convert_tool_only", fail_pipeline)
+    monkeypatch.setattr(
+        "carrel.cli.paper.read_profile",
+        lambda vault_path: ResearcherProfile(sensitivity=Sensitivity.MEDIUM),  # noqa: ARG005
+    )
+    monkeypatch.setattr("carrel.cli.paper.shutil.which", lambda cmd: None)
+    monkeypatch.setenv("MINERU_API_KEY", "configured")
+
+    result = runner.invoke(
+        app,
+        [
+            "paper",
+            "convert",
+            str(source),
+            "--vault",
+            str(vault),
+            "--tool",
+            "mineru",
+            "--explain",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "PolicyDecision(" in result.output
+    assert "selected_tool=<ConvertTool.MINERU: 'mineru'>" in result.output
+
+
+def test_paper_convert_explain_non_pdf_unsupported_cloud_suffix_errors_like_real_run(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """A suffix the cloud tool can't handle is a hard error in the real run, so
+    --explain must error the same way rather than print a mismatched decision."""
+    vault = tmp_path / "vault"
+    source = tmp_path / "notes.txt"
+    _init_vault(vault)
+    source.write_text("plain", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "carrel.cli.paper.read_profile",
+        lambda vault_path: ResearcherProfile(sensitivity=Sensitivity.MEDIUM),  # noqa: ARG005
+    )
+    monkeypatch.setenv("MINERU_API_KEY", "configured")
+
+    result = runner.invoke(
+        app,
+        [
+            "paper",
+            "convert",
+            str(source),
+            "--vault",
+            str(vault),
+            "--tool",
+            "mineru",
+            "--explain",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "mineru does not support" in result.output + (result.stderr or "")
+
+
 def test_transcript_create_explain_prints_policy_decision_without_audit(tmp_path, monkeypatch) -> None:
     vault = tmp_path / "vault"
     source = tmp_path / "meeting.wav"

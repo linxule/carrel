@@ -1,8 +1,8 @@
 # Obsidian Formatting Reference
 
-<!-- Source: kepano/obsidian-skills/skills/obsidian-markdown @ v1.0.1 (2026-04-02) -->
+<!-- Source: kepano/obsidian-skills/skills/obsidian-markdown @ a1dc48e68138490d522c04cbf5822214c6eb1202 (reviewed 2026-07-10) -->
 <!-- Curated for Carrel research context -->
-<!-- Review cadence: quarterly (next: 2026-07-01) -->
+<!-- Review cadence: quarterly (next: 2026-10-10) -->
 
 Research-relevant Obsidian syntax beyond basic markdown. Use these to make vault content more readable and navigable in Obsidian's GUI.
 
@@ -61,6 +61,8 @@ Pull content from other vault files inline. Critical for cross-referencing paper
 ![[image.png]]                     Embed image (full width)
 ![[image.png|400]]                 Embed image (400px wide)
 ![[document.pdf#page=5]]           Embed PDF page
+![[paper-tracker.base]]            Embed the default Obsidian Base view
+![[paper-tracker.base#Needs Notes]] Embed a named Base view
 ```
 
 Use embeds in reading notes to pull in key passages from converted papers:

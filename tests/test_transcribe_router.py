@@ -28,10 +28,23 @@ def test_transcribe_router_respects_explicit_tool() -> None:
         source="audio.wav",
         sensitivity=Sensitivity.MEDIUM,
         hardware=HardwareCapability.MEDIUM,
-        tools=make_tools(),
+        tools=make_tools(groq_key=True),
         explicit_tool=TranscribeTool.GROQ,
     )
     assert tool == TranscribeTool.GROQ
+
+
+def test_transcribe_router_rejects_explicit_cloud_without_api_key() -> None:
+    with pytest.raises(CarrelError) as exc:
+        select_transcribe_tool(
+            source="audio.wav",
+            sensitivity=Sensitivity.MEDIUM,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(),
+            explicit_tool=TranscribeTool.GROQ,
+    )
+    assert exc.value.message == "Requested cloud tool is not available; configure credentials and retry"
+    assert exc.value.hint == "Configure GROQ_API_KEY or choose an available local/network tool."
 
 
 def test_transcribe_router_prefers_youtube_captions_over_gemini_by_default() -> None:
@@ -53,6 +66,47 @@ def test_transcribe_router_falls_back_to_local_youtube_captions() -> None:
         tools=make_tools(),
     )
     assert tool == TranscribeTool.YOUTUBE_CAPTIONS
+
+
+def test_transcribe_router_blocks_youtube_caption_fetch_for_high_sensitivity() -> None:
+    with pytest.raises(CarrelError) as exc:
+        select_transcribe_tool(
+            source="https://youtu.be/abc123",
+            sensitivity=Sensitivity.HIGH,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(),
+        )
+    assert exc.value.message == (
+        "HIGH sensitivity blocks automatic caption fetches; "
+        "pass --tool youtube_captions to override for public captions"
+    )
+
+
+def test_transcribe_router_honors_explicit_youtube_captions_override_at_high_sensitivity() -> None:
+    tool = select_transcribe_tool(
+        source="https://youtu.be/abc123",
+        sensitivity=Sensitivity.HIGH,
+        hardware=HardwareCapability.MEDIUM,
+        tools=make_tools(),
+        explicit_tool=TranscribeTool.YOUTUBE_CAPTIONS,
+    )
+    assert tool == TranscribeTool.YOUTUBE_CAPTIONS
+
+
+def test_transcribe_router_blocks_explicit_gemini_at_high_sensitivity_with_sensitivity_hint() -> None:
+    with pytest.raises(CarrelError) as exc:
+        select_transcribe_tool(
+            source="https://www.youtube.com/watch?v=abc123",
+            sensitivity=Sensitivity.HIGH,
+            hardware=HardwareCapability.MEDIUM,
+            tools=make_tools(gemini_key=True),
+            explicit_tool=TranscribeTool.GEMINI,
+        )
+    # gemini key IS configured; the block is a policy decision, so the hint must
+    # name the sensitivity policy rather than tell the user to configure credentials.
+    assert exc.value.message == "HIGH sensitivity blocks cloud tools regardless of consent"
+    assert "GEMINI_API_KEY" not in (exc.value.hint or "")
+    assert "sensitivity" in (exc.value.hint or "").lower()
 
 
 def test_transcribe_router_prefers_coli_for_audio_files() -> None:

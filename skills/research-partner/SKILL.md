@@ -75,7 +75,7 @@ Don't create canvases unprompted for researchers with low AI/tech comfort (check
 
 ## Automation Awareness
 
-Carrel v0.4 runs background processing overnight. Check for these artifacts and weave them into conversation naturally — don't recite them wholesale.
+Carrel can run scheduled background processing. Check for these artifacts and weave them into conversation naturally — don't recite them wholesale.
 
 ### Active Plans (`_meta/plans/`)
 If a plan exists for what the researcher is discussing, acknowledge it: "There's an active plan for this — you're at step 2 of 4." Help track progress and update plans when milestones are reached.

@@ -1,49 +1,65 @@
 # Concept Mapping with Obsidian Canvas
 
-<!-- Source: kepano/obsidian-skills/skills/json-canvas @ v1.0.1 (2026-04-02) -->
-<!-- Curated for Carrel research context -->
-<!-- Review cadence: quarterly (next: 2026-07-01) -->
+<!-- Source: kepano/obsidian-skills/skills/json-canvas @ a1dc48e68138490d522c04cbf5822214c6eb1202 (reviewed 2026-07-10) -->
+<!-- Curated for Carrel research context; next review: 2026-10-10 -->
 
-Create `.canvas` files to help researchers visualize connections between papers, constructs, and ideas. Canvas files open as interactive visual boards in Obsidian.
+Create `.canvas` files to visualize connections between papers, constructs, sources, and open questions. Canvas files use the [JSON Canvas 1.0 specification](https://jsoncanvas.org/spec/1.0/).
 
 ## When to Offer
 
-- Researcher is exploring connections between papers or ideas
-- Researcher says "I'm stuck" or "I can't see the big picture"
-- Building or revising a theoretical framework
-- Mapping a literature review landscape
-- Researcher shows visual thinking in conversation (draws connections, says "I need to see this", asks for a map or diagram)
+- A researcher is exploring connections between papers or ideas.
+- A theoretical framework or literature landscape needs a spatial view.
+- The researcher says they need to “see the big picture.”
 
-## File Format
-
-Canvas files are JSON with `.canvas` extension. Save to `notes/` or vault root.
+## Complete Example
 
 ```json
 {
   "nodes": [
     {
-      "id": "a1b2c3d4e5f6g7h8",
+      "id": "a1b2c3d4e5f60718",
       "type": "text",
-      "x": 0, "y": 0,
-      "width": 300, "height": 150,
-      "text": "# Identity Construction\nHow individuals build sense of self\nduring organizational change"
+      "x": 0,
+      "y": 0,
+      "width": 300,
+      "height": 150,
+      "text": "# Identity Construction\nHow people build a sense of self during change"
     },
     {
-      "id": "b2c3d4e5f6g7h8i9",
+      "id": "b2c3d4e5f6071829",
       "type": "file",
-      "file": "papers/corley-gioia-2004/paper.md",
-      "x": 400, "y": 0,
-      "width": 300, "height": 150
+      "x": 400,
+      "y": 0,
+      "width": 300,
+      "height": 150,
+      "file": "papers/corley-gioia-2004/paper.md"
+    },
+    {
+      "id": "c3d4e5f60718293a",
+      "type": "link",
+      "x": 800,
+      "y": 0,
+      "width": 300,
+      "height": 150,
+      "url": "https://doi.org/10.2307/20159058"
     }
   ],
   "edges": [
     {
-      "id": "e1f2g3h4i5j6k7l8",
-      "fromNode": "a1b2c3d4e5f6g7h8",
-      "toNode": "b2c3d4e5f6g7h8i9",
+      "id": "d4e5f60718293a4b",
+      "fromNode": "a1b2c3d4e5f60718",
+      "toNode": "b2c3d4e5f6071829",
       "fromSide": "right",
       "toSide": "left",
-      "label": "foundational"
+      "label": "developed in"
+    },
+    {
+      "id": "e5f60718293a4b5c",
+      "fromNode": "b2c3d4e5f6071829",
+      "toNode": "c3d4e5f60718293a",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "published as"
     }
   ]
 }
@@ -51,75 +67,46 @@ Canvas files are JSON with `.canvas` extension. Save to `notes/` or vault root.
 
 ## Node Types
 
-| Type | Use for | Required fields |
-|------|---------|----------------|
-| `text` | Concepts, themes, questions | `text` (markdown content) |
-| `file` | Link to vault note or paper | `file` (vault-relative path) |
-| `group` | Thematic cluster container | `label` (not `text`) |
+| Type | Use for | Type-specific requirement |
+|------|---------|---------------------------|
+| `text` | Concepts, themes, questions | `text` Markdown string |
+| `file` | Vault note or attachment | vault-relative `file`; optional `subpath` beginning `#` |
+| `link` | External source | absolute `url` |
+| `group` | Visual cluster | optional `label`, `background`, and `backgroundStyle` |
 
-All nodes need: `id` (16-char hex), `type`, `x`, `y`, `width`, `height`. Nodes and groups also accept `color` (`"1"`-`"6"` presets or hex) for thematic coding.
+Every node also requires a unique string `id`, integer `x`/`y`, integer `width`/`height`, and a valid `type`. Carrel examples use 16-character lowercase hexadecimal IDs for consistency, but the JSON Canvas specification requires uniqueness rather than a particular length or alphabet.
 
-Generate IDs with random hex: `Math.random().toString(16).slice(2, 18)`.
-
-**Group containment**: Groups have no explicit membership property. Nodes become part of a group by having their `x`/`y` coordinates inside the group's bounding box. Position member nodes within the group's `x`, `y`, `width`, `height` bounds.
+Groups contain nodes spatially; there is no membership field. A group label is optional. Position child nodes inside the group's bounds.
 
 ```json
 {
-  "id": "g1a2b3c4d5e6f7g8", "type": "group",
-  "x": -50, "y": -50, "width": 700, "height": 250,
-  "label": "Identity Literature"
-},
-{
-  "id": "a1b2c3d4e5f6g7h8", "type": "text",
-  "x": 0, "y": 0, "width": 300, "height": 150,
-  "text": "# Identity Construction", "color": "6"
-},
-{
-  "id": "b2c3d4e5f6g7h8i9", "type": "file",
-  "file": "papers/corley-gioia-2004/paper.md",
-  "x": 400, "y": 0, "width": 300, "height": 150, "color": "4"
+  "id": "f60718293a4b5c6d",
+  "type": "group",
+  "x": -50,
+  "y": -50,
+  "width": 800,
+  "height": 300,
+  "color": "6"
 }
 ```
 
 ## Edges
 
-Connect nodes directionally. Properties:
+Edges require unique string `id`, `fromNode`, and `toNode`. Optional sides are `top`, `right`, `bottom`, or `left`; optional endpoint shapes are `none` or `arrow`. Every endpoint must name an existing node.
 
-| Field | Required | Values |
-|-------|----------|--------|
-| `id` | Yes | 16-char hex |
-| `fromNode` | Yes | Source node ID |
-| `toNode` | Yes | Target node ID |
-| `fromSide` | No | `top`, `right`, `bottom`, `left` |
-| `toSide` | No | `top`, `right`, `bottom`, `left` |
-| `label` | No | Relationship description |
-| `color` | No | `"1"`-`"6"` (presets) or hex |
+## Colors and Layout
 
-## Color Presets for Thematic Coding
+- Colors are presets `"1"` through `"6"` or a hex string such as `"#FF0000"`.
+- Use red for tensions, orange for gaps, green for established findings, cyan for methods, and purple for theoretical framing.
+- Leave 50–100px between nodes and 20–50px padding inside groups.
+- Use left-to-right layouts for causal or temporal flows and center-out layouts for construct maps.
 
-Apply colors to both **nodes** (more visually useful — larger surface area) and **edges**. Same presets work for both:
+## Validation Checklist
 
-| Color | Suggested use |
-|-------|--------------|
-| `"1"` (red) | Tensions, contradictions |
-| `"2"` (orange) | Questions, gaps |
-| `"3"` (yellow) | Key constructs (note: low contrast in light themes) |
-| `"4"` (green) | Established findings |
-| `"5"` (cyan) | Methodological notes |
-| `"6"` (purple) | Theoretical framing |
-
-Node coloring is typically more useful than edge coloring for research concept maps — a green paper node (established finding) is more visually informative than a green arrow.
-
-## Layout Guidelines
-
-- Place related nodes near each other (50-100px gaps)
-- Use groups to cluster papers by theme: `"type": "group", "label": "Identity Literature"`
-- Left-to-right for temporal/causal flows
-- Center-out for construct maps
-- Width 250-400, height 100-200 for readable nodes
-
-## Example: Literature Concept Map
-
-A researcher studying identity construction maps 4 papers and their conceptual relationships. The canvas shows construct clusters (identity, sensemaking, organizational change) with paper nodes linked to the constructs they address. Edges labeled with the relationship type (challenges, extends, applies).
-
-Create canvas files proactively when the researcher is in "exploration mode." Say: "I mapped the connections between your papers — open `notes/literature-map.canvas` in Obsidian to see it visually. You can drag things around."
+- Parse the file as JSON.
+- Require unique IDs across nodes and edges.
+- Require `text`, `file`, or `url` for the corresponding node types.
+- Accept group nodes without labels.
+- Confirm every edge endpoint resolves to a node ID.
+- Confirm side, endpoint, type, and color values come from the specification.
+- Use actual newline escapes (`\n`) inside JSON text strings.

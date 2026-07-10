@@ -40,7 +40,7 @@ Open with genuine curiosity about their research:
   - *If yes:* Do you need precise timestamps in your transcripts — say, to match a quote to a moment in the recording — or is clean readable text enough?
 - What browser do you use?
 
-**Listen for:** Zotero = we can connect it. Web article saving = smart extraction tool is available. Audio recording = we need transcription; timestamp precision determines which tool fits best. Browser = which Web Clipper to install.
+**Listen for:** Zotero = we can connect it. Web article saving = smart extraction tool is available. Audio recording = we need transcription; precise timestamp requirements may need a separate workflow because Carrel's Groq adapter returns plain text. Browser = which Web Clipper to install.
 
 ### About Their Comfort (~2 min)
 
@@ -155,7 +155,7 @@ The schema your output must match:
 - `cloud_consent` is a `bool`, NOT a string like `"local_only"`
 - `automation` is a full `AutomationConfig`; safe defaults shown above
 - `tools_configured` keys are the canonical tool names; values are booleans (true = installed and configured)
-- `preferences` is free-form (`dict[str, Any]`); the keys shown drive Phase 4 scaffold decisions (`qualitative`, `many_papers`, `writing` pick which `.base` database files get scaffolded)
+- `preferences` is free-form (`dict[str, Any]`); Phase 4 selects paper tracking from `many_papers|literature_review`, interview tracking from `qualitative|interviews`, and writing tracking from `writing|thesis|dissertation`
 - All optional fields can be omitted — Pydantic will default them
 
-Save the JSON directly to `.carrel/environment.json`. Validate by running `uv run python -c "from carrel.models import ResearcherProfile; ResearcherProfile.model_validate_json(open('.carrel/environment.json').read())"` — no exception means the schema is correct.
+Save this as a temporary profile JSON and pass it to `carrel vault init <path> --profile-file <profile.json>`. The command validates the complete profile before creating any vault files; do not scaffold defaults and patch `environment.json` afterward.

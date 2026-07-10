@@ -48,7 +48,7 @@ async def capture_with_defuddle(url: str, timeout: int = 60) -> tuple[str, dict]
             hint="Retry the capture. If the site is unusual, try the markitdown fallback.",
         ) from exc
 
-    content = payload.get("contentMarkdown")
+    content = payload.get("contentMarkdown") or payload.get("content")
     if not isinstance(content, str) or not content.strip():
         raise ConversionError(
             "defuddle returned no article content",

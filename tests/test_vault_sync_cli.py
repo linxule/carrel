@@ -105,6 +105,38 @@ def test_vault_automation_prompt_force_writes_prompt(tmp_path) -> None:
     assert "- Trust level: `consultative`" in content
 
 
+def test_vault_automation_prompt_rejects_advisory_trust(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    _write_profile(vault, trust_level=TrustLevel.ADVISORY)
+
+    result = runner.invoke(
+        app,
+        ["vault", "automation-prompt", "--vault", str(vault)],
+    )
+
+    assert result.exit_code == 1
+    assert "automation:write-prompt" in result.stderr
+    assert "consultative" in result.stderr
+    assert not (vault / "_meta" / "automation-prompt.md").exists()
+
+
+def test_vault_automation_prompt_rejects_symlinked_meta_directory(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    _write_profile(vault, trust_level=TrustLevel.CONSULTATIVE)
+    outside = tmp_path / "outside-meta"
+    outside.mkdir()
+    (vault / "_meta").symlink_to(outside, target_is_directory=True)
+
+    result = runner.invoke(
+        app,
+        ["vault", "automation-prompt", "--vault", str(vault)],
+    )
+
+    assert result.exit_code == 1
+    assert "Path escapes vault root" in result.stderr
+    assert list(outside.iterdir()) == []
+
+
 def test_vault_check_sync_shows_hint_when_no_markers_exist(tmp_path) -> None:
     vault = tmp_path / "vault"
     _write_profile(vault)

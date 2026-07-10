@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 # Carrel Installer — cross-platform setup for AI-augmented research
 #
@@ -31,7 +32,7 @@ fail() { echo -e "  ${RED}✗${NC} $1"; }
 
 OS="$(uname -s)"
 ARCH="$(uname -m)"
-TOTAL_STEPS=8
+TOTAL_STEPS=9
 
 step() { echo -e "\n${BLUE}[$1/$TOTAL_STEPS]${NC} $2"; }
 
@@ -106,13 +107,29 @@ case "$OS" in
       ok "Homebrew already installed"
     else
       info "Installing Homebrew..."
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      if [[ -f /opt/homebrew/bin/brew ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        if ! grep -q '/opt/homebrew/bin/brew' ~/.zprofile 2>/dev/null; then
+      # Capture the installer explicitly: a failed $(curl ...) substitution is
+      # NOT caught by `set -e`, so a bare `bash -c "$(curl ...)"` would silently
+      # run an empty script and report success on a network error.
+      brew_installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+        fail "Could not download the Homebrew installer (network error)."
+        info "Retry, or install Homebrew manually: https://brew.sh"
+        exit 1
+      }
+      /bin/bash -c "$brew_installer"
+      # Persist brew to the shell profile — Apple Silicon uses /opt/homebrew,
+      # Intel Macs use /usr/local.
+      brew_bin=""
+      if [[ -x /opt/homebrew/bin/brew ]]; then
+        brew_bin="/opt/homebrew/bin/brew"
+      elif [[ -x /usr/local/bin/brew ]]; then
+        brew_bin="/usr/local/bin/brew"
+      fi
+      if [[ -n "$brew_bin" ]]; then
+        eval "$("$brew_bin" shellenv)"
+        if ! grep -q "$brew_bin" ~/.zprofile 2>/dev/null; then
           echo '' >> ~/.zprofile
           echo '# Homebrew' >> ~/.zprofile
-          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+          echo "eval \"\$($brew_bin shellenv)\"" >> ~/.zprofile
         fi
       fi
       ok "Homebrew installed"
@@ -285,9 +302,32 @@ else
   info "Plugin install needs Claude Desktop — see next steps"
 fi
 
-# ─── 8. Verify ───
+# ─── 8. Carrel CLI ───
 
-step 8 "Verifying installation"
+step 8 "Carrel CLI (powers the plugin's hooks and commands)"
+if command -v carrel &>/dev/null; then
+  info "Checking for carrel CLI updates..."
+  if uv tool upgrade carrel &>/dev/null; then
+    ok "Already installed (up to date)"
+  else
+    ok "Already installed"
+    info "Update check failed — continuing with existing version. Retry manually: uv tool upgrade carrel"
+  fi
+else
+  info "Installing carrel CLI..."
+  if uv tool install git+https://github.com/linxule/carrel.git; then
+    export PATH="$HOME/.local/bin:$PATH"
+    uv tool update-shell &>/dev/null || true
+    ok "Installed"
+  else
+    fail "carrel CLI install failed — plugin hooks and commands won't work until it's installed"
+    info "Retry manually: uv tool install git+https://github.com/linxule/carrel.git"
+  fi
+fi
+
+# ─── 9. Verify ───
+
+step 9 "Verifying installation"
 MISSING=""
 command -v git    &>/dev/null || MISSING="$MISSING git"
 command -v node   &>/dev/null || MISSING="$MISSING node"
@@ -295,6 +335,7 @@ command -v bun    &>/dev/null || MISSING="$MISSING bun"
 command -v uv     &>/dev/null || MISSING="$MISSING uv"
 command -v gh     &>/dev/null || MISSING="$MISSING gh"
 command -v claude &>/dev/null || MISSING="$MISSING claude"
+command -v carrel &>/dev/null || MISSING="$MISSING carrel"
 
 if [[ -n "$MISSING" ]]; then
   echo -e "  ${YELLOW}⚠${NC}  Missing:$MISSING"

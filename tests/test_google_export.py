@@ -184,6 +184,77 @@ def test_google_export_failure_keeps_raw_file(tmp_path, monkeypatch) -> None:
     assert exported_path.exists()
 
 
+def test_google_export_blocks_high_sensitivity_before_export(tmp_path, monkeypatch) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    async def fake_export(url: str, workspace: Path, export_format: str = "docx") -> Path:  # noqa: ARG001
+        raise AssertionError("export should not run for high sensitivity")
+
+    monkeypatch.setattr("carrel.cli.google.export_from_google_workspace", fake_export)
+
+    result = runner.invoke(
+        app,
+        [
+            "google",
+            "export",
+            "https://docs.google.com/document/d/doc123/edit",
+            "--vault",
+            str(vault),
+            "--sensitivity",
+            "high",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "HIGH sensitivity blocks Google Workspace export" in result.output
+
+
+def test_google_export_explain_is_pure_and_creates_no_export_dir(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    result = runner.invoke(
+        app,
+        [
+            "google",
+            "export",
+            "https://docs.google.com/document/d/doc123/edit",
+            "--vault",
+            str(vault),
+            "--explain",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    # --explain must not touch the filesystem.
+    assert not (vault / ".carrel" / "exports").exists()
+
+
+def test_google_export_explain_high_sensitivity_reports_block(tmp_path) -> None:
+    vault = tmp_path / "vault"
+    _init_vault(vault)
+
+    result = runner.invoke(
+        app,
+        [
+            "google",
+            "export",
+            "https://docs.google.com/document/d/doc123/edit",
+            "--vault",
+            str(vault),
+            "--sensitivity",
+            "high",
+            "--explain",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    # Explain reflects the real outcome — a HIGH run always blocks — not a phantom tool.
+    assert "HIGH sensitivity blocks" in result.output
+    assert not (vault / ".carrel" / "exports").exists()
+
+
 def test_google_export_without_gws_shows_install_hint(tmp_path, monkeypatch) -> None:
     vault = tmp_path / "vault"
     _init_vault(vault)

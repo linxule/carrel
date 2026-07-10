@@ -1,0 +1,630 @@
+{
+  "manifest_version": 2,
+  "last_full_reviewed": "2026-06-30",
+  "refresh_cadence": "monthly",
+  "purpose": "Track external packages, APIs, host harnesses, and documentation contracts referenced by the portable Carrel skill and legacy adapters so scheduled refresh jobs can detect upstream drift.",
+  "entry_required_fields": [
+    "id",
+    "last_reviewed",
+    "kind",
+    "display_name",
+    "contract_marker",
+    "sources",
+    "skill_references",
+    "repo_references",
+    "refresh_checks",
+    "rationale"
+  ],
+  "entries": [
+    {
+      "id": "liteparse",
+      "last_reviewed": "2026-07-10",
+      "kind": "npm-package",
+      "display_name": "LiteParse",
+      "package": "@llamaindex/liteparse",
+      "observed_version": "2.5.0",
+      "review_note": "2026-07-10 version probe observed 2.5.0; the `lit parse <file> --format markdown` contract and npm install path remain current.",
+      "version_probe": "npm view @llamaindex/liteparse version --json",
+      "contract_marker": "CLI command `lit parse <file> --format markdown`; npm package also exposes `liteparse` binary.",
+      "sources": [
+        "https://github.com/run-llama/liteparse",
+        "https://www.npmjs.com/package/@llamaindex/liteparse"
+      ],
+      "refresh_checks": [
+        "Confirm install hint remains `npm install -g @llamaindex/liteparse` or update if upstream changes.",
+        "Confirm `lit parse` still accepts `--format markdown`.",
+        "Confirm output parsing still handles markdown/text/json variants."
+      ],
+      "rationale": "Default PDF conversion path for local/private paper ingestion.",
+      "skill_references": [
+        "scripts/carrel_core/adapters.py",
+        "references/workflows/ingestion.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "src/carrel/env/install.py",
+        "src/carrel/convert/adapters/liteparse.py"
+      ]
+    },
+    {
+      "id": "markitdown",
+      "last_reviewed": "2026-06-30",
+      "kind": "python-package",
+      "display_name": "MarkItDown",
+      "package": "markitdown",
+      "extras": [
+        "docx",
+        "pptx",
+        "xlsx"
+      ],
+      "observed_version": "0.1.6",
+      "version_probe": "python3 -m pip index versions markitdown",
+      "contract_marker": "CLI command `markitdown <file-or-url>`; Office support depends on docx/pptx/xlsx extras.",
+      "sources": [
+        "https://github.com/microsoft/markitdown",
+        "https://pypi.org/project/markitdown/"
+      ],
+      "refresh_checks": [
+        "Confirm package extras names still include docx, pptx, and xlsx.",
+        "Confirm CLI still writes Markdown to stdout by default.",
+        "Regenerate uv.lock if dependency floor or extras change."
+      ],
+      "rationale": "Local fallback for non-PDF conversion and web capture.",
+      "skill_references": [
+        "assets/templates/my-environment.md",
+        "scripts/carrel_core/adapters.py"
+      ],
+      "repo_references": [
+        "pyproject.toml",
+        "uv.lock",
+        "src/carrel/env/install.py",
+        "src/carrel/convert/adapters/markdownify.py",
+        "src/carrel/convert/adapters/defuddle.py"
+      ]
+    },
+    {
+      "id": "defuddle",
+      "last_reviewed": "2026-06-30",
+      "kind": "npm-package",
+      "display_name": "Defuddle",
+      "package": "defuddle",
+      "observed_version": "0.19.1",
+      "version_probe": "npm view defuddle version --json",
+      "contract_marker": "CLI command `defuddle parse <url> --markdown`; JSON mode returns Markdown in `content` or `contentMarkdown` depending on version.",
+      "sources": [
+        "https://github.com/kepano/defuddle",
+        "https://www.npmjs.com/package/defuddle"
+      ],
+      "refresh_checks": [
+        "Confirm install hint remains `npm install -g defuddle`.",
+        "Confirm `parse --markdown` still emits Markdown content.",
+        "Confirm JSON content field names in `src/carrel/convert/adapters/defuddle.py`."
+      ],
+      "rationale": "Preferred local web article extraction adapter.",
+      "skill_references": [
+        "scripts/carrel_core/adapters.py",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "src/carrel/env/install.py",
+        "src/carrel/convert/adapters/defuddle.py"
+      ]
+    },
+    {
+      "id": "coli",
+      "last_reviewed": "2026-06-30",
+      "kind": "npm-package",
+      "display_name": "coli",
+      "package": "@marswave/coli",
+      "observed_version": "0.0.20",
+      "version_probe": "npm view @marswave/coli version --json",
+      "contract_marker": "CLI command `coli asr <file> --model sensevoice`.",
+      "sources": [
+        "https://github.com/marswaveai/coli",
+        "https://www.npmjs.com/package/@marswave/coli"
+      ],
+      "refresh_checks": [
+        "Confirm install hint remains `npm install -g @marswave/coli`.",
+        "Confirm ASR command and `sensevoice` model option remain valid.",
+        "Refresh ffmpeg/media-format caveat if upstream narrows or expands requirements."
+      ],
+      "rationale": "Local audio transcription adapter for private media files.",
+      "skill_references": [
+        "scripts/carrel_core/adapters.py",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "src/carrel/env/install.py",
+        "src/carrel/transcribe/adapters/coli.py"
+      ]
+    },
+    {
+      "id": "gws",
+      "last_reviewed": "2026-06-30",
+      "kind": "npm-package",
+      "display_name": "Google Workspace CLI",
+      "package": "@googleworkspace/cli",
+      "observed_version": "0.22.5",
+      "version_probe": "npm view @googleworkspace/cli version --json",
+      "contract_marker": "CLI command `gws drive files export --params '{\"fileId\":\"...\",\"mimeType\":\"...\"}' -o <path>`; auth via `gws auth setup` or `gws auth login`.",
+      "sources": [
+        "https://github.com/googleworkspace/cli",
+        "https://www.npmjs.com/package/@googleworkspace/cli",
+        "https://developers.google.com/workspace/drive/api/reference/rest/v3/files/export"
+      ],
+      "refresh_checks": [
+        "Confirm package remains pre-1.0 or update breaking-change risk.",
+        "Confirm Drive export command shape and auth hints.",
+        "Confirm Google Drive files.export MIME type support."
+      ],
+      "rationale": "Optional Google Docs/Sheets/Slides export path.",
+      "skill_references": [
+        "scripts/carrel_core/ingestion.py",
+        "references/workflows/ingestion.md",
+        "references/workflows/onboarding.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "src/carrel/env/install.py",
+        "src/carrel/google/export.py",
+        "src/carrel/cli/google.py"
+      ]
+    },
+    {
+      "id": "mineru",
+      "last_reviewed": "2026-06-30",
+      "kind": "cloud-api",
+      "display_name": "MinerU API",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "v4 signed-upload flow: `/api/v4/file-urls/batch`, PUT signed upload URL, poll `/api/v4/extract-results/batch/{batch_id}`, download result zip and read Markdown.",
+      "sources": [
+        "https://mineru.net/apiManage/docs"
+      ],
+      "refresh_checks": [
+        "Confirm v4 endpoints and response fields for batch id, upload URL, result zip URL.",
+        "Check quota/free-tier wording in docs instead of pinning daily pages in Carrel.",
+        "Confirm high-sensitivity cloud block still applies before API calls."
+      ],
+      "rationale": "Cloud PDF conversion for complex tables, figures, and scans.",
+      "skill_references": [
+        "references/workflows/ingestion.md",
+        "references/workflows/onboarding.md",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "src/carrel/convert/adapters/mineru.py",
+        "src/carrel/convert/pipeline.py",
+        "docs/api-keys-guide.md"
+      ]
+    },
+    {
+      "id": "mistral-ocr",
+      "last_reviewed": "2026-06-30",
+      "kind": "cloud-api",
+      "display_name": "Mistral OCR",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Upload local PDFs with purpose `ocr`, request a signed file URL, then call OCR with `model: mistral-ocr-latest` and document `{ \"type\": \"document_url\", \"document_url\": <signed_url> }`; read page markdown.",
+      "sources": [
+        "https://docs.mistral.ai/api/endpoint/ocr",
+        "https://docs.mistral.ai/api/endpoint/files",
+        "https://docs.mistral.ai/studio-api/document-processing/basic_ocr",
+        "https://docs.mistral.ai/openapi.yaml"
+      ],
+      "refresh_checks": [
+        "Confirm upload, signed URL, and OCR endpoint shapes.",
+        "Confirm `mistral-ocr-latest` remains the recommended OCR model alias.",
+        "Confirm high-sensitivity cloud block still applies before API calls."
+      ],
+      "rationale": "Cloud OCR option for scanned and layout-heavy PDFs when explicit cloud routing is acceptable.",
+      "skill_references": [
+        "references/workflows/ingestion.md",
+        "references/workflows/onboarding.md",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "src/carrel/convert/adapters/mistral_ocr.py",
+        "src/carrel/convert/pipeline.py",
+        "docs/api-keys-guide.md"
+      ]
+    },
+    {
+      "id": "paddleocr",
+      "last_reviewed": "2026-06-30",
+      "kind": "python-package",
+      "display_name": "PaddleOCR PP-StructureV3",
+      "package": "paddleocr",
+      "observed_version": "3.7.0",
+      "version_probe": "python3 -m pip index versions paddleocr",
+      "contract_marker": "Candidate local OCR/layout adapter only; current Carrel runtimes do not accept `--tool paddleocr`. A future adapter would likely use `PPStructureV3().predict(...)` and `concatenate_markdown_pages(...)` for multi-page PDFs.",
+      "sources": [
+        "https://www.paddleocr.ai/latest/en/version3.x/installation.html",
+        "https://paddlepaddle.github.io/PaddleOCR/main/en/version3.x/pipeline_usage/PP-StructureV3.html",
+        "https://pypi.org/project/paddleocr/"
+      ],
+      "refresh_checks": [
+        "Confirm current paddleocr and paddlepaddle versions and wheel sizes before recommending install.",
+        "Confirm `doc-parser` dependency group and model download behavior.",
+        "Confirm Markdown extraction API names before adding a deterministic adapter."
+      ],
+      "rationale": "Evaluated local OCR path for scanned PDFs; tracked as a candidate, not an implemented LiteParse replacement, because install and model runtime are materially heavier.",
+      "skill_references": [
+        "scripts/carrel_core/setup_env.py",
+        "references/workflows/ingestion.md",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "groq",
+      "last_reviewed": "2026-06-30",
+      "kind": "cloud-api",
+      "display_name": "Groq Speech to Text",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "OpenAI-compatible transcription endpoint `/openai/v1/audio/transcriptions` using `whisper-large-v3-turbo`.",
+      "sources": [
+        "https://console.groq.com/docs/speech-to-text"
+      ],
+      "refresh_checks": [
+        "Confirm endpoint, multipart field names, and model name.",
+        "Confirm cloud/high-sensitivity routing behavior remains tested."
+      ],
+      "rationale": "Cloud audio transcription fallback.",
+      "skill_references": [
+        "references/workflows/onboarding.md",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "src/carrel/transcribe/adapters/groq.py",
+        "src/carrel/cli/transcript.py"
+      ]
+    },
+    {
+      "id": "gemini",
+      "last_reviewed": "2026-06-30",
+      "kind": "cloud-api",
+      "display_name": "Gemini video understanding",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Interactions API `/v1beta/interactions` with `model: gemini-3.5-flash` and video input `{ \"type\": \"video\", \"uri\": <youtube-url> }`.",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/video-understanding"
+      ],
+      "refresh_checks": [
+        "Confirm Interactions API path, model name, auth header, and output_text parsing.",
+        "Confirm YouTube URL/video limits and public-access requirements.",
+        "Keep docs clear that video URLs are sent to Google."
+      ],
+      "rationale": "Cloud YouTube/video transcription and multimodal model access.",
+      "skill_references": [
+        "assets/templates/my-environment.md",
+        "references/workflows/onboarding.md",
+        "references/contracts/optional-adapters.md"
+      ],
+      "repo_references": [
+        "src/carrel/transcribe/adapters/gemini.py",
+        "src/carrel/cli/transcript.py",
+        "docs/api-keys-guide.md"
+      ]
+    },
+    {
+      "id": "youtube-transcript-api",
+      "last_reviewed": "2026-06-30",
+      "kind": "python-package",
+      "display_name": "youtube-transcript-api",
+      "package": "youtube-transcript-api",
+      "observed_version": "1.2.4",
+      "version_probe": "python3 -m pip index versions youtube-transcript-api",
+      "contract_marker": "Python API `YouTubeTranscriptApi().fetch(video_id)` returns snippets with `text` and `start`; classify as network caption fetch, not local processing.",
+      "sources": [
+        "https://pypi.org/project/youtube-transcript-api/",
+        "https://developers.google.com/youtube/v3/docs/captions/download"
+      ],
+      "refresh_checks": [
+        "Confirm public package API still supports `fetch(video_id)`.",
+        "Confirm exception names used in adapter remain valid.",
+        "Keep sensitivity routing as network, not local."
+      ],
+      "rationale": "Caption fetch path for YouTube URLs when host caption tooling is unavailable.",
+      "skill_references": [
+        "references/contracts/optional-adapters.md",
+        "references/workflows/ingestion.md"
+      ],
+      "repo_references": [
+        "pyproject.toml",
+        "src/carrel/transcribe/adapters/youtube_captions.py",
+        "src/carrel/policy/sensitivity.py"
+      ]
+    },
+    {
+      "id": "codex-skills",
+      "last_reviewed": "2026-06-30",
+      "kind": "host-harness",
+      "display_name": "Codex Skills",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Skill folder with `SKILL.md`, optional `scripts/`, `references/`, `assets/`, and Codex-facing `agents/openai.yaml`; install under `.agents/skills` or user skill dirs.",
+      "sources": [
+        "https://developers.openai.com/codex/skills",
+        "https://agentskills.io/specification"
+      ],
+      "refresh_checks": [
+        "Confirm skill folder layout and discovery paths.",
+        "Confirm `agents/openai.yaml` schema remains compatible.",
+        "Run skill-creator quick validation."
+      ],
+      "rationale": "Primary portable distribution target for the Carrel skill pack.",
+      "skill_references": [
+        "SKILL.md",
+        "agents/openai.yaml",
+        "references/contracts/host-compatibility.md"
+      ],
+      "repo_references": []
+    },
+    {
+      "id": "claude-code-skills",
+      "last_reviewed": "2026-06-30",
+      "kind": "host-harness",
+      "display_name": "Claude Code Skills",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Local skill folder under `.claude/skills/<name>` or `~/.claude/skills/<name>` with optional supporting scripts and files.",
+      "sources": [
+        "https://docs.anthropic.com/en/docs/claude-code/skills"
+      ],
+      "refresh_checks": [
+        "Confirm local skill discovery paths.",
+        "Confirm slash-command/hook surfaces remain adapter-only."
+      ],
+      "rationale": "Optional adapter target for existing Claude Code users.",
+      "skill_references": [
+        "references/contracts/host-compatibility.md",
+        "references/contracts/surface-map.md"
+      ],
+      "repo_references": []
+    },
+    {
+      "id": "claude-app-desktop",
+      "last_reviewed": "2026-07-10",
+      "kind": "host-harness",
+      "display_name": "Claude app, API, Desktop, and Cowork",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Cowork scheduled tasks are created with `/schedule` or the Scheduled page. Remote tasks can run without a device, but local-folder access requires the folder connection and Claude Desktop availability; `claude -p` is a credential-dependent advanced fallback.",
+      "review_note": "2026-07-10 refresh replaced the stale Desktop Schedule-tab flow with current Cowork scheduling and local-folder availability rules.",
+      "sources": [
+        "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+        "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+        "https://code.claude.com/docs/en/headless"
+      ],
+      "refresh_checks": [
+        "Confirm Cowork scheduling entry points and available cadence/model/folder options.",
+        "Confirm when scheduled tasks run remotely versus require Desktop for local-folder access.",
+        "Confirm `claude -p` authentication and non-interactive behavior before changing fallback guidance."
+      ],
+      "rationale": "Prevents overclaiming local-vault script portability on non-Code Claude surfaces.",
+      "skill_references": [
+        "references/contracts/host-compatibility.md",
+        "references/workflows/automation.md"
+      ],
+      "repo_references": [
+        "CLAUDE.md",
+        "commands/carrel-setup.md",
+        "skills/automation/SKILL.md",
+        "skills/automation/references/cowork-scheduling-guide.md"
+      ]
+    },
+    {
+      "id": "kimi-code-skills",
+      "last_reviewed": "2026-06-30",
+      "kind": "host-harness",
+      "display_name": "Kimi Code Skills",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Directory-form skills with `SKILL.md`, scripts/references, `.kimi-code/skills`, `.agents/skills`, user skill dirs, and plugin packaging via `kimi.plugin.json`.",
+      "sources": [
+        "https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html",
+        "https://www.kimi.com/code/docs/en/kimi-code-cli/customization/plugins.html"
+      ],
+      "refresh_checks": [
+        "Confirm local skill locations and plugin packaging fields.",
+        "Confirm desktop/app surfaces still lack verified bundled local script execution before changing compatibility."
+      ],
+      "rationale": "Major target harness for portable skill reuse.",
+      "skill_references": [
+        "references/contracts/host-compatibility.md"
+      ],
+      "repo_references": []
+    },
+    {
+      "id": "opencode-skills",
+      "last_reviewed": "2026-06-30",
+      "kind": "host-harness",
+      "display_name": "OpenCode Skills",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Agent Skills compatibility with `.agents/skills`, `.opencode/skills`, user config dirs, and bash/skill tool permissions.",
+      "sources": [
+        "https://opencode.ai/docs/skills/",
+        "https://opencode.ai/docs/tools/"
+      ],
+      "refresh_checks": [
+        "Confirm current local skill locations.",
+        "Confirm permissions needed for shell execution and file reads."
+      ],
+      "rationale": "Major local agent harness with explicit Agent Skills support.",
+      "skill_references": [
+        "references/contracts/host-compatibility.md"
+      ],
+      "repo_references": []
+    },
+    {
+      "id": "gemini-cli-skills",
+      "last_reviewed": "2026-06-30",
+      "kind": "host-harness",
+      "display_name": "Gemini CLI Skills",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Agent Skills discovery under `.agents/skills` or `.gemini/skills`; activation grants access to bundled scripts/assets after consent.",
+      "sources": [
+        "https://geminicli.com/docs/cli/skills/",
+        "https://geminicli.com/docs/cli/tutorials/skills-getting-started/"
+      ],
+      "refresh_checks": [
+        "Confirm Agent Skills feature status and discovery paths.",
+        "Confirm activation/consent behavior for bundled scripts."
+      ],
+      "rationale": "Major local agent harness with Agent Skills support.",
+      "skill_references": [
+        "references/contracts/host-compatibility.md"
+      ],
+      "repo_references": []
+    },
+    {
+      "id": "obsidian",
+      "last_reviewed": "2026-07-10",
+      "kind": "desktop-app",
+      "display_name": "Obsidian",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Local Markdown vault viewer/editor; Bases use mapping-valued YAML with plural `filters` and view `order`/`groupBy`; JSON Canvas follows spec 1.0.",
+      "review_note": "2026-07-10 refresh migrated shipped Bases to the current schema and revalidated Markdown and JSON Canvas guidance against pinned upstream sources.",
+      "sources": [
+        "https://obsidian.md",
+        "https://obsidian.md/clipper",
+        "https://help.obsidian.md/bases/syntax",
+        "https://jsoncanvas.org/spec/1.0/",
+        "https://github.com/kepano/obsidian-skills/tree/a1dc48e68138490d522c04cbf5822214c6eb1202"
+      ],
+      "refresh_checks": [
+        "Confirm install hints for macOS/Linux/Windows.",
+        "Confirm Web Clipper wording and vault config files still make sense.",
+        "Validate every shipped `.base` against current Bases syntax and paired portable assets.",
+        "Validate Canvas guidance against JSON Canvas 1.0."
+      ],
+      "rationale": "Human-facing GUI for the research vault.",
+      "skill_references": [
+        "assets/templates/interview-tracker.base",
+        "assets/templates/my-environment.md",
+        "assets/templates/obsidian-config.json",
+        "assets/templates/paper-tracker.base",
+        "assets/templates/reading-progress.base",
+        "assets/templates/writing-tracker.base",
+        "references/workflows/onboarding.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "docs/self-setup-guide.md",
+        "skills/research-partner/references/concept-mapping.md",
+        "skills/self-improve/references/capability-registry.md",
+        "skills/vault-ops/references/obsidian-formatting.md",
+        "skills/vault-ops/references/research-databases.md",
+        "src/carrel/env/install.py",
+        "templates/interview-tracker.base",
+        "templates/paper-tracker.base",
+        "templates/reading-progress.base",
+        "templates/writing-tracker.base"
+      ]
+    },
+    {
+      "id": "zotero",
+      "last_reviewed": "2026-06-30",
+      "kind": "external-service",
+      "display_name": "Zotero",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Optional reference-library service requiring `ZOTERO_API_KEY` and `ZOTERO_LIBRARY_ID` when using zotero-mcp or equivalent host adapter.",
+      "sources": [
+        "https://www.zotero.org/download/",
+        "https://www.zotero.org/settings/keys"
+      ],
+      "refresh_checks": [
+        "Confirm API-key setup instructions and privacy note.",
+        "Confirm install hints for desktop app."
+      ],
+      "rationale": "Optional reference-library integration.",
+      "skill_references": [
+        "assets/templates/my-environment.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "docs/api-keys-guide.md",
+        "src/carrel/env/install.py"
+      ]
+    },
+    {
+      "id": "vox-openrouter",
+      "last_reviewed": "2026-06-30",
+      "kind": "host-adapter",
+      "display_name": "Vox / OpenRouter multi-model access",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Host MCP/adapter capability, not diagnosed by the portable runtime; OpenRouter uses `OPENROUTER_API_KEY`, Gemini uses `GEMINI_API_KEY`.",
+      "sources": [
+        "https://openrouter.ai/docs/api/reference/authentication",
+        "https://github.com/linxule/vox-mcp"
+      ],
+      "refresh_checks": [
+        "Confirm Vox install/config remains host-adapter-only.",
+        "Confirm OpenRouter key/auth wording and provider privacy note.",
+        "Do not add Vox to portable env doctor unless the bundled runtime implements it."
+      ],
+      "rationale": "Avoids conflating host MCP model access with portable skill runtime capabilities.",
+      "skill_references": [
+        "assets/templates/my-environment.md"
+      ],
+      "repo_references": [
+        "README.md",
+        "docs/api-keys-guide.md"
+      ]
+    },
+    {
+      "id": "diagnostic-tools",
+      "last_reviewed": "2026-06-30",
+      "kind": "runtime-prerequisites",
+      "display_name": "Portable runtime diagnostic tools",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Portable runtime requires Python 3.10+. `env doctor` may also report git, node, bun, uv, lit, markitdown, defuddle, coli, and gws as optional diagnostics or adapters.",
+      "sources": [
+        "https://www.python.org/downloads/",
+        "https://nodejs.org/en/download",
+        "https://bun.sh/docs/installation",
+        "https://docs.astral.sh/uv/getting-started/installation/",
+        "https://git-scm.com/downloads"
+      ],
+      "skill_references": [
+        "SKILL.md",
+        "scripts/carrel_core/setup_env.py",
+        "references/contracts/host-compatibility.md"
+      ],
+      "repo_references": [],
+      "refresh_checks": [
+        "Confirm Python 3.10+ remains the runtime floor.",
+        "Confirm env doctor generic probes are diagnostic-only unless listed as adapters.",
+        "Confirm install guidance does not imply node, bun, uv, or git are required for every skill invocation."
+      ],
+      "rationale": "Keeps generic env doctor probes distinct from maintained conversion, transcription, cloud, and host adapter contracts."
+    }
+  ]
+}

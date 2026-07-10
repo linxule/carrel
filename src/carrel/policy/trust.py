@@ -6,8 +6,9 @@ from carrel.models import TrustLevel
 ACTIONS: dict[str, TrustLevel] = {
     "automation:propose": TrustLevel.CONSULTATIVE,
     "automation:execute": TrustLevel.DELEGATED,
-    "automation:write-prompt": TrustLevel.DELEGATED,
+    "automation:write-prompt": TrustLevel.CONSULTATIVE,
     "wiki:propose": TrustLevel.CONSULTATIVE,
+    "wiki:apply-approved": TrustLevel.CONSULTATIVE,
     "wiki:write": TrustLevel.DELEGATED,
     "vault:move-file": TrustLevel.DELEGATED,
     "vault:reorganize": TrustLevel.PARTNERSHIP,

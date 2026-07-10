@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawnSync } = require('child_process');
 const { checkVersion } = require('./check-version');
 
 function findCarrelRoot(startPath) {
@@ -118,41 +118,41 @@ function checkEnvironmentDrift(projectRoot) {
     }
   };
 
+  // Synchronous: main() calls process.exit(0) right after this returns, which
+  // would otherwise terminate the process before an async spawn's callbacks run.
   try {
-    const child = spawn('carrel', ['env', 'validate', '--vault', projectRoot, '--format', 'json'], {
+    // 3000ms: a cold Python start of `carrel env validate` can exceed 1000ms
+    // on slower machines. The 24h throttle above bounds how often this cost
+    // is paid, so a rare slower session-start block is an acceptable trade.
+    const result = spawnSync('carrel', ['env', 'validate', '--vault', projectRoot, '--format', 'json'], {
       cwd: projectRoot,
+      timeout: 3000,
+      encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    let stderr = '';
-    child.stderr.on('data', chunk => {
-      stderr += chunk.toString();
-    });
-
-    const timeout = setTimeout(() => {
-      child.kill();
-    }, 1000);
-
-    child.on('error', error => {
-      clearTimeout(timeout);
-      logHookError('env validate spawn', error);
-      stampValidatedAt();
-    });
-
-    child.on('close', code => {
-      clearTimeout(timeout);
-      const errorText = stderr.trim();
-      if (code === 2) {
-        console.log('⚠ Environment drift detected — run /carrel-fix for details.');
-      } else if (code === 1) {
-        console.log('⚠ environment.json is invalid — run /carrel-setup to regenerate or /carrel-fix for guided recovery.');
-      } else if (errorText) {
-        console.error('carrel-hook:', errorText);
-      } else if (code !== 0) {
-        console.error('carrel-hook:', `env validate exited with code ${code}`);
+    if (result.error) {
+      if (result.error.code === 'ENOENT') {
+        console.log('⚠ Carrel CLI not found — install with: uv tool install git+https://github.com/linxule/carrel.git');
+      } else {
+        logHookError('env validate spawn', result.error);
       }
       stampValidatedAt();
-    });
+      return;
+    }
+
+    const errorText = (result.stderr || '').trim();
+    const code = result.status;
+    if (code === 2) {
+      console.log('⚠ Environment drift detected — run /carrel-fix for details.');
+    } else if (code === 1) {
+      console.log('⚠ environment.json is invalid — run /carrel-setup to regenerate or /carrel-fix for guided recovery.');
+    } else if (errorText) {
+      console.error('carrel-hook:', errorText);
+    } else if (code !== 0) {
+      console.error('carrel-hook:', `env validate exited with code ${code}`);
+    }
+    stampValidatedAt();
   } catch (error) {
     logHookError('env validate start', error);
   }

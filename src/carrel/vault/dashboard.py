@@ -31,7 +31,9 @@ class ActivityStats(BaseModel):
 
 
 def _count_files(path: Path) -> int:
-    if not path.exists():
+    # is_dir() is False for both a missing path and a file that happens to share
+    # the folder name (papers/transcripts/inbox) — rglob() on a file raises.
+    if not path.is_dir():
         return 0
     return sum(1 for child in path.rglob("*") if child.is_file())
 
@@ -58,12 +60,18 @@ def _trust_unlocked_actions(trust_level: TrustLevel) -> list[str]:
 
     fallback = {
         TrustLevel.ADVISORY: [],
-        TrustLevel.CONSULTATIVE: ["automation:propose", "wiki:propose"],
+        TrustLevel.CONSULTATIVE: [
+            "automation:propose",
+            "automation:write-prompt",
+            "wiki:propose",
+            "wiki:apply-approved",
+        ],
         TrustLevel.DELEGATED: [
             "automation:propose",
             "automation:execute",
             "automation:write-prompt",
             "wiki:propose",
+            "wiki:apply-approved",
             "wiki:write",
             "vault:move-file",
         ],
@@ -72,6 +80,7 @@ def _trust_unlocked_actions(trust_level: TrustLevel) -> list[str]:
             "automation:execute",
             "automation:write-prompt",
             "wiki:propose",
+            "wiki:apply-approved",
             "wiki:write",
             "vault:move-file",
             "vault:reorganize",

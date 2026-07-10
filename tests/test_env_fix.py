@@ -173,6 +173,57 @@ def test_env_fix_returns_nonzero_for_ambiguous_legacy_sensitivity(tmp_path, monk
     assert "Cannot safely fix sensitivity='external'" in result.output
 
 
+def test_env_fix_narrows_string_false_cloud_consent(tmp_path, monkeypatch) -> None:
+    """A hand-edited string "false" is a safe, narrowing repair.
+
+    `bool("false")` is `True` in Python, so this exact typo is the one case
+    worth auto-repairing: it can only ever narrow consent to `False`, never
+    widen it.
+    """
+    vault = tmp_path / "vault"
+    payload = _profile_payload()
+    payload["cloud_consent"] = "false"
+    _write_environment(vault, payload)
+
+    async def fake_audit(project_path=None):  # noqa: ARG001
+        return _audit_result()
+
+    monkeypatch.setattr("carrel.cli.env.audit", fake_audit)
+
+    result = runner.invoke(app, ["env", "fix", "--vault", str(vault), "--format", "json"])
+
+    assert result.exit_code == 0, result.output
+    fixed_payload = json.loads((vault / ".carrel" / "environment.json").read_text(encoding="utf-8"))
+    assert fixed_payload["cloud_consent"] is False
+
+
+def test_env_fix_defers_string_true_cloud_consent(tmp_path, monkeypatch) -> None:
+    """A hand-edited string "true" must never be auto-repaired to `True`.
+
+    Converting it would widen consent automatically; only a human editing
+    the file directly may do that, so `env fix --safe` must defer and leave
+    the file untouched.
+    """
+    vault = tmp_path / "vault"
+    payload = _profile_payload()
+    payload["cloud_consent"] = "true"
+    _write_environment(vault, payload)
+    original_text = (vault / ".carrel" / "environment.json").read_text(encoding="utf-8")
+
+    async def fake_audit(project_path=None):  # noqa: ARG001
+        return _audit_result()
+
+    monkeypatch.setattr("carrel.cli.env.audit", fake_audit)
+
+    result = runner.invoke(app, ["env", "fix", "--vault", str(vault), "--format", "json"])
+
+    assert result.exit_code == 2, result.output
+    body = json.loads(result.stdout)
+    assert any("cloud_consent" in item for item in body["deferred"])
+    assert (vault / ".carrel" / "environment.json").read_text(encoding="utf-8") == original_text
+    assert not (vault / ".carrel" / "environment.json.bak").exists()
+
+
 def test_env_fix_creates_backup_before_change(tmp_path, monkeypatch) -> None:
     vault = tmp_path / "vault"
     payload = _profile_payload()

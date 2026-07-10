@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sysconfig
 from pathlib import Path
 
 from carrel.env.install import install_command
@@ -40,6 +41,11 @@ TOOL_COMMAND_EXAMPLES = {
         "carrel paper convert paper.pdf --tool mineru",
         "carrel paper convert paper.pdf --tool mineru --force",
         "carrel google export https://docs.google.com/document/d/... --tool mineru",
+    ],
+    "mistral_ocr": [
+        "carrel paper convert scanned.pdf --tool mistral_ocr",
+        "carrel paper convert tables.pdf --tool mistral_ocr --force",
+        "carrel google export https://docs.google.com/document/d/... --export-format pdf --tool mistral_ocr",
     ],
     "markdownify": [
         "carrel paper convert report.docx --tool markdownify",
@@ -83,7 +89,17 @@ TOOL_COMMAND_EXAMPLES = {
 
 
 def template_root() -> Path:
-    return Path(__file__).resolve().parents[3] / "templates"
+    source_root = Path(__file__).resolve().parents[3] / "templates"
+    if source_root.is_dir():
+        return source_root
+
+    installed_root = Path(sysconfig.get_path("data")) / "share" / "carrel" / "templates"
+    if installed_root.is_dir():
+        return installed_root
+
+    raise FileNotFoundError(
+        "Carrel template data is missing; reinstall the package or run from a complete source checkout."
+    )
 
 
 def read_template(name: str) -> str:
@@ -141,7 +157,9 @@ def _render_common_workflows(profile: ResearcherProfile) -> str:
     if profile.wiki_enabled:
         workflows.append("- Knowledge wiki: ask Claude about your field map; pages live in `wiki/`.")
     if profile.cloud_consent:
-        workflows.append("- Cloud tools are enabled: `mineru`, `groq`, and `gemini` can be selected when useful.")
+        workflows.append(
+            "- Cloud tools are enabled: `mineru`, `mistral_ocr`, `groq`, and `gemini` can be selected when useful."
+        )
     else:
         workflows.append("- Cloud tools are disabled by default: keep workflows local unless you explicitly opt in.")
     if prefs.get("many_papers") or prefs.get("literature_review"):
@@ -164,6 +182,12 @@ def render_cheat_sheet(
     tools = profile.tools_configured
     name = profile.name or "Researcher"
     vault_name = vault.name
+    # Any transcription tool the vault has configured counts — audio (coli/groq)
+    # and YouTube (youtube_captions/gemini) both land in transcripts/.
+    transcription_tools = ("coli", "groq", "youtube_captions", "gemini")
+    transcription_status = (
+        "enabled" if any(tools.get(tool) for tool in transcription_tools) else "available later"
+    )
     return f"""# Carrel - Your AI Research Environment
 
 Customized for: {name}
@@ -174,7 +198,7 @@ Vault: {vault_name}
 - Obsidian vault: `{vault}`
 - Cloud consent: `{str(profile.cloud_consent).lower()}`
 - Sensitivity: `{profile.sensitivity.value}`
-- Audio transcription: `{"enabled" if tools.get("coli") or tools.get("groq") else "available later"}`
+- Audio transcription: `{transcription_status}`
 
 ## Folders
 

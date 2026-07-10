@@ -45,9 +45,9 @@ INSTALLS: dict[str, dict[Platform, str | None]] = {
         Platform.WINDOWS: "winget install Zotero.Zotero",
     },
     "markitdown": {
-        Platform.MACOS: "uv add markitdown",
-        Platform.LINUX: "uv add markitdown",
-        Platform.WINDOWS: "uv add markitdown",
+        Platform.MACOS: "uv add 'markitdown[docx,pptx,xlsx]>=0.1.6'",
+        Platform.LINUX: "uv add 'markitdown[docx,pptx,xlsx]>=0.1.6'",
+        Platform.WINDOWS: "uv add 'markitdown[docx,pptx,xlsx]>=0.1.6'",
     },
     "youtube-transcript-api": {
         Platform.MACOS: "uv add youtube-transcript-api",

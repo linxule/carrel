@@ -50,12 +50,14 @@ def test_resolve_cloud_consent_blocks_cloud_tools_for_high_sensitivity() -> None
     profile = ResearcherProfile(sensitivity=Sensitivity.HIGH, cloud_consent=True)
 
     assert resolve_cloud_consent("mineru", profile) is False
+    assert resolve_cloud_consent("mistral_ocr", profile) is False
 
 
 def test_resolve_cloud_consent_allows_cloud_tools_with_lower_sensitivity_and_consent() -> None:
     profile = ResearcherProfile(sensitivity=Sensitivity.MEDIUM, cloud_consent=True)
 
     assert resolve_cloud_consent("mineru", profile) is True
+    assert resolve_cloud_consent("mistral_ocr", profile) is True
     assert resolve_cloud_consent("gws", profile) is True
 
 

@@ -10,7 +10,6 @@ from carrel import __version__
 from carrel.models import AuditResult, ResearcherProfile
 from carrel.env.sync import sync_tools_configured
 from carrel.env.validation import (
-    DriftIssue,
     detect_raw_marker_conflicts,
     format_validation_errors,
     unknown_environment_keys,
@@ -69,6 +68,18 @@ def apply_safe_environment_fixes(
         ):
             deferred.append(f"{issue.message}. Run /carrel-fix for guided recovery.")
 
+    cloud_consent_raw = working.get("cloud_consent")
+    if "cloud_consent" in working and not isinstance(cloud_consent_raw, bool):
+        if isinstance(cloud_consent_raw, str) and cloud_consent_raw.strip().lower() == "false":
+            working["cloud_consent"] = False
+            fixed.append("Converted cloud_consent from string 'false' to boolean false")
+        else:
+            deferred.append(
+                f"Cannot safely fix cloud_consent (found {cloud_consent_raw!r}); edit "
+                ".carrel/environment.json and set cloud_consent to unquoted true or false "
+                "(widening repairs require a human). Run /carrel-fix for guided recovery."
+            )
+
     sensitivity = working.get("sensitivity")
     if isinstance(sensitivity, str):
         normalized = sensitivity.strip().lower()
@@ -76,8 +87,8 @@ def apply_safe_environment_fixes(
             target_sensitivity, expected_cloud_consent = LEGACY_SENSITIVITY_MAP[normalized]
             current_cloud_consent = working.get("cloud_consent")
             if (
-                isinstance(current_cloud_consent, bool)
-                and current_cloud_consent != expected_cloud_consent
+                not isinstance(current_cloud_consent, bool)
+                or current_cloud_consent != expected_cloud_consent
             ):
                 deferred.append(
                     f"Cannot safely fix sensitivity='{sensitivity}' with cloud_consent="

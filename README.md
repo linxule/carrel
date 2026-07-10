@@ -20,18 +20,20 @@ Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux
 |------|:-----:|:-----:|:-------:|-------|
 | Install script | ✅ Full | ✅ Full | ✅ Full | `install.sh` on macOS/Linux, `install.ps1` on Windows |
 | Obsidian | ✅ Full | ✅ Full | ✅ Full | Native app on all three platforms; install commands differ by OS |
-| liteparse | ✅ Full | ✅ Full | ✅ Full | `bun add -g @llamaindex/liteparse` on all three platforms |
-| coli | ✅ Full | ✅ Full | ✅ Full | Requires Bun and `ffmpeg` |
-| defuddle | ✅ Full | ✅ Full | ✅ Full | Bun-based CLI |
+| liteparse | ✅ Full | ✅ Full | ✅ Full | `npm install -g @llamaindex/liteparse` on all three platforms |
+| coli | ✅ Full | ✅ Full | ✅ Full | `npm install -g @marswave/coli`; some media formats may still need `ffmpeg` |
+| defuddle | ✅ Full | ✅ Full | ✅ Full | `npm install -g defuddle` |
 | gws | ✅ Full | ✅ Full | ✅ Full | `npm install -g @googleworkspace/cli`; Windows OAuth has a documented workaround |
 | mineru | ✅ Full | ✅ Full | ✅ Full | Cloud service; requires `MINERU_API_KEY` |
+| mistral_ocr | ✅ Full | ✅ Full | ✅ Full | Cloud OCR service; requires `MISTRAL_API_KEY` |
+| paddleocr | ⚠️ Optional | ⚠️ Optional | ⚠️ Optional | Local OCR candidate for scanned PDFs; heavy Python/model install, not a default |
 | markitdown | ✅ Full | ✅ Full | ✅ Full | Bundled with Carrel's Python environment |
 
 ## What's Included
 
 - **15 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery, model teammates — 7 of these are now thin wrappers over typed CLI subcommands; see [`commands/CONVENTIONS.md`](commands/CONVENTIONS.md))
 - **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **13 skills** (environment setup, env-doctor, vault operations, conversion, transcription, web capture, research partnership, automation, knowledge wiki, collaborator onboarding, model teammates, self-improve, session-reflection)
+- **Workflow-specific plugin skills plus a portable Carrel umbrella skill** (setup, ingestion, vault operations, research partnership, automation, collaboration, field maps, maintenance, and host-neutral routing)
 - **4 hooks** (session start environment check, session end reflection prompt, per-turn vault context injection, pre-tool-use sensitivity gate for cloud subprocesses)
 - **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust`, `automate`, `batch`, `migrate` subcommand groups)
 
@@ -97,7 +99,7 @@ Best for fresh machines or when a facilitator is helping set up.
 
 Open Terminal on macOS/Linux or PowerShell as Administrator on Windows, then run the matching command above.
 
-This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, and installs the Carrel plugin. Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
+This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, installs the Carrel plugin, and installs the `carrel` CLI (the typed CLI that the plugin's hooks and slash commands run). Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
 
 If you have the script locally (e.g., via AirDrop):
 | Platform | Command |
@@ -134,6 +136,11 @@ brew install gh
 gh auth login
 ```
 
+**Path B doesn't install the `carrel` CLI** — the plugin's hooks and slash commands all run it, so install it separately (requires [uv](https://docs.astral.sh/uv/)):
+```bash
+uv tool install git+https://github.com/linxule/carrel.git
+```
+
 ### For AI Assistants Helping With Setup
 
 If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is the reliable sequence:
@@ -143,7 +150,8 @@ If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is
 3. **GitHub auth is required** (private repo): `gh auth login` if not authenticated
 4. **Add marketplace**: `claude plugin marketplace add linxule/carrel`
 5. **Install plugin**: `claude plugin install carrel@carrel --scope user`
-6. **Verify**: `claude plugin list` should show `carrel@carrel`
+6. **Install the CLI**: `uv tool install git+https://github.com/linxule/carrel.git` — required for the plugin's hooks and commands to work; check with `carrel --version`
+7. **Verify**: `claude plugin list` should show `carrel@carrel`
 
 Common issues:
 - `"Failed to add marketplace"` → GitHub auth not set up. Run `gh auth login` first.
@@ -171,6 +179,21 @@ In any Claude Code session:
 ```
 If Carrel is active, it reports the environment state. If not installed, the command won't be recognized.
 
+## Use Carrel with Other AI Clients
+
+`skills/carrel/` is a standalone, stdlib-only pack — a strict subset of this plugin's capability that runs without the Claude Code plugin runtime, for hosts that only support Agent Skills.
+
+| Client | Install |
+|--------|---------|
+| Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` |
+| Codex, Cursor, OpenCode, Gemini CLI | Copy the folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel` for a global install) |
+| Kimi Code CLI | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
+| Claude.ai / Claude app / Cowork | Zip the folder and upload via **Settings → Capabilities → Skills**: `cd skills && zip -r carrel-skill.zip carrel -x "*__pycache__*" "*.pyc" "*.DS_Store"` |
+
+Don't run `npx skills add linxule/carrel` (this plugin repo) — it will discover every `skills/<name>/SKILL.md` in the repo, including the other skills meant only for the Claude Code plugin runtime (`knowledge-wiki`, `model-teammates`, etc.), which assume hooks/commands/agents that don't exist standalone. Use `linxule/carrel-skill` (the dedicated single-skill repo) instead, or scope the install with `--skill carrel`.
+
+Skills aren't signed — before installing from any source, read the code. `skills/carrel/scripts/` is short and stdlib-only by design, so this is a quick read.
+
 ## Optional MCPs
 
 During setup, Carrel may add project-level MCPs based on the interview:
@@ -179,6 +202,7 @@ During setup, Carrel may add project-level MCPs based on the interview:
 |-----|------|----------|
 | [vox-mcp](https://github.com/linxule/vox-mcp) | Researcher wants access to other AI models (Gemini, GPT, Grok, etc.) | At least one provider key (e.g., `OPENROUTER_API_KEY` or `GEMINI_API_KEY`) |
 | mineru-mcp | Complex PDFs with tables/figures | `MINERU_API_KEY` |
+| Mistral OCR adapter | Scanned or layout-heavy PDFs when cloud OCR is acceptable | `MISTRAL_API_KEY` |
 | [zotero-mcp](https://github.com/54yyyu/zotero-mcp) | Researcher uses Zotero | `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID` |
 
 See `docs/api-keys-guide.md` for setup instructions.

@@ -6,7 +6,7 @@ Detailed patterns for generating the overnight agent prompt. The SKILL.md contai
 
 1. **Header**: agent identity, UNATTENDED mode declaration
 2. **Setup**: plugin load, vault detection (find `.carrel/environment.json`), read preferences and CLAUDE.md
-3. **Unattended rules**: no questions, pending-decisions for judgment calls, action logging for trust 3-4
+3. **Unattended rules**: no questions, create/append pending-decisions only for actual judgment calls, action logging for trust 3-4
 4. **Role**: researcher name, field, sensitivity
 5. **Task sections**: one section per enabled capability, marked `[enabled]` or `[disabled — skip]`
 6. **Trust level section**: full rules for the chosen level only
@@ -52,7 +52,7 @@ This matches the session-start hook's `findCarrelRoot` pattern and survives:
 ```
 - Can file new items AND reorganize existing files within the vault epistemology from CLAUDE.md.
 - Log every action in the morning brief with specific revert instructions (commands to undo each change).
-- The researcher can revert via the session's checkpoint history.
+- Do not promise checkpoint history; the action log and explicit revert guidance are the durable rollback record.
 ```
 
 ## Sensitivity Adjustments
@@ -60,6 +60,14 @@ This matches the session-start hook's `findCarrelRoot` pattern and survives:
 - **High sensitivity**: prompt explicitly states "Do NOT read files in `drafts/` or `_meta/reflections/` unattended. Write pending decisions for any file with unclear sensitivity."
 - **Medium sensitivity**: standard behavior
 - **Low sensitivity**: no additional restrictions
+
+## Field-map Status Block
+
+When `wiki_maintenance` is enabled, include counts for pages created/updated,
+low-confidence pages, contested pages, contradiction links, single-source pages
+missing confidence, source digest drift, orphans, and un-ingested sources. Add one
+synthesis insight. Autonomous wiki writes require a successful `wiki:write`
+check at Delegated or Partnership trust.
 
 ## Model-Specific Notes
 

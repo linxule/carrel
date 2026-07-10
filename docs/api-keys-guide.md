@@ -16,7 +16,7 @@ MineRU converts complex PDFs (with tables, figures, formulas) more accurately th
 1. Go to [mineru.net](https://mineru.net)
 2. Create an account
 3. Find your API key in your account settings
-4. Free tier includes 2,000 pages per day
+4. Free tier quotas change over time; check your MinerU account dashboard before relying on a daily page limit.
 
 **How to set it up:**
 Tell Claude: *"I have a MineRU API key. Help me set it up."*
@@ -24,6 +24,25 @@ Tell Claude: *"I have a MineRU API key. Help me set it up."*
 Claude will add it to your project configuration. The key stays on your computer.
 
 **Privacy note:** MineRU is a cloud service. Your documents are sent to their servers for processing. If you work with sensitive data (interview transcripts, IRB-protected materials), use the default local converter instead.
+
+## Mistral OCR (Scanned PDF Conversion)
+
+Mistral OCR converts scanned or layout-heavy PDFs to Markdown through Mistral's cloud OCR service.
+
+**When you need it:** When a PDF is image-only, scanned, or has layout that the local converter cannot preserve.
+
+**How to get a key:**
+1. Go to [console.mistral.ai](https://console.mistral.ai)
+2. Create or open a workspace
+3. Create an API key
+4. Store it as `MISTRAL_API_KEY`
+
+**How to use it:**
+Tell Claude: *"Use Mistral OCR for this PDF."*
+
+Claude should run the conversion with `--tool mistral_ocr` only when sensitivity policy allows cloud processing.
+
+**Privacy note:** Mistral OCR is a cloud service. Your PDF is uploaded to Mistral for processing. Carrel never routes high-sensitivity vaults to Mistral or MinerU. If governance permits cloud OCR for a specific file, reclassify that file/workflow outside the high-sensitivity path or use a separate local/export process.
 
 ## Zotero (Reference Library)
 
@@ -95,7 +114,7 @@ Tell Claude: *"I have API keys for [list providers]. Help me set up Vox with all
 
 ### How Claude Stores Your Keys
 
-When you give Claude an API key, it saves it to your computer's configuration so it persists across sessions. The key never leaves your machine — it's used locally to connect to the AI provider's servers.
+When you give Claude an API key, it saves it to your computer's configuration so it persists across sessions. The key should stay local at rest, but prompts, URLs, documents, or excerpts are sent to the selected provider when you use that provider.
 
 If you're on a **shared computer**, tell Claude: *"Store this key in my shell profile instead of the project config."* This keeps the key tied to your user account rather than the project folder.
 

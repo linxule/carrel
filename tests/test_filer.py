@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import frontmatter
 
 from carrel.convert.filer import file_paper

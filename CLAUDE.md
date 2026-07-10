@@ -6,7 +6,7 @@ Research environment toolkit for academics. Two layers: a Python core library (`
 
 ```bash
 # Core library
-uv run pytest                                    # 279 tests
+uv run pytest                                    # Full test suite
 uv run carrel env doctor                         # Hardware + tools audit
 uv run carrel env validate --vault .            # Validate environment.json + drift markers
 uv run carrel env fix --safe --vault .          # Apply safe environment.json repairs
@@ -32,8 +32,10 @@ uv run carrel vault reflect-log --append --from-stdin --vault . # Atomic append 
 uv run carrel vault share generate --mode quick --for alice --sensitivity medium --vault . # Collaborator handbook (v0.9.0)
 uv run carrel batch convert <folder> [--unattended] --vault . # Sequential PDF batch (v0.9.0)
 uv run carrel batch transcribe <folder> [--unattended] --vault . # Sequential audio/YouTube batch (v0.9.0)
-uv run carrel automate configure --enabled true --trust-level consultative --schedule daily --review-cadence weekly --vault . # Typed-flag automation config, no prompts (v0.9.0)
+uv run carrel automate configure --enabled --trust-level consultative --schedule daily --review-cadence quarterly --vault . # Typed-flag automation config, no prompts (v0.9.0)
 uv run carrel migrate apply [--plugin-root <path>] --vault . # Walk migrations registry, update plugin-state.json (v0.9.0)
+uv run pytest --cov                              # Coverage run (pytest-cov in dev group; config in pyproject [tool.coverage.*])
+scripts/sync-skill-repo.sh [--push]              # Publish skills/carrel → linxule/carrel-skill via git subtree (dry-run default)
 ```
 
 ## Architecture
@@ -45,6 +47,8 @@ Transports (thin)     → plugin, CLI, MCP, agent SDK apps
 ```
 
 The core library NEVER asks questions or makes judgment calls. Skills handle that. If a required parameter is missing, the library returns an actionable error.
+
+**Host-split (decision 2026-07-10)**: the typed CLI (`src/carrel`, provisioned by install.sh via `uv tool install`) is the Claude Code plugin's **sole** runtime — hooks, slash commands, and the 13 workflow skills call `carrel ...`. The portable skill pack (`skills/carrel/`: SKILL.md + stdlib-only `scripts/carrel.py` runtime) is the standalone engine for every other host (Codex, Kimi Code, Gemini CLI, OpenCode, Cursor, Cowork, Claude.ai zip) — sandbox-native because it travels as files + python3. The pack is a **strict subset**; `tests/test_runtime_parity.py` is the drift alarm (same-input comparisons on shared surfaces + an enumerated allowlist of intended `vault init` divergences: `setup-state.json` typed-only, `agent-context.md` portable-only). Distribution: `scripts/sync-skill-repo.sh --push` subtree-publishes `skills/carrel/` to [linxule/carrel-skill](https://github.com/linxule/carrel-skill) for `npx skills` / `.agents/skills/` installs. **Never edit carrel-skill directly** — it's a publish target, not a second source of truth; `skills/carrel/` here is canonical.
 
 ## Directory Structure
 
@@ -66,14 +70,15 @@ carrel/
 │   ├── youtube_url.py    # Unified YouTube URL parser
 │   ├── source_hash.py    # Unified source-hash helper for idempotency
 │   └── errors.py         # CarrelError with actionable hints
-├── tests/                # pytest suite (279 tests)
+├── tests/                # pytest suite
 ├── templates/            # Vault templates (loaded by vault/templates.py)
-├── skills/               # 13 plugin skills (convert, transcribe, vault-ops, environment-setup, automation, knowledge-wiki, collaborator-onboarding, model-teammates, self-improve, research-partner, env-doctor, web-capture, session-reflection)
+├── skills/               # plugin skills (including the portable carrel skill pack)
 ├── agents/               # Plugin agents (setup-interviewer, research-partner)
 ├── hooks/                # 4 plugin hooks: SessionStart (check-environment.js), SessionEnd (session-reflect.js), UserPromptSubmit (inject-context.js, v0.9.0), PreToolUse Bash matcher (sensitivity-gate.js, v0.9.0)
 ├── commands/             # 15 plugin slash commands (/carrel-*); 7 are thin wrappers per CONVENTIONS.md
 │   └── CONVENTIONS.md    # ${ARGS} (skill-constructed) vs $ARGUMENTS (raw) convention (v0.9.0)
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
+├── scripts/              # sync-skill-repo.sh — subtree publish of skills/carrel → linxule/carrel-skill
 ├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
 ├── install.sh            # macOS/Linux one-line installer (curl | bash)
 ├── install.ps1           # Windows installer (first-class as of v0.7.0)
@@ -93,7 +98,9 @@ No markdownify fallback for PDFs. Missing liteparse → clear error with install
 No markdownify fallback for audio. Missing coli → clear error.
 
 ### YouTube
-`youtube_captions` (local default, fetches existing captions with timestamps) > `gemini` (cloud, explicit `--tool gemini` or cloud_consent)
+`youtube_captions` (network-lite default, fetches existing public captions with timestamps) > `gemini` (cloud, explicit `--tool gemini` or cloud_consent)
+
+Captions are a **network-lite** fetch, not a cloud upload — no vault data egresses, so they route on LOW/MEDIUM **without** `cloud_consent`. HIGH sensitivity blocks caption fetches by default but honors an explicit `--tool youtube_captions` override with a warning (the researcher asserts the URL is not sensitive). `gemini` is a true cloud tool (uploads audio/video) and stays blocked on HIGH regardless of consent. Policy lives in `src/carrel/policy/sensitivity.py` (`NETWORK_TOOLS`). Decision 2026-07-10.
 
 ### Web pages
 `defuddle` (local default, smart content extraction) > `markitdown` (fallback if defuddle not installed)
@@ -107,9 +114,9 @@ No markdownify fallback for audio. Missing coli → clear error.
 - **No AI imports**: Core library is deterministic. AI lives in the transport/skill layer.
 - **Router validation**: Routers validate tool+input combinations, not just enum membership. `--tool gemini` on a local file or `--tool coli` on a YouTube URL is rejected with an actionable error. The router is the validation boundary — transports trust it.
 
-## Scheduled Automation (v0.4)
+## Scheduled Automation
 
-Carrel can run overnight via Desktop App local scheduled tasks. The `automation` skill defines the contract; `/carrel-automate` configures it.
+Carrel can run unattended through Cowork scheduled tasks or a credential-dependent `claude -p` scheduler. The `automation` skill defines the contract; `/carrel-automate` configures the profile, and `carrel vault automation-prompt` generates the prompt separately. In Cowork, use `/schedule` or the Scheduled page. A task that needs a local vault requires the connected folder and Claude Desktop availability when local access is needed.
 
 - **Trust levels**: Advisory (suggest only) → Consultative (propose, researcher approves) → Delegated (act on new items, experimental) → Partnership (reorganize, experimental)
 - **AutomationConfig** in `models.py`: per-capability booleans, trust level, model, schedule, review cadence
@@ -135,12 +142,13 @@ Vocabulary: **teammates** ≠ Claude-side `agents/` (setup-interviewer, research
 
 Optional synthesis layer: agent-maintained entity/concept pages that compound knowledge across sources. Adapted from [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) + [Hermes Agent](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md).
 
-- **Trust-gated**: Advisory=off, Consultative=propose with approval, Delegated=autonomous. Activation implies at least consultative.
+- **Trust-gated**: `wiki:propose` drafts an exact batch, `wiki:apply-approved` applies that batch at Consultative trust, and autonomous `wiki:write` requires Delegated trust.
 - **Folder mapping**: `papers/`, `transcripts/`, `inbox/` = source layer. `wiki/` = synthesis layer. No separate `raw/`.
 - **Operations**: ingest, query (trust-gated filing), lint. See `skills/knowledge-wiki/SKILL.md`.
 - **Dialogue**: researcher callouts (`> [!researcher]`) on wiki pages — agent reads, never overwrites. Wiki = field's voice; `notes/` = researcher's voice; gap = contribution.
 - **Ephemeral agent**: log.md includes reasoning per decision (cross-instance handoff). Lazy orientation (full context only for writes).
-- **Automation**: `wiki_maintenance` in AutomationConfig. At delegated trust, briefs include per-file revert instructions + one-sentence insight.
+- **Provenance and quality**: optional confidence/contested/contradiction signals, source-body digests, and paragraph source markers on 3+ source pages.
+- **Automation**: `wiki_maintenance` in AutomationConfig. At delegated trust, briefs include quality/drift counts, per-file revert instructions, and one synthesis insight.
 - **Model fields**: `wiki_enabled`, `wiki_preference`, `wiki_proposal_deferred_until` on ResearcherProfile. Read by Claude, not code-enforced.
 - **Detection**: check `wiki/SCHEMA.md` existence (not just `wiki/`). Upstream in `capability-registry.md`.
 
@@ -157,9 +165,9 @@ The setup SKILL (Step 5) instructs Claude to write a personalized CLAUDE.md from
 
 Spec 014 (CC-only re-scope) normalizes the three-layer rule for 7 high-value command paths. Deterministic file I/O moved to `carrel <subcmd>`; orchestration moved into skills; slash commands shrunk to thin `!carrel <subcmd> ${ARGS}` wrappers.
 
-- **7 new CLI subcommands**: `vault {feedback export, mirror, reflect-log, share generate}`, `batch {convert, transcribe}`, `migrate apply`, `automate configure`. All typed-flag, no prompting; `--explain` dry-run where routing applies.
+- **Deterministic CLI surfaces**: `vault {feedback export, mirror, reflect-log, share generate, automation-prompt}`, `batch {convert, transcribe}`, `migrate apply`, and `automate configure`. Skills retain interviews, synthesis, approval, and scheduling guidance.
 - **7 wrapper shrinks** (564 → 35 body lines): `/carrel-{feedback,migrate,mirror,reflect,share,batch,automate}`. Convention: `${ARGS}` (skill-constructed) vs `$ARGUMENTS` (raw user input) documented in `commands/CONVENTIONS.md`.
-- **Skill enrichments** absorbed the freed orchestration prose: `automation` (10-step flow + Desktop App walkthrough + unattended-batch contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
+- **Skill enrichments** absorbed the freed orchestration prose: `automation` (configuration interview + explicit prompt lifecycle + Cowork/`claude -p` scheduling + unattended contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
 - **3 CC plugin feature adds**: marketplace metadata (keywords, category, license, repository); `UserPromptSubmit` hook (`hooks/inject-context.js`) for per-turn vault context; `PreToolUse` Bash matcher (`hooks/sensitivity-gate.js`) for sensitivity ask-gate before cloud subprocesses (bypass via `# bypass-gate` comment).
 
 Spec: `planning/specs/014-cc-plugin-v090.md`. Cross-CLI port (Codex + Kimi) parked as future work; investigation artifacts preserved.
@@ -186,12 +194,16 @@ When bumping the plugin version in `.claude-plugin/plugin.json`, also update `.c
 - Setup-state changes go through `carrel setup-state` (added v0.5.3) — never edit `.carrel/setup-state.json` by hand. The CLI is the validation boundary.
 - Sensitivity gate (v0.7.0): the full 16-row (sensitivity × cloud_consent × requested_tool) matrix is implemented in `src/carrel/policy/sensitivity.py:select_tool`. HIGH blocks cloud regardless of consent (gws included — Google API calls send data). MEDIUM requires explicit `--tool <cloud>` to route to cloud. LOW defaults local-first; `cloud_consent=True` auto-routes when local unavailable. `consent.py:resolve_cloud_consent` is now a thin backward-compat wrapper around `policy.sensitivity`. Use `--explain` on `carrel paper convert` / `transcript create` / `google export` to see the routing decision + rationale without executing.
 - Vault writes go through `safe_path.safe_vault_join` (v0.5.4) — resolves the path and rejects anything escaping the vault root. Used by all filers + scaffold + google export.
-- Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it.
+- Trust enforcement (v0.6.0): writes that require Consultative+ trust now go through `carrel trust check <action>` — see `spec 008-trust-enforcement.md` and `carrel trust list --vault .` for the action matrix. The check is the single boundary; never bypass it. One documented exception (decision 2026-07-10): `carrel automate configure` permits an Advisory→Consultative bootstrap without an approval artifact on disk — the skill's interview-approval flow is the contract, and the runtime validates and persists that single transition in one write. It is by design, not a hole: a fresh Advisory profile may transition only to Consultative, never directly to Delegated/Partnership. See `automate.py` bootstrap comment, `skills/automation/SKILL.md`, and `skills/carrel/references/contracts/trust-levels.md`.
 - Environment drift (v0.7.0, spec 006): `carrel env validate --vault .` is the full validator and `carrel env fix --safe --vault .` applies deterministic repairs to `.carrel/environment.json` only. Hook runs `env validate` once per 24h and surfaces `/carrel-fix` when drift needs review.
 - Profile sync (v0.7.0): `_meta/my-environment.md` and `_meta/automation-prompt.md` are now deterministic (regenerate via `carrel vault dashboard|automation-prompt --force`). Vault `CLAUDE.md` uses HTML-comment markers (`<!-- carrel:field -->value<!-- /carrel:field -->`); `carrel vault check-sync` still exists for marker-only inspection.
 - Wrapper convention (v0.9.0): 7 slash commands are now thin `!carrel <subcmd> ${ARGS}` shells (no body prose). `${ARGS}` = skill-constructed typed-flag arg list; `$ARGUMENTS` = raw user input. Documented in `commands/CONVENTIONS.md`. The other 8 commands keep their existing shape; shrink later if they accumulate orchestration prose. `tests/test_command_wrappers.py` enforces the structural template for the 7 wrappers.
 - Hook debugging (v0.9.0): `inject-context.js` (UserPromptSubmit) and `sensitivity-gate.js` (PreToolUse Bash matcher) silent-fail on any error path so they don't disrupt user turns. Set `CARREL_HOOK_DEBUG=1` to enable `[carrel:<hook-name>] <reason>` stderr logging when diagnosing why a hook isn't firing. The sensitivity gate also rejects (passes through silently) when the command contains shell control characters (`;`, `&`, `|`, `<`, `>`, `` ` ``, `$`) — use `# bypass-gate` in those cases.
 - Mirror filename (v0.9.0): `carrel vault mirror --write` writes to `_meta/mirror/<YYYY-MM>.md` (monthly, idempotent same-month). Reflect-log writes to `_meta/reflections/reflection-<YYYY-MM-DD>.md`; feedback-digest writes to flat `_meta/feedback-digest-<YYYY-MM-DD>.md`. These three paths form a read/write loop (feedback-export reads reflections, mirror reads reflections + friction-log + capability-log) — `session-reflection` skill owns reflect + feedback; `research-partner` skill owns mirror synthesis.
+- Gemini transcription model (2026-07-10): default `gemini-3.5-flash` (GA), overridable via `CARREL_GEMINI_MODEL`. The Interactions response parse walks ALL output items (thought-items-first responses are handled) — don't revert to `output[0][...]` indexing.
+- Corrupt-profile recovery (2026-07-10): `vault init` on UNPARSEABLE JSON backs the file up to `.carrel/environment.json.corrupt-<timestamp>` and proceeds fresh (loud warning); parseable-but-invalid profiles hard-fail with an `env validate` → `env fix --safe` hint. Consent repairs are asymmetric by design: auto-repairs may only NARROW consent (`"false"`→false auto-fixed; `"true"` defers to the human).
+- Feedback digest headings (2026-07-10): vault-relative paths with the structural sweep prefix (`_meta/<sweep-dir>/`) never redacted and every user-named segment + basename always redacted — no codename leaks via paths, no structural garbling. Identical in both runtimes; parity-asserted.
+- carrel-skill repo is publish-only: regenerated by `scripts/sync-skill-repo.sh --push` (dry-run default, refuses dirty trees). Edit `skills/carrel/` here, never the standalone repo.
 
 ## Capability Absorption
 

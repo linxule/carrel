@@ -10,7 +10,7 @@ How the knowledge wiki emerges through carrel's graduated trust model. Original 
 The researcher didn't ask for a wiki. Claude notices the need and proposes it at the right moment. This is the default path for researchers who go through the setup interview.
 
 ### Path 2: Explicit opt-in
-The researcher asks directly: "set up a knowledge wiki", "I want a field map", "can you track my sources?" — their request IS the trust grant. Skip to Initialization regardless of current trust level.
+The researcher asks directly: "set up a knowledge wiki", "I want a field map", "can you track my sources?" Move directly to an exact schema/write proposal, but do not bypass the trust check or approval step. If the vault is below Consultative trust, help the researcher raise it first.
 
 ---
 
@@ -109,22 +109,26 @@ The researcher said yes. Now draft the SCHEMA.md for their review:
 
 **Step 4 — Incorporate feedback:**
 - Adjust taxonomy, thresholds, domain description per researcher input
-- This is the CONSULTATIVE contract: agent proposes, researcher approves
+- Freeze the complete initialization batch for approval: the full `SCHEMA.md`,
+  initial `index.md` and `log.md`, directory list, exact environment-profile
+  changes, and the exact `CLAUDE.md` wiki block
+- This is the CONSULTATIVE contract: the agent proposes exact writes and the
+  researcher approves that bounded batch
 
 ---
 
 ## Initialization
 
-Once the researcher approves the schema (or explicitly opts in):
+Once the researcher approves the exact initialization batch:
 
 **Step 1 — Create wiki structure:**
 Before writing, run:
 
 ```bash
-carrel trust check wiki:write --vault .
+carrel trust check wiki:apply-approved --vault .
 ```
 
-If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:write but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
+If the check exits non-zero, surface the gate to the researcher: "I tried to wiki:apply-approved but your trust level (<current>) does not allow that. To enable, raise trust to <required> via /carrel-automate." Then stop. Do not proceed with the write.
 If the check exits 0, proceed:
 
 ```
@@ -155,19 +159,21 @@ wiki/
   will read and respect them.
   ```
 
-**Step 3 — Incremental cold start:**
+**Step 3 — Propose an incremental cold start:**
 
 Do NOT ingest everything at once. Start small:
 
 1. Identify the 5-10 most substantial papers (by length, or most referenced in researcher's notes)
 2. Read each paper's abstract, introduction, and conclusion (not full text unless short)
-3. Create initial entity pages for key researchers, organizations, models mentioned across multiple papers
-4. Create initial concept pages for the 3-5 most prominent themes
-5. Cross-link everything (2+ outbound links per page)
-6. Write index.md with initial entries
-7. Log the cold-start with reasoning
+3. Draft initial entity and concept pages without writing them
+4. Draft the exact index additions and cold-start log entry
+5. Present every proposed path and complete body, including cross-links,
+   provenance, quality signals, and source digests
+6. Obtain explicit approval for that exact cold-start batch
+7. Run `carrel trust check wiki:apply-approved --vault .` again, then write only
+   the approved pages/index/log changes; re-propose any expansion
 
-Present the initial wiki to the researcher:
+After writing, report the initial wiki to the researcher:
 
 > "I've created your field map with [N] initial pages — [N] entities and [N] concepts from your most substantial papers. Here's what's there:
 >
@@ -188,7 +194,7 @@ Don't rush full coverage. 2-3 papers per session is a sustainable pace for quali
 ## Trust Upgrades
 
 ### Advisory → Consultative (wiki proposal)
-Triggered by: detection signals above. The proposal conversation IS the upgrade for wiki purposes.
+Triggered by: detection signals above plus an explicit trust change from the researcher. The proposal conversation does not silently upgrade the persisted trust level.
 
 ### Consultative → Delegated (autonomous maintenance)
 After the researcher has reviewed wiki pages across several sessions without significant corrections, consider proposing delegation. Check wiki/log.md for patterns: if the last 3-5 ingest entries show no researcher corrections (no "corrected by researcher" or "reverted" entries), the wiki quality is stable enough.

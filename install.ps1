@@ -27,7 +27,7 @@ function Assert-Tool($tool, $installName) {
     }
 }
 
-$Total = 8
+$Total = 9
 
 Write-Host ""
 Write-Host "╔══════════════════════════════════════════╗"
@@ -183,11 +183,36 @@ try {
     Write-Info "Plugin install needs Claude Desktop — see next steps"
 }
 
-# ─── 8. Verify ───
+# ─── 8. Carrel CLI ───
 
-Write-Step 8 $Total "Verifying installation"
+Write-Step 8 $Total "Carrel CLI (powers the plugin's hooks and commands)"
+if (Get-Command carrel -ErrorAction SilentlyContinue) {
+    Write-Info "Checking for carrel CLI updates..."
+    uv tool upgrade carrel 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "Already installed (up to date)"
+    } else {
+        Write-Ok "Already installed"
+        Write-Info "Update check failed — continuing with existing version. Retry manually: uv tool upgrade carrel"
+    }
+} else {
+    Write-Info "Installing carrel CLI..."
+    uv tool install git+https://github.com/linxule/carrel.git
+    if ($LASTEXITCODE -eq 0) {
+        Refresh-UserPath
+        uv tool update-shell 2>$null | Out-Null
+        Write-Ok "Installed"
+    } else {
+        Write-Fail "carrel CLI install failed — plugin hooks and commands won't work until it's installed"
+        Write-Info "Retry manually: uv tool install git+https://github.com/linxule/carrel.git"
+    }
+}
+
+# ─── 9. Verify ───
+
+Write-Step 9 $Total "Verifying installation"
 $Missing = @()
-foreach ($tool in @("git", "node", "bun", "uv", "gh", "claude")) {
+foreach ($tool in @("git", "node", "bun", "uv", "gh", "claude", "carrel")) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
         $Missing += $tool
     }
