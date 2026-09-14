@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from carrel.cli.main import app
@@ -44,7 +45,7 @@ def test_env_fix_rejects_unsafe_flag_at_parse_level(tmp_path) -> None:
     result = runner.invoke(app, ["env", "fix", "--vault", str(vault), "--unsafe"])
 
     assert result.exit_code == 2
-    assert "No such option: --unsafe" in result.stderr
+    assert "No such option: --unsafe" in unstyle(result.stderr)
 
 
 def test_env_fix_still_accepts_safe_flag(tmp_path) -> None:
