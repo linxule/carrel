@@ -9,6 +9,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      NO_COLOR: "1"
+      COLUMNS: "200"
     strategy:
       matrix:
         python: ["3.11", "3.13"]
