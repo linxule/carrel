@@ -4,6 +4,13 @@
 
 Carrel is a Claude Code plugin that onboards researchers into an AI-augmented research environment. It works by **interviewing the researcher**, **assessing their machine**, **configuring the right tools**, and **teaching itself how to work with this specific person**.
 
+## Maintenance release 0.9.1
+
+The September 14, 2026 maintenance release updates Python dependencies, fixes
+known vulnerabilities in the locked environment, and adds grouped dependency
+updates with Python 3.11/3.13 tests and security audits. Commands, vault formats,
+and the portable skill runtime are unchanged; no vault migration is needed.
+
 ## Quick Start
 
 1. Install the plugin (see Installation below)
