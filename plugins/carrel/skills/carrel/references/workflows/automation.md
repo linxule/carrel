@@ -77,11 +77,11 @@ an approved Consultative batch uses `wiki:apply-approved`.
 ## Scheduling
 
 After configuration and explicit prompt generation, schedule through the
-current host interface. In Claude Cowork, use `/schedule` or the Scheduled page.
+current host interface. In Claude, use the Scheduled page (or `/schedule` in a conversation).
 General tasks can run remotely, but a task that needs a local Carrel vault must
 have the folder connected and Claude Desktop available when local access is
 required. Carrel does not modify the host's saved schedule.
 
 `claude -p` plus a system scheduler is an advanced, credential-dependent
-fallback. Do not quote fixed dollar estimates: Cowork uses paid-plan allocation,
+fallback. Do not quote fixed dollar estimates: Claude scheduled tasks use paid-plan allocation,
 while programmatic/API usage depends on the configured account and model.

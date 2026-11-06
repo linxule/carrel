@@ -10,7 +10,7 @@ An [Agent Skill](https://agentskills.io) for AI-assisted academic research vault
 | Codex / Cursor / OpenCode / Gemini CLI | copy this folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel`) |
 | Kimi Code CLI | copy to `~/.kimi-code/skills/carrel` |
 | Claude Code (standalone, without the Carrel plugin) | copy to `~/.claude/skills/carrel` |
-| Claude.ai / Claude app / Cowork | zip this folder and upload via **Settings → Capabilities → Skills** |
+| Claude (web or desktop app) | download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip), then upload it in **Customize → Skills → + → Create skill → Upload a skill** (turn on code execution first). Do not upload GitHub's "Download ZIP" of this repo: its folder name does not match the skill name. |
 
 Always install the **entire folder** — the runtime needs `scripts/carrel_core/` and vault setup needs `assets/templates/`. See `references/contracts/host-compatibility.md` for per-host notes.
 

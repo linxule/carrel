@@ -1,4 +1,4 @@
-"""Build carrel.zip: the portable skill packaged for Claude.ai / Claude app / Cowork upload.
+"""Build carrel.zip: the portable skill packaged for Claude app (web or desktop) upload.
 
 Claude's skill upload wants the ZIP to contain one folder at its root whose name
 matches the skill's name, with SKILL.md inside it. A GitHub "Download ZIP" of

@@ -203,7 +203,7 @@ Test one operation end-to-end:
 
 Offer this briefly — it's an opt-in, not a required step:
 
-> "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Claude Cowork can schedule this from `/schedule` or the Scheduled page. Because Carrel needs your local vault, the folder must be connected and Claude Desktop available when the task needs local access. Scheduled Cowork work uses your paid-plan allocation."
+> "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Claude can schedule this from the Scheduled page (or `/schedule` in a conversation). Because Carrel needs your local vault, the folder must be connected and Claude Desktop available when the task needs local access. Scheduled tasks use your paid-plan allocation."
 
 - **Interested** → Run `/carrel-automate` now to configure it, or note it for later.
 - **Not now** → Skip. Mention they can always run `/carrel-automate` later to enable it.

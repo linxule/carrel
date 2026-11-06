@@ -5,9 +5,9 @@ description: "This skill should be used when a researcher wants to configure, un
 
 # automation
 
-Configure and explain unattended vault maintenance. Keep the separation clear: the skill conducts the interview and applies judgment; runtimes validate and persist settings; Cowork or another host owns scheduling.
+Configure and explain unattended vault maintenance. Keep the separation clear: the skill conducts the interview and applies judgment; runtimes validate and persist settings; Claude's Scheduled page or another host owns scheduling.
 
-Read `references/cowork-scheduling-guide.md` before giving scheduling instructions. Read `references/overnight-prompt-guide.md` when customizing the generated prompt contract.
+Read `references/claude-scheduling-guide.md` before giving scheduling instructions. Read `references/overnight-prompt-guide.md` when customizing the generated prompt contract.
 
 ## Feature Filter
 
@@ -112,9 +112,9 @@ carrel automate configure --enabled --trust-level consultative \
 
 On hosts without this plugin, the portable pack's runtime takes explicit boolean values instead; see `skills/carrel/references/workflows/automation.md`.
 
-After configure succeeds, generate the prompt separately, review it, then guide the researcher through Cowork `/schedule` or the Scheduled page. A local-vault task needs the connected folder and Desktop availability when it runs. The host's saved schedule is not modified by Carrel profile changes.
+After configure succeeds, generate the prompt separately, review it, then guide the researcher through the **Scheduled** page in Claude (or `/schedule` in a conversation). A local-vault task needs the connected folder and Desktop availability when it runs. The host's saved schedule is not modified by Carrel profile changes.
 
-Do not quote fixed dollar estimates. Cowork scheduled tasks use the paid plan's allocation; programmatic/API usage depends on the selected authentication and provider account.
+Do not quote fixed dollar estimates. Claude scheduled tasks use the paid plan's allocation; programmatic/API usage depends on the selected authentication and provider account.
 
 ## Morning Brief
 
@@ -145,5 +145,5 @@ Unattended field-map writes require Delegated trust and `wiki:write`. Consultati
 - `/carrel-automate` triggers this skill.
 - `convert` and `transcribe` own interactive batch judgment.
 - `knowledge-wiki` owns field-map write semantics.
-- `references/cowork-scheduling-guide.md` contains current Cowork and `claude -p` setup.
+- `references/claude-scheduling-guide.md` contains current Claude Scheduled and `claude -p` setup.
 - `references/overnight-prompt-guide.md` contains prompt assembly and trust blocks.

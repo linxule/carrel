@@ -202,7 +202,9 @@ def test_active_skill_docs_reject_stale_command_and_product_claims() -> None:
     assert "13 skills" not in corpus
     assert "Carrel v0.4 runs" not in corpus
     assert "v0.3.0" not in corpus
-    assert "references/cowork-scheduling-guide.md" in automation
+    assert "references/claude-scheduling-guide.md" in automation
+    assert not (SKILLS / "automation" / "references" / "cowork-scheduling-guide.md").exists()
+    assert "Cowork" not in automation
     assert not (SKILLS / "automation" / "references" / "desktop-scheduling-guide.md").exists()
     reflection = (SKILLS / "session-reflection" / "SKILL.md").read_text(encoding="utf-8")
     assert "environment.json` → `researcher_name" not in reflection

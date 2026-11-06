@@ -116,7 +116,7 @@ carrel setup-state advance --phase 7 --vault <path>
 
 ### Phase 8: Overnight Maintenance [skippable]
 
-Offer automation: "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Cowork can schedule this with `/schedule` or the Scheduled page. Local-vault runs need the connected folder and Claude Desktop availability, and usage counts against your paid-plan allocation."
+Offer automation: "Carrel can maintain your vault between sessions — processing new files, checking health, and surfacing connections. Claude can schedule this from the Scheduled page (or `/schedule` in a conversation). Local-vault runs need the connected folder and Claude Desktop availability, and usage counts against your paid-plan allocation."
 
 If interested → run `/carrel-automate` inline. If not → skip, mention they can always run `/carrel-automate` later.
 
