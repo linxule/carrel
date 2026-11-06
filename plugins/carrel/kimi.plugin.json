@@ -1,0 +1,12 @@
+{
+  "name": "carrel",
+  "version": "0.9.1",
+  "description": "Portable AI-assisted research vault workflows for setup, ingestion, transcription, web capture, environment repair, and knowledge work.",
+  "author": {
+    "name": "Xule Lin"
+  },
+  "homepage": "https://github.com/linxule/carrel",
+  "license": "MIT",
+  "keywords": ["research", "academic", "obsidian", "knowledge-management", "vault"],
+  "skills": "./skills/"
+}

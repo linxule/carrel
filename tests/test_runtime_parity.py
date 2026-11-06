@@ -28,11 +28,6 @@ Two kinds of assertion live here:
 Known behavioral mismatches discovered while writing this suite (see the
 relevant tests for the precise repro):
 
-* ``reflection append`` seeds a first-of-day file differently (typed scaffolds
-  from ``_templates/reflection.md``; portable writes a minimal header). The
-  appended timestamped entry itself is identical.
-* ``feedback export`` renders a different digest *header* and different
-  *inter-section* spacing; the redacted section bodies and JSON metrics match.
 * a malformed non-boolean ``cloud_consent`` at *command time* (e.g.
   ``transcript create``) is rejected by both engines, but by different,
   intentional mechanisms: the typed CLI fails closed at profile read
@@ -607,17 +602,9 @@ def test_trust_check_parity(tmp_path, portable_skill, action, trust_level) -> No
 
 
 def _last_entry(text: str) -> str:
-    """The final ``## <timestamp>`` section with its timestamp masked.
+    """Mask the wall-clock timestamp so full persisted files can be compared."""
 
-    Both runtimes append ``## <UTC timestamp>\\n\\n<body>\\n`` as the last
-    section. We normalize the timestamp (wall-clock, so never byte-equal) and
-    deliberately drop everything before it: the first-of-day *seed* legitimately
-    differs (typed scaffolds from _templates/reflection.md; portable writes a
-    minimal header). The appended entry is the shared surface.
-    """
-
-    entry = text.rsplit("\n## ", 1)[-1]
-    return re.sub(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC", "<TS>", entry)
+    return re.sub(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC", "<TS>", text)
 
 
 def test_reflection_append_parity(tmp_path, portable_skill) -> None:
@@ -646,11 +633,14 @@ def test_reflection_append_parity(tmp_path, portable_skill) -> None:
     # Same dated filename pattern.
     assert typed_files[0].name == portable_files[0].name
     assert re.fullmatch(r"reflection-\d{4}-\d{2}-\d{2}\.md", typed_files[0].name)
-    # The appended entry (timestamp masked) is identical across runtimes.
-    typed_entry = _last_entry(typed_files[0].read_text(encoding="utf-8"))
-    portable_entry = _last_entry(portable_files[0].read_text(encoding="utf-8"))
-    assert typed_entry == portable_entry
-    assert typed_entry == f"<TS>\n\n{prose}\n"
+    typed_file = _last_entry(typed_files[0].read_text(encoding="utf-8"))
+    portable_file = _last_entry(portable_files[0].read_text(encoding="utf-8"))
+    assert typed_file == portable_file
+    template = (typed_vault / "_templates" / "reflection.md").read_text(
+        encoding="utf-8"
+    ).rstrip()
+    assert typed_file.startswith(f"{template}\n\n## <TS>")
+    assert f"<TS>\n\n{prose}\n" in typed_file
 
 
 # ---------------------------------------------------------------------------
@@ -698,8 +688,8 @@ def test_feedback_export_parity(tmp_path, portable_skill) -> None:
     The vaults are normalized to an identical source set first: the typed init
     pre-seeds ``_meta/capability-log.md``/``friction_log.md`` while the portable
     init does not, so without this cleanup the digests would differ purely from
-    vault state, not the redaction algorithm. A single source file also avoids
-    the (separately noted) inter-section spacing divergence.
+    vault state, not the redaction algorithm. Nested sources exercise recursive
+    collection and stable inter-section formatting.
     """
 
     typed_vault = tmp_path / "typed"
@@ -711,6 +701,9 @@ def test_feedback_export_parity(tmp_path, portable_skill) -> None:
     for vault in (typed_vault, portable_vault):
         (vault / "_meta" / "capability-log.md").unlink(missing_ok=True)
         (vault / "_meta" / "friction_log.md").write_text(fixture, encoding="utf-8")
+        nested_reflection = vault / "_meta" / "reflections" / "2026-11" / "entry.md"
+        nested_reflection.parent.mkdir(parents=True)
+        nested_reflection.write_text("Alice Smith reviewed Acme Lab.", encoding="utf-8")
         payload = _read_env(vault)
         payload["name"] = "Alice Smith"  # exercises the auto-added name redaction
         _write_env(vault, payload)
@@ -742,7 +735,10 @@ def test_feedback_export_parity(tmp_path, portable_skill) -> None:
     # Same source set (relative to each vault).
     typed_sources = {str(Path(s).relative_to(typed_vault)) for s in typed_body["sources"]}
     portable_sources = {str(Path(s).relative_to(portable_vault)) for s in portable_body["sources"]}
-    assert typed_sources == portable_sources == {"_meta/friction_log.md"}
+    assert typed_sources == portable_sources == {
+        "_meta/friction_log.md",
+        "_meta/reflections/2026-11/entry.md",
+    }
 
     # Section headings now use the vault-relative path (`## _meta/friction_log.md`,
     # not the bare `## friction_log.md`) so same-basename files in different
@@ -757,13 +753,9 @@ def test_feedback_export_parity(tmp_path, portable_skill) -> None:
     assert "## friction_log.md\n" not in typed_digest  # not the collision-prone basename
     assert "## friction_log.md\n" not in portable_digest
 
-    # The redacted section (everything from the first "## " header — heading and
-    # body) is byte-identical across runtimes; only the top-level digest header
-    # (`# Feedback Digest — <date>`) differs by contract.
-    def _sections(digest: str) -> str:
-        return digest[digest.find("## ") :]
-
-    assert _sections(typed_digest) == _sections(portable_digest)
+    # Header, section formatting, redaction output, and JSON action agree.
+    assert typed_body["action"] == portable_body["action"] == "created"
+    assert typed_digest == portable_digest
 
 
 # ---------------------------------------------------------------------------

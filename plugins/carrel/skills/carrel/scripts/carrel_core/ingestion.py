@@ -1,0 +1,381 @@
+from __future__ import annotations
+
+import argparse
+import contextlib
+import io
+import json
+import shutil
+from datetime import date
+from pathlib import Path
+from urllib.parse import urlparse
+
+from .constants import (
+    AUDIO_EXTENSIONS,
+    DOC_EXTENSIONS,
+    URL_LIST_EXTENSION,
+)
+from .adapters import (
+    capture_url_with_adapter,
+    convert_with_adapter,
+    run_adapter,
+    transcribe_with_adapter,
+)
+from .core import (
+    CarrelError,
+    available_tools,
+    cloud_consent_granted,
+    convert_available_tools,
+    frontmatter_source_hash,
+    read_profile,
+    render_frontmatter,
+    safe_atomic_write,
+    safe_vault_join,
+    safe_read_text,
+    select_tool,
+    slugify,
+    source_hash_with_content,
+)
+from .media_url import google_export_target, slug_for_source
+
+
+def cmd_policy_explain(args) -> int:
+    available = set(args.available_tools.split(",")) if args.available_tools else available_tools(args.tool_class)
+    payload = select_tool(
+        args.tool_class,
+        args.requested_tool,
+        available,
+        args.sensitivity,
+        args.cloud_consent,
+    )
+    payload.update(
+        {
+            "tool_class": args.tool_class,
+            "requested_tool": args.requested_tool,
+            "available_tools": sorted(available),
+            "sensitivity": args.sensitivity,
+            "cloud_consent": args.cloud_consent,
+        }
+    )
+    print(json.dumps(payload))
+    return 0 if payload["selected_tool"] else 1
+
+
+def write_ingested(vault: Path, path: Path, body: str, metadata: dict, force: bool) -> tuple[str, str | None]:
+    existed = path.exists()
+    if path.exists() and not force:
+        old = safe_read_text(vault, path, encoding="utf-8", errors="replace")
+        existing_hash = frontmatter_source_hash(old)
+        if existing_hash is not None and existing_hash == metadata.get("source_hash"):
+            return "skipped", "source-hash matches; pass --force to overwrite"
+        return "skipped", "target exists with a different source-hash; pass --force to overwrite"
+    safe_atomic_write(vault, path, render_frontmatter(metadata, body))
+    return ("overwritten" if existed else "created"), None
+
+
+def capture_content(url: str, args) -> tuple[str, dict, str]:
+    if args.content:
+        return args.content, {"title": args.title or urlparse(url).netloc, "domain": urlparse(url).netloc}, "provided"
+    body, metadata, tool = capture_url_with_adapter(url, title=args.title or urlparse(url).netloc)
+    metadata["domain"] = urlparse(url).netloc
+    return body, metadata, tool
+
+
+def cmd_capture_url(args) -> int:
+    vault = args.vault.expanduser().resolve()
+    url = args.url
+    slug = slugify(args.title) if args.title else slug_for_source(url)
+    target = safe_vault_join(vault, "inbox", f"{slug}.md")
+    if args.dry_run:
+        print(f"Would capture {url} -> {target}")
+        return 0
+    body, metadata, tool = capture_content(url, args)
+    metadata.update(
+        {
+            "title": metadata.get("title") or args.title or urlparse(url).netloc,
+            "source_url": url,
+            "capture_tool": tool,
+            "source_hash": source_hash_with_content(url, args.content),
+        }
+    )
+    action, reason = write_ingested(vault, target, body, metadata, args.force)
+    print(json.dumps({"path": str(target), "action": action, "reason": reason}))
+    return 0
+
+
+def cmd_convert_file(args) -> int:
+    vault = args.vault.expanduser().resolve()
+    file_path = args.file.expanduser().resolve()
+    profile = read_profile(vault)
+    suffix = file_path.suffix.lower()
+    is_plain = suffix in {".txt", ".md"}
+    available = convert_available_tools(suffix, explicit_tool=args.tool)
+    if is_plain or args.content:
+        available.add("provided")
+    sensitivity = args.sensitivity or profile.get("sensitivity", "medium")
+    if not args.tool and (is_plain or args.content):
+        decision = {"selected_tool": "provided", "rationale": "Bundled runtime can read provided/plain text directly"}
+    else:
+        decision = select_tool("convert", args.tool, available, sensitivity, cloud_consent_granted(profile))
+    if args.explain:
+        print(json.dumps(decision))
+        return 0 if decision["selected_tool"] else 1
+    if args.tool and not decision["selected_tool"]:
+        raise CarrelError("Requested conversion tool is not allowed", hint=decision["rationale"])
+    if not decision["selected_tool"] and not args.content:
+        if suffix == ".pdf":
+            raise CarrelError(
+                "No PDF conversion tool available",
+                hint="Install liteparse (the `lit` executable) for local PDF conversion, or pass --content. PDFs never fall back to markitdown.",
+            )
+        raise CarrelError("No conversion tool selected", hint=decision["rationale"])
+    if args.dry_run:
+        print(f"Would convert {file_path} -> papers/{slugify(file_path.stem)}/paper.md")
+        return 0
+    adapter_metadata = {}
+    if args.content:
+        body = args.content
+    elif is_plain:
+        body = file_path.read_text(encoding="utf-8")
+    elif decision["selected_tool"]:
+        body, adapter_metadata = convert_with_adapter(file_path, decision["selected_tool"])
+    else:
+        raise CarrelError("Adapter execution not available in stdlib runtime", hint="Pass --content or install/use a host adapter.")
+    target = safe_vault_join(vault, "papers", slugify(file_path.stem), "paper.md")
+    metadata = {
+        "title": file_path.stem,
+        "source": str(file_path),
+        "convert_tool": decision["selected_tool"] or "provided",
+        "source_hash": source_hash_with_content(file_path, args.content),
+    }
+    metadata.update(adapter_metadata)
+    action, reason = write_ingested(vault, target, body, metadata, args.force)
+    print(json.dumps({"path": str(target), "action": action, "reason": reason}))
+    return 0
+
+
+def cmd_transcript_create(args) -> int:
+    vault = args.vault.expanduser().resolve()
+    source = args.source
+    profile = read_profile(vault)
+    available = available_tools("transcribe")
+    if args.content:
+        available.add("provided")
+    sensitivity = args.sensitivity or profile.get("sensitivity", "medium")
+    if not args.tool and args.content:
+        decision = {"selected_tool": "provided", "rationale": "Bundled runtime can file provided transcript text directly"}
+    else:
+        decision = select_tool("transcribe", args.tool, available, sensitivity, cloud_consent_granted(profile))
+    if args.explain:
+        payload = dict(decision)
+        payload.update(
+            {
+                "tool_class": "transcribe",
+                "requested_tool": args.tool,
+                "available_tools": sorted(available),
+                "sensitivity": sensitivity,
+            }
+        )
+        print(json.dumps(payload))
+        return 0 if decision["selected_tool"] else 1
+    slug = slug_for_source(source, fallback="recording")
+    target = safe_vault_join(vault, "transcripts", f"{date.today().isoformat()}-{args.kind}-{slug}.md")
+    if args.dry_run:
+        print(f"Would transcribe {source} -> {target}")
+        return 0
+    if args.tool and not decision["selected_tool"]:
+        raise CarrelError("Requested transcription tool is not allowed", hint=decision["rationale"])
+    if not decision["selected_tool"] and not args.content:
+        raise CarrelError("No transcription tool selected", hint=decision["rationale"])
+    if args.content:
+        body = args.content
+    else:
+        body = transcribe_with_adapter(source, decision["selected_tool"])
+    source_path = Path(source).expanduser()
+    source_for_hash: str | Path = source_path if source_path.exists() else source
+    metadata = {
+        "source": source,
+        "kind": args.kind,
+        "transcribe_tool": decision["selected_tool"] or "provided",
+        "source_hash": source_hash_with_content(source_for_hash, args.content),
+    }
+    action, reason = write_ingested(vault, target, body, metadata, args.force)
+    print(json.dumps({"path": str(target), "action": action, "reason": reason}))
+    return 0
+
+
+def cmd_google_export(args) -> int:
+    vault = args.vault.expanduser().resolve()
+    profile = read_profile(vault)
+    sensitivity = args.sensitivity or profile.get("sensitivity", "medium")
+    if sensitivity == "high" and not args.content:
+        raise CarrelError(
+            "HIGH sensitivity blocks Google Workspace export",
+            hint="Export locally yourself and pass --content, or lower sensitivity explicitly.",
+        )
+    file_id, mime_type, export_path = google_export_target(vault, args.url, args.export_format)
+    available = available_tools("convert")
+    if args.content:
+        available.add("provided")
+    if not args.tool and args.content:
+        decision = {"selected_tool": "provided", "rationale": "Bundled runtime can file provided export text directly"}
+    else:
+        decision = select_tool("convert", args.tool, available, sensitivity, cloud_consent_granted(profile))
+    if args.explain:
+        payload = dict(decision)
+        payload.update(
+            {
+                "google_file_id": file_id,
+                "export_path": str(export_path),
+                "export_mime_type": mime_type,
+                "available_tools": sorted(available),
+            }
+        )
+        print(json.dumps(payload))
+        return 0 if payload["selected_tool"] else 1
+    if args.tool and not decision["selected_tool"]:
+        raise CarrelError("Requested conversion tool is not allowed", hint=decision["rationale"])
+    if args.dry_run:
+        print(json.dumps({"action": "would-export", "export_path": str(export_path)}))
+        return 0
+    if args.content:
+        safe_atomic_write(vault, export_path, args.content)
+        body = args.content
+    else:
+        gws = shutil.which("gws")
+        if not gws:
+            raise CarrelError("No Google export adapter available", hint="Install gws/authenticate it or pass --content.")
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        run_adapter(
+            [
+                gws,
+                "drive",
+                "files",
+                "export",
+                "--params",
+                json.dumps({"fileId": file_id, "mimeType": mime_type}),
+                "-o",
+                str(export_path),
+            ],
+            timeout=60,
+            label="gws",
+        )
+        if export_path.suffix.lower() in {".txt", ".csv", ".html", ".md"}:
+            body = safe_read_text(vault, export_path, encoding="utf-8", errors="replace")
+        else:
+            raise CarrelError("Adapter execution not available in stdlib runtime", hint="Export as txt/html or pass --content.")
+    target = safe_vault_join(vault, "papers", slugify(args.title or file_id), "paper.md")
+    metadata = {
+        "title": args.title or file_id,
+        "source_url": args.url,
+        "google_file_id": file_id,
+        "export_format": args.export_format,
+        "convert_tool": decision["selected_tool"] or "provided",
+        "source_hash": source_hash_with_content(args.url, args.content),
+    }
+    action, reason = write_ingested(vault, target, body, metadata, args.force)
+    if not args.keep_export and export_path.exists():
+        export_path.unlink()
+    print(json.dumps({"path": str(target), "exported_file": str(export_path), "action": action, "reason": reason}))
+    return 0
+
+
+def append_pending_decision(vault: Path, body: str) -> None:
+    target = safe_vault_join(vault, "_meta", "pending-decisions.md")
+    header = "# Pending Decisions\n\n"
+    row = f"- [ ] **{date.today().isoformat()}**: {body}\n"
+    existing = safe_read_text(vault, target, encoding="utf-8") if target.exists() else header
+    if row in existing:
+        return
+    safe_atomic_write(vault, target, existing.rstrip() + "\n" + row)
+
+
+def enumerate_files(folder: Path, extensions: set[str], *, include_url_lists: bool = False) -> list[Path]:
+    if not folder.exists():
+        raise CarrelError("Batch folder not found", hint=str(folder))
+    if not folder.is_dir():
+        raise CarrelError("Batch target is not a folder", hint="Pass a directory.")
+    files: list[Path] = []
+    for path in sorted(folder.iterdir()):
+        if not path.is_file():
+            continue
+        suffix = path.suffix.lower()
+        if suffix in extensions or (include_url_lists and suffix == URL_LIST_EXTENSION):
+            files.append(path)
+    return files
+
+
+def cmd_batch_convert(args) -> int:
+    outcomes: list[dict] = []
+    for file_path in enumerate_files(args.folder.expanduser(), DOC_EXTENSIONS):
+        ns = argparse.Namespace(
+            file=file_path,
+            vault=args.vault,
+            tool=args.tool,
+            sensitivity=args.sensitivity,
+            content=None,
+            dry_run=args.dry_run,
+            explain=args.explain,
+            force=args.force,
+        )
+        try:
+            child_out = io.StringIO()
+            with contextlib.redirect_stdout(child_out):
+                code = cmd_convert_file(ns)
+            outcomes.append({"file": str(file_path), "action": "converted" if code == 0 else "failed", "detail": child_out.getvalue().strip() or "ok"})
+        except CarrelError as error:
+            action = "deferred" if args.unattended else "failed"
+            if args.unattended:
+                append_pending_decision(args.vault, f"`{file_path.name}` - convert failed: {error.message}")
+            outcomes.append({"file": str(file_path), "action": action, "detail": error.message})
+    print(json.dumps(outcomes) if args.format == "json" else "\n".join(item["file"] for item in outcomes))
+    return 0 if all(item["action"] in {"converted", "deferred"} for item in outcomes) else 1
+
+
+def read_urls(path: Path) -> list[str]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
+
+
+def cmd_batch_transcribe(args) -> int:
+    outcomes: list[dict] = []
+    for file_path in enumerate_files(args.folder.expanduser(), AUDIO_EXTENSIONS, include_url_lists=True):
+        sources = read_urls(file_path) if file_path.suffix.lower() == URL_LIST_EXTENSION else [str(file_path)]
+        if not sources:
+            if args.unattended:
+                append_pending_decision(args.vault, f"`{file_path.name}` - URL list is empty")
+            outcomes.append({"file": str(file_path), "action": "deferred" if args.unattended else "failed", "detail": "empty URL list"})
+            continue
+        for source in sources:
+            ns = argparse.Namespace(
+                source=source,
+                vault=args.vault,
+                kind=args.kind,
+                tool=args.tool,
+                sensitivity=args.sensitivity,
+                content=args.content,
+                dry_run=args.dry_run,
+                explain=args.explain,
+                force=args.force,
+            )
+            try:
+                child_out = io.StringIO()
+                with contextlib.redirect_stdout(child_out):
+                    code = cmd_transcript_create(ns)
+                outcomes.append(
+                    {
+                        "file": str(file_path),
+                        "source": source,
+                        "action": "transcribed" if code == 0 else "failed",
+                        "detail": child_out.getvalue().strip() or "ok",
+                    }
+                )
+            except CarrelError as error:
+                action = "deferred" if args.unattended else "failed"
+                if args.unattended:
+                    append_pending_decision(args.vault, f"`{source}` - transcribe failed: {error.message}")
+                outcomes.append({"file": str(file_path), "source": source, "action": action, "detail": error.message})
+    print(json.dumps(outcomes) if args.format == "json" else "\n".join(item["file"] for item in outcomes))
+    return 0 if all(item["action"] in {"transcribed", "deferred"} for item in outcomes) else 1

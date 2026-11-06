@@ -83,6 +83,7 @@ planning/
 | `reviews/014-impl-audit-synthesis.md` | Pre-commit audit synthesis: consolidates all 4 reviewer findings (plugin-validator, code-reviewer, kimi, codex), enumerates the 11 fixes applied + 4 deferred, sign-off for commit. Includes meta-lessons about skill↔CLI contract drift and adversarial-reviewer convergence as quality signal. |
 | `reviews/2026-07-10-freshness-skill-audit.md` | Freshness + skill-contract readiness evidence (Codex, skill-first branch): typed/portable runtime alignment, upstream re-pins (Obsidian Bases, Hermes Wiki 2.1, JSON Canvas 1.0, Cowork scheduling), full verification-gate table. |
 | `reviews/2026-07-10-swarm-findings.md` | Branch-wide adversarial review log (kimi-review + 40-agent verification workflow + 10-target kimi-swarm): 3 maintainer decisions (host-split, advisory bootstrap, network-lite YouTube), by-design dismissals, falsified reviewer claims, and the low-severity backlog fully resolved with a per-item table. |
+| `reports/015-cross-host-feature-parity-assessment.md` | Cross-host capability inventory and phased parity plan for the portable Agent Plugins package, Claude Code adapter, Codex, Copilot, and other skill hosts. |
 
 ## Release arc summary
 

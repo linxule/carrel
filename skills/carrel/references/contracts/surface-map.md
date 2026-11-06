@@ -79,3 +79,12 @@ When adding a new legacy-compatible surface, first update this map. If the row
 belongs in "Agent Workflows", prefer a workflow reference over a new command.
 If it belongs in "Runtime Commands", keep the implementation in the relevant
 domain module and preserve the module size guard.
+
+## Cross-Host Parity
+
+This map classifies implementation ownership; it does not claim that every
+host has identical components or execution capabilities. The shared target is
+equivalent researcher outcomes and safety behavior. Claude-native commands,
+hooks, agents, plugin migration, and setup-state remain adapters. Other hosts
+may use different entry points and must report missing filesystem, Python,
+network, scheduler, or provider capabilities rather than silently degrading.

@@ -58,9 +58,20 @@ def cmd_reflection_append(args) -> int:
     body = sys.stdin.read().rstrip()
     if not body:
         raise CarrelError("Empty reflection body received on stdin")
-    target = safe_vault_join(args.vault, "_meta", "reflections", f"reflection-{date.today().isoformat()}.md")
+    today = datetime.now().astimezone().date().isoformat()
+    target = safe_vault_join(args.vault, "_meta", "reflections", f"reflection-{today}.md")
     existed = target.exists()
-    previous = safe_read_text(args.vault, target, encoding="utf-8") if target.exists() else f"# Reflection - {date.today().isoformat()}\n"
+    if existed:
+        previous = safe_read_text(args.vault, target, encoding="utf-8")
+    else:
+        template_path = safe_vault_join(args.vault, "_templates", "reflection.md")
+        if template_path.is_file():
+            try:
+                previous = safe_read_text(args.vault, template_path, encoding="utf-8").rstrip()
+            except (OSError, UnicodeDecodeError):
+                previous = f"# Reflection — {today}"
+        else:
+            previous = f"# Reflection — {today}"
     stamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     safe_atomic_write(args.vault, target, f"{previous.rstrip()}\n\n## {stamp}\n\n{body}\n")
     print(json.dumps({"path": str(target), "action": "appended" if existed else "created"}))
@@ -115,12 +126,20 @@ def cmd_feedback_export(args) -> int:
     for folder in FEEDBACK_SWEEP_DIRS:
         folder_path = safe_vault_join(args.vault, "_meta", folder)
         if folder_path.is_dir():
-            candidates.extend(sorted(folder_path.glob("*.md")))
+            for source in sorted(folder_path.rglob("*.md")):
+                relative = source.relative_to(vault_root)
+                candidates.append(safe_vault_join(args.vault, *relative.parts))
     for flat in ["friction_log.md", "capability-log.md"]:
         flat_path = safe_vault_join(args.vault, "_meta", flat)
         if flat_path.is_file():
             candidates.append(flat_path)
-    parts = [f"# Feedback Digest - {date.today().isoformat()}\n"]
+    today = datetime.now().astimezone().date().isoformat()
+    header = (
+        f"# Feedback Digest — {today}\n\n"
+        "Anonymized export of reflection, friction-log, and capability-log entries. "
+        "Redaction rules applied literally (case-insensitive). Review before sharing.\n\n"
+    )
+    sections = []
     total_counts: dict[str, int] = {term: 0 for term, _, _ in terms}
     sources = []
     unreadable = []  # dropped from the digest and every count, not silently covered
@@ -139,17 +158,21 @@ def cmd_feedback_export(args) -> int:
         redacted_tail, tail_counts = apply_redactions(tail, terms)
         redacted_body, body_counts = apply_redactions(body.rstrip(), terms)
         section = f"## {prefix}/{redacted_tail}\n\n{redacted_body}".rstrip()
-        parts.append(f"\n{section}\n")
+        sections.append(section + "\n")
         for counts in (tail_counts, body_counts):
             for term, count in counts.items():
                 total_counts[term] = total_counts.get(term, 0) + count
+    if not sections:
+        sections.append("_No reflection, friction-log, or capability-log entries found._\n")
     zero_match_terms = [term for term, count in total_counts.items() if count == 0]
-    target = safe_vault_join(args.vault, "_meta", f"feedback-digest-{date.today().isoformat()}.md")
-    safe_atomic_write(args.vault, target, "\n".join(parts).rstrip() + "\n")
+    target = safe_vault_join(args.vault, "_meta", f"feedback-digest-{today}.md")
+    existed = target.exists()
+    safe_atomic_write(args.vault, target, header + "\n".join(sections))
     print(
         json.dumps(
             {
                 "path": str(target),
+                "action": "overwritten" if existed else "created",
                 "sources": [str(path) for path in sources],
                 "unreadable_sources": [str(path) for path in unreadable],
                 "redacted_terms": sum(total_counts.values()),

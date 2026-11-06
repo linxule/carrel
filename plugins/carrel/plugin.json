@@ -1,0 +1,31 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "carrel",
+  "version": "0.9.1",
+  "description": "Portable AI-assisted research vault workflows for setup, ingestion, transcription, web capture, environment repair, and knowledge work.",
+  "author": {
+    "name": "Xule Lin"
+  },
+  "homepage": "https://github.com/linxule/carrel",
+  "repository": "https://github.com/linxule/carrel",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "academic",
+    "obsidian",
+    "knowledge-management",
+    "vault"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Carrel",
+        "shortDescription": "Portable AI research vault workflows",
+        "developerName": "Xule Lin",
+        "category": "Productivity",
+        "websiteURL": "https://github.com/linxule/carrel",
+        "defaultPrompt": "Use Carrel to set up or maintain my research vault."
+      }
+    }
+  }
+}

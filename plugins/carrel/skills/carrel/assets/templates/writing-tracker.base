@@ -1,0 +1,88 @@
+# carrel-template: writing-tracker v0.4.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+filters:
+  and:
+    - 'file.inFolder("drafts")'
+
+formulas:
+  days_until_due: 'if(note["due-date"], (date(note["due-date"]) - today()).days, "")'
+  progress: 'if(status == "done", "complete", if(status == "reviewing", "almost", if(status == "drafting", "in progress", "not started")))'
+
+properties:
+  section:
+    displayName: "Section"
+  status:
+    displayName: "Status"
+  word-count:
+    displayName: "Word count"
+  due-date:
+    displayName: "Due date"
+  blockers:
+    displayName: "Blockers"
+  formula.days_until_due:
+    displayName: "Days until due"
+  formula.progress:
+    displayName: "Progress"
+
+summaries:
+  Count: 'values.length'
+
+views:
+  - type: table
+    name: "All Sections"
+    order:
+      - file.name
+      - section
+      - status
+      - word-count
+      - due-date
+      - blockers
+      - formula.days_until_due
+      - formula.progress
+    sort:
+      - property: due-date
+        direction: ASC
+    summaries:
+      word-count: Sum
+      section: Count
+
+  - type: table
+    name: "In Progress"
+    filters:
+      or:
+        - 'status == "drafting"'
+        - 'status == "reviewing"'
+    order:
+      - file.name
+      - section
+      - status
+      - word-count
+      - due-date
+      - formula.days_until_due
+      - formula.progress
+
+  - type: table
+    name: "Blocked"
+    filters:
+      and:
+        - 'note["blockers"] != null'
+        - 'note["blockers"] != ""'
+    order:
+      - file.name
+      - section
+      - status
+      - blockers
+      - due-date
+
+  - type: list
+    name: "By Status"
+    order:
+      - file.name
+      - section
+      - status
+      - due-date
+    groupBy:
+      property: status
+      direction: ASC
