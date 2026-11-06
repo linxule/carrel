@@ -11,7 +11,7 @@
     {
       "name": "carrel",
       "description": "Portable AI-assisted research vault workflows for setup, ingestion, transcription, web capture, environment repair, and knowledge work.",
-      "version": "0.9.1",
+      "version": "0.10.0",
       "source": "./plugins/carrel",
       "homepage": "https://github.com/linxule/carrel",
       "keywords": [

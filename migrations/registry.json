@@ -83,6 +83,13 @@
       "file": "0.8.1-to-0.9.0.md",
       "breaking": false,
       "summary": "Spec 014 (CC-only re-scope): architecture normalization + CC plugin feature adds. 7 new CLI subcommands extract deterministic ops from /carrel-{feedback,migrate,mirror,reflect,share,batch,automate}; 7 wrappers shrunk to thin !carrel <subcmd> ${ARGS} shells (564→35 body lines); orchestration prose rehomed across 6 skills (automation, convert, transcribe, collaborator-onboarding, self-improve, research-partner) plus new session-reflection skill. CC features: marketplace metadata expansion, UserPromptSubmit hook (per-turn vault context), PreToolUse Bash matcher (sensitivity ask-gate before cloud subprocesses). ${ARGS} vs $ARGUMENTS convention documented in commands/CONVENTIONS.md. Cross-CLI port (Codex + Kimi) parked as future work. 275 tests pass (228 baseline + 47 new across CLI + wrapper + structural)."
+    },
+    {
+      "from": "0.9.1",
+      "to": "0.10.0",
+      "file": "0.9.1-to-0.10.0.md",
+      "breaking": false,
+      "summary": "Cross-host plugin for GitHub Copilot, Codex and Kimi Code (plugins/carrel/, generated from skills/carrel/); Claude app skill ZIP published to the skill-latest release; portable skill no longer defers to a machine-wide carrel CLI outside Claude Code; GitHub sign-in optional in installers; Cowork guidance moved to Claude's Scheduled page; plain-English README with install routes with and without a terminal; dependency security upgrades. No vault changes."
     }
   ]
 }
