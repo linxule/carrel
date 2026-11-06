@@ -125,13 +125,17 @@ def test_external_refresh_manifest_v2_dates_only_refreshed_contracts() -> None:
     assert "last_reviewed" in manifest["entry_required_fields"]
     assert entries["liteparse"]["observed_version"] == "2.5.0"
     assert entries["liteparse"]["last_reviewed"] == "2026-07-10"
-    assert entries["claude-app-desktop"]["last_reviewed"] == "2026-07-10"
     assert entries["obsidian"]["last_reviewed"] == "2026-07-10"
-    assert all(date.fromisoformat(entry["last_reviewed"]) <= date(2026, 7, 10) for entry in entries.values())
+    # 2026-11-06 cross-host refresh: Cowork merged into Claude, Copilot added,
+    # Kimi plugin/desktop surfaces re-checked against current docs.
+    refreshed_2026_11 = {"claude-app-desktop", "github-copilot-plugins", "kimi-code-skills"}
+    for key in refreshed_2026_11:
+        assert entries[key]["last_reviewed"] == "2026-11-06", key
+    assert all(date.fromisoformat(entry["last_reviewed"]) <= date(2026, 11, 6) for entry in entries.values())
     assert all(
         entry["last_reviewed"] == "2026-06-30"
         for key, entry in entries.items()
-        if key not in {"liteparse", "claude-app-desktop", "obsidian"}
+        if key not in {"liteparse", "obsidian", *refreshed_2026_11}
     )
     assert "npm install -g @llamaindex/liteparse" in entries["liteparse"]["refresh_checks"][0]
     assert any("schedule-recurring-tasks" in source for source in entries["claude-app-desktop"]["sources"])
@@ -202,7 +206,9 @@ def test_active_skill_docs_reject_stale_command_and_product_claims() -> None:
     assert "13 skills" not in corpus
     assert "Carrel v0.4 runs" not in corpus
     assert "v0.3.0" not in corpus
-    assert "references/cowork-scheduling-guide.md" in automation
+    assert "references/claude-scheduling-guide.md" in automation
+    assert not (SKILLS / "automation" / "references" / "cowork-scheduling-guide.md").exists()
+    assert "Cowork" not in automation
     assert not (SKILLS / "automation" / "references" / "desktop-scheduling-guide.md").exists()
     reflection = (SKILLS / "session-reflection" / "SKILL.md").read_text(encoding="utf-8")
     assert "environment.json` → `researcher_name" not in reflection

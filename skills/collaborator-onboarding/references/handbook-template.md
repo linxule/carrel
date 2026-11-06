@@ -93,7 +93,7 @@ Don't include one-off frustrations. Three+ occurrences is the threshold.]
 ## How to Ask Claude for Help in This Vault
 
 [From CLAUDE.md "How to Work With" section + comfort level + claude_code_familiarity. Example:
-- The vault auto-loads CLAUDE.md every Claude Desktop session — you don't need to brief Claude on context.
+- The vault auto-loads CLAUDE.md every Claude Code session — you don't need to brief Claude on context.
 - Comfort level is [beginner/advanced]: "Ask in plain language; Claude will explain its steps" or "Ask concisely; Claude knows the tools."
 - For multi-step workflows, mention /carrel-status to see what's set up.
 - For converting a file, just drop it in inbox/ and ask "convert these."]

@@ -4,13 +4,21 @@ An [Agent Skill](https://agentskills.io) for AI-assisted academic research vault
 
 ## Install
 
+In GitHub Copilot, Codex and Kimi Code, install Carrel as a plugin from [linxule/carrel](https://github.com/linxule/carrel#use-carrel-in-other-ai-apps) instead: it packages this same skill.
+
+- Copilot (app, VS Code or CLI): add the `linxule/carrel` marketplace, then install `carrel@carrel`
+- Codex: `codex plugin marketplace add linxule/carrel`, then install Carrel from **Plugins** or `/plugins`
+- Kimi Code: `/plugins install https://github.com/linxule/carrel`, or **Settings** > **Plugins** in the desktop app
+
+To install the skill on its own:
+
 | Client | Command |
 |--------|---------|
 | Any `npx skills`-compatible client | `npx skills add linxule/carrel-skill` |
 | Codex / Cursor / OpenCode / Gemini CLI | copy this folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel`) |
 | Kimi Code CLI | copy to `~/.kimi-code/skills/carrel` |
 | Claude Code (standalone, without the Carrel plugin) | copy to `~/.claude/skills/carrel` |
-| Claude.ai / Claude app / Cowork | zip this folder and upload via **Settings → Capabilities → Skills** |
+| Claude (web or desktop app) | download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip), then upload it in **Customize → Skills → + → Create skill → Upload a skill** (turn on code execution first). Do not upload GitHub's "Download ZIP" of this repo: its folder name does not match the skill name. |
 
 Always install the **entire folder** — the runtime needs `scripts/carrel_core/` and vault setup needs `assets/templates/`. See `references/contracts/host-compatibility.md` for per-host notes.
 

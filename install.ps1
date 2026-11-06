@@ -10,6 +10,7 @@
 #   1. Installs prerequisites (git, Node.js, bun, uv, GitHub CLI, Claude Code)
 #   2. Checks GitHub sign-in (optional; Carrel is public)
 #   3. Installs the Carrel plugin for Claude Code
+#   4. Installs the carrel CLI (uv tool install git+https://github.com/linxule/carrel.git)
 
 $ErrorActionPreference = "Stop"
 
@@ -231,7 +232,7 @@ Write-Host '     mkdir ~\Documents\Research'
 Write-Host ""
 Write-Host '  2. Open Claude Desktop → Code tab'
 Write-Host '  3. Select your research folder as the project'
-Write-Host '  4. Say: "I''d like to set up my research environment"'
+Write-Host '  4. Type /carrel-setup'
 Write-Host ""
 Write-Host 'If the plugin didn''t install, tell Claude:'
 Write-Host '  Install the Carrel plugin from linxule/carrel' -ForegroundColor Green

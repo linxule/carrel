@@ -19,6 +19,7 @@ set -o pipefail
 #   2. Installs prerequisites (git, Node.js, bun, uv, GitHub CLI, Claude Code)
 #   3. Checks GitHub sign-in (optional; Carrel is public)
 #   4. Installs the Carrel plugin for Claude Code
+#   5. Installs the carrel CLI (uv tool install git+https://github.com/linxule/carrel.git)
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -354,7 +355,7 @@ echo "     mkdir -p ~/Documents/Research"
 echo ""
 echo "  2. Open Claude Desktop → Code tab"
 echo "  3. Select your research folder as the project"
-echo "  4. Say: \"I'd like to set up my research environment\""
+echo "  4. Type /carrel-setup"
 echo ""
 echo "If the plugin didn't install, tell Claude:"
 echo -e "  ${GREEN}Install the Carrel plugin from linxule/carrel${NC}"

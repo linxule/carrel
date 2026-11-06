@@ -1,6 +1,6 @@
 # Carrel
 
-Research environment toolkit for academics. Two layers: a Python core library (`carrel` CLI) and a Claude Code plugin (skills, agents, hooks, commands).
+Research environment toolkit for academics. A Python core library (`carrel` CLI), a Claude Code plugin (skills, agents, hooks, commands), and a portable skill pack (`skills/carrel/`) packaged as a cross-host plugin (`plugins/carrel/`) for GitHub Copilot, Codex and Kimi Code.
 
 ## Quick Commands
 
@@ -36,6 +36,8 @@ uv run carrel automate configure --enabled --trust-level consultative --schedule
 uv run carrel migrate apply [--plugin-root <path>] --vault . # Walk migrations registry, update plugin-state.json (v0.9.0)
 uv run pytest --cov                              # Coverage run (pytest-cov in dev group; config in pyproject [tool.coverage.*])
 scripts/sync-skill-repo.sh [--push]              # Publish skills/carrel → linxule/carrel-skill via git subtree (dry-run default)
+python scripts/sync-agent-plugin.py [--check]    # Regenerate plugins/carrel/ from skills/carrel (--check fails on drift)
+python scripts/build-skill-zip.py                # Build dist/carrel.zip for Claude app skill upload
 ```
 
 ## Architecture
@@ -48,7 +50,7 @@ Transports (thin)     → plugin, CLI, MCP, agent SDK apps
 
 The core library NEVER asks questions or makes judgment calls. Skills handle that. If a required parameter is missing, the library returns an actionable error.
 
-**Host-split (decision 2026-07-10)**: the typed CLI (`src/carrel`, provisioned by install.sh via `uv tool install`) is the Claude Code plugin's **sole** runtime — hooks, slash commands, and the 13 workflow skills call `carrel ...`. The portable skill pack (`skills/carrel/`: SKILL.md + stdlib-only `scripts/carrel.py` runtime) is the standalone engine for every other host (Codex, Kimi Code, Gemini CLI, OpenCode, Cursor, Cowork, Claude.ai zip) — sandbox-native because it travels as files + python3. The pack is a **strict subset**; `tests/test_runtime_parity.py` is the drift alarm (same-input comparisons on shared surfaces + an enumerated allowlist of intended `vault init` divergences: `setup-state.json` typed-only, `agent-context.md` portable-only). Distribution: `scripts/sync-skill-repo.sh --push` subtree-publishes `skills/carrel/` to [linxule/carrel-skill](https://github.com/linxule/carrel-skill) for `npx skills` / `.agents/skills/` installs. **Never edit carrel-skill directly** — it's a publish target, not a second source of truth; `skills/carrel/` here is canonical. The same pack is also packaged as a cross-host plugin at `plugins/carrel/` (Agent Plugins 1.0 `plugin.json` for Copilot + Codex, `kimi.plugin.json` for Kimi Code; catalogs at `.github/plugin/marketplace.json` and `.agents/plugins/marketplace.json`; repo-root `kimi.plugin.json` points Kimi at the packaged skill only). `plugins/carrel/skills/carrel/` is generated — edit `skills/carrel/`, then run `python scripts/sync-agent-plugin.py`; `tests/test_packaging_contract.py` fails on drift and pins each host's manifest rules. For Claude.ai/Cowork uploads, `scripts/build-skill-zip.py` builds `carrel.zip` (root folder must be `carrel/` — Claude rejects mismatched folder names); `.github/workflows/skill-zip.yml` republishes it to the `skill-latest` release on every `skills/carrel/` change on main.
+**Host-split (decision 2026-07-10)**: the typed CLI (`src/carrel`, provisioned by install.sh via `uv tool install`) is the Claude Code plugin's **sole** runtime — hooks, slash commands, and the 13 workflow skills call `carrel ...`. The portable skill pack (`skills/carrel/`: SKILL.md + stdlib-only `scripts/carrel.py` runtime) is the standalone engine for every other host (Codex, GitHub Copilot, Kimi Code, Gemini CLI, OpenCode, Cursor, Claude app zip) — sandbox-native because it travels as files + python3. The pack is a **strict subset**; `tests/test_runtime_parity.py` is the drift alarm (same-input comparisons on shared surfaces + an enumerated allowlist of intended `vault init` divergences: `setup-state.json` typed-only, `agent-context.md` portable-only). Distribution: `scripts/sync-skill-repo.sh --push` subtree-publishes `skills/carrel/` to [linxule/carrel-skill](https://github.com/linxule/carrel-skill) for `npx skills` / `.agents/skills/` installs. **Never edit carrel-skill directly** — it's a publish target, not a second source of truth; `skills/carrel/` here is canonical. The same pack is also packaged as a cross-host plugin at `plugins/carrel/` (Agent Plugins 1.0 `plugin.json` for Copilot + Codex, `kimi.plugin.json` for Kimi Code; catalogs at `.github/plugin/marketplace.json` and `.agents/plugins/marketplace.json`; repo-root `kimi.plugin.json` points Kimi at the packaged skill only). `plugins/carrel/skills/carrel/` is generated — edit `skills/carrel/`, then run `python scripts/sync-agent-plugin.py`; `tests/test_packaging_contract.py` fails on drift and pins each host's manifest rules. For Claude app uploads, `scripts/build-skill-zip.py` builds `carrel.zip` (root folder must be `carrel/` — Claude rejects mismatched folder names); `.github/workflows/skill-zip.yml` republishes it to the `skill-latest` release on every `skills/carrel/` change on main.
 
 ## Directory Structure
 
@@ -78,11 +80,12 @@ carrel/
 ├── commands/             # 15 plugin slash commands (/carrel-*); 7 are thin wrappers per CONVENTIONS.md
 │   └── CONVENTIONS.md    # ${ARGS} (skill-constructed) vs $ARGUMENTS (raw) convention (v0.9.0)
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
-├── scripts/              # sync-skill-repo.sh — subtree publish of skills/carrel → linxule/carrel-skill
-├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
+├── plugins/carrel/       # Generated cross-host plugin (Copilot, Codex, Kimi) — never edit; run scripts/sync-agent-plugin.py
+├── scripts/              # sync-skill-repo.sh (publish carrel-skill), sync-agent-plugin.py (regenerate plugins/carrel), build-skill-zip.py (Claude app ZIP)
+├── bootstrap.sh          # Deprecated shim — hands off to install.sh
 ├── install.sh            # macOS/Linux one-line installer (curl | bash)
 ├── install.ps1           # Windows installer (first-class as of v0.7.0)
-└── pyproject.toml        # pydantic + typer + rich + httpx + markitdown + defuddle + youtube-transcript-api
+└── pyproject.toml        # pydantic + typer + rich + httpx + markitdown + youtube-transcript-api (defuddle, liteparse, coli are bun tools)
 ```
 
 ## Tool Routing
@@ -116,7 +119,7 @@ Captions are a **network-lite** fetch, not a cloud upload — no vault data egre
 
 ## Scheduled Automation
 
-Carrel can run unattended through Cowork scheduled tasks or a credential-dependent `claude -p` scheduler. The `automation` skill defines the contract; `/carrel-automate` configures the profile, and `carrel vault automation-prompt` generates the prompt separately. In Cowork, use `/schedule` or the Scheduled page. A task that needs a local vault requires the connected folder and Claude Desktop availability when local access is needed.
+Carrel can run unattended through Claude scheduled tasks (the **Scheduled** page; Cowork is now part of the regular Claude app) or a credential-dependent `claude -p` scheduler. The `automation` skill defines the contract; `/carrel-automate` configures the profile, and `carrel vault automation-prompt` generates the prompt separately. In Claude, use the Scheduled page or `/schedule` in a conversation. A task that needs a local vault requires the connected folder and Claude Desktop availability when local access is needed.
 
 - **Trust levels**: Advisory (suggest only) → Consultative (propose, researcher approves) → Delegated (act on new items, experimental) → Partnership (reorganize, experimental)
 - **AutomationConfig** in `models.py`: per-capability booleans, trust level, model, schedule, review cadence
@@ -167,7 +170,7 @@ Spec 014 (CC-only re-scope) normalizes the three-layer rule for 7 high-value com
 
 - **Deterministic CLI surfaces**: `vault {feedback export, mirror, reflect-log, share generate, automation-prompt}`, `batch {convert, transcribe}`, `migrate apply`, and `automate configure`. Skills retain interviews, synthesis, approval, and scheduling guidance.
 - **7 wrapper shrinks** (564 → 35 body lines): `/carrel-{feedback,migrate,mirror,reflect,share,batch,automate}`. Convention: `${ARGS}` (skill-constructed) vs `$ARGUMENTS` (raw user input) documented in `commands/CONVENTIONS.md`.
-- **Skill enrichments** absorbed the freed orchestration prose: `automation` (configuration interview + explicit prompt lifecycle + Cowork/`claude -p` scheduling + unattended contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
+- **Skill enrichments** absorbed the freed orchestration prose: `automation` (configuration interview + explicit prompt lifecycle + Claude Scheduled/`claude -p` scheduling + unattended contract), `convert`+`transcribe` (pre-batch routing), `collaborator-onboarding` (mode + sensitivity tiers), `self-improve` (migrate orchestration), `research-partner` (mirror 5-dimension synthesis), new `session-reflection` skill (reflect + feedback read/write symmetry).
 - **3 CC plugin feature adds**: marketplace metadata (keywords, category, license, repository); `UserPromptSubmit` hook (`hooks/inject-context.js`) for per-turn vault context; `PreToolUse` Bash matcher (`hooks/sensitivity-gate.js`) for sensitivity ask-gate before cloud subprocesses (bypass via `# bypass-gate` comment).
 
 Spec: `planning/specs/014-cc-plugin-v090.md`. Cross-CLI port (Codex + Kimi) parked as future work; investigation artifacts preserved.

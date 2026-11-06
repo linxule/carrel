@@ -15,7 +15,7 @@ The canonical installers are `install.sh` on macOS/Linux and `install.ps1` on Wi
 | Node.js | runtime for some tools | `brew install node` |
 | bun | fast JS runtime (required for coli, defuddle) | Use the platform table below |
 | uv | Python tools | `brew install uv` |
-| gh | GitHub | `brew install gh` |
+| gh | GitHub (optional; not needed to install Carrel) | `brew install gh` |
 
 See `references/toolchain-guide.md` for the full toolchain policy and `references/obsidian-setup.md` for the Obsidian handoff details after install.
 
@@ -74,7 +74,7 @@ These are set up for every researcher regardless of answers:
 | `.obsidian/` config | `carrel vault init` | Core plugins, templates; see `references/obsidian-setup.md` |
 | `CLAUDE.md` | Generated | Researcher profile + guidelines |
 | Cheat sheet | `carrel vault init` writes initial; `carrel vault cheatsheet --force` regenerates | Reference card in `_meta/` |
-| liteparse | `npm install -g @llamaindex/liteparse` | Local PDF conversion — always install |
+| liteparse | `bun add -g @llamaindex/liteparse` | Local PDF conversion — always install |
 | markitdown | Auto-installed with carrel | Office docs (Word, PowerPoint, Excel), EPUB, Jupyter |
 
 ## Sensitivity Assessment
@@ -207,7 +207,7 @@ After the interview, install additional tools based on what the researcher needs
 Interview results → Install silently:
 
 → Works with PDFs (almost every researcher):
-  - npm install -g @llamaindex/liteparse
+  - bun add -g @llamaindex/liteparse
   - Local, free, no account. Always install this.
 
 → Records audio (interviews, meetings):
@@ -221,7 +221,7 @@ Interview results → Install silently:
   - markitdown is auto-installed with carrel — nothing extra needed
 
 → Needs multi-model access (Gemini, GPT, etc.):
-  - uv is already installed via bootstrap — no additional setup
+  - uv is already installed by install.sh / install.ps1 — no additional setup
 ```
 
 Summarize installations in plain language: "I set up a tool to handle your audio files" — not "I installed coli via bun."
@@ -233,7 +233,7 @@ Interview: "What kinds of files do you work with most?"
 + Hardware audit + Sensitivity check
 
 → ALWAYS install liteparse (local, free, no account):
-  npm install -g @llamaindex/liteparse
+  bun add -g @llamaindex/liteparse
   Handles most academic papers well. Fast (~500 pages/2 sec). Sensitive-data safe.
 
 → COMPLEX PDFs (tables, multi-column, figures, formulas):

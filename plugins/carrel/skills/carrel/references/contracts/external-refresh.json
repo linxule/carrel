@@ -397,21 +397,21 @@
     },
     {
       "id": "claude-app-desktop",
-      "last_reviewed": "2026-07-10",
+      "last_reviewed": "2026-11-06",
       "kind": "host-harness",
-      "display_name": "Claude app, API, Desktop, and Cowork",
+      "display_name": "Claude app, API, and Desktop",
       "package": null,
       "observed_version": null,
       "version_probe": null,
-      "contract_marker": "Cowork scheduled tasks are created with `/schedule` or the Scheduled page. Remote tasks can run without a device, but local-folder access requires the folder connection and Claude Desktop availability; `claude -p` is a credential-dependent advanced fallback.",
-      "review_note": "2026-07-10 refresh replaced the stale Desktop Schedule-tab flow with current Cowork scheduling and local-folder availability rules.",
+      "contract_marker": "Claude scheduled tasks are created on the Scheduled page or with `/schedule` (Cowork is now part of the regular Claude app). Remote tasks can run without a device, but local-folder access requires the folder connection and Claude Desktop availability; `claude -p` is a credential-dependent advanced fallback.",
+      "review_note": "2026-07-10 refresh replaced the stale Desktop Schedule-tab flow with current Cowork scheduling and local-folder availability rules. 2026-11-06: Cowork merged into the regular Claude app; scheduling lives on the Scheduled page.",
       "sources": [
         "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
         "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
         "https://code.claude.com/docs/en/headless"
       ],
       "refresh_checks": [
-        "Confirm Cowork scheduling entry points and available cadence/model/folder options.",
+        "Confirm Claude Scheduled page entry points and available cadence/model/folder options.",
         "Confirm when scheduled tasks run remotely versus require Desktop for local-folder access.",
         "Confirm `claude -p` authentication and non-interactive behavior before changing fallback guidance."
       ],
@@ -424,31 +424,59 @@
         "CLAUDE.md",
         "commands/carrel-setup.md",
         "skills/automation/SKILL.md",
-        "skills/automation/references/cowork-scheduling-guide.md"
+        "skills/automation/references/claude-scheduling-guide.md"
       ]
     },
     {
       "id": "kimi-code-skills",
-      "last_reviewed": "2026-06-30",
+      "last_reviewed": "2026-11-06",
       "kind": "host-harness",
-      "display_name": "Kimi Code Skills",
+      "display_name": "Kimi Code (desktop app and CLI)",
       "package": null,
       "observed_version": null,
       "version_probe": null,
-      "contract_marker": "Directory-form skills with `SKILL.md`, scripts/references, `.kimi-code/skills`, `.agents/skills`, user skill dirs, and plugin packaging via `kimi.plugin.json`.",
+      "contract_marker": "Directory-form skills with `SKILL.md`, scripts/references, `.kimi-code/skills`, `.agents/skills`, user skill dirs; plugins via `kimi.plugin.json` (explicit `skills` path, no auto-discovery), installed from Settings > Plugins (desktop) or `/plugins install <github-url>` (CLI), which installs the repository's latest release.",
       "sources": [
         "https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html",
-        "https://www.kimi.com/code/docs/en/kimi-code-cli/customization/plugins.html"
+        "https://www.kimi.com/code/docs/en/kimi-code-cli/customization/plugins.html",
+        "https://www.kimi.com/code/docs/en/kimi-code-desktop/settings-and-extensions.html"
       ],
       "refresh_checks": [
-        "Confirm local skill locations and plugin packaging fields.",
-        "Confirm desktop/app surfaces still lack verified bundled local script execution before changing compatibility."
+        "Confirm local skill locations and plugin manifest locations/fields (`kimi.plugin.json`, `.kimi-plugin/plugin.json`, `skills`).",
+        "Confirm GitHub URL installs still resolve to the latest release, and the desktop Settings > Plugins install flow."
       ],
       "rationale": "Major target harness for portable skill reuse.",
       "skill_references": [
         "references/contracts/host-compatibility.md"
       ],
       "repo_references": []
+    },
+    {
+      "id": "github-copilot-plugins",
+      "last_reviewed": "2026-11-06",
+      "kind": "host-harness",
+      "display_name": "GitHub Copilot (app, VS Code, and CLI) plugins",
+      "package": null,
+      "observed_version": null,
+      "version_probe": null,
+      "contract_marker": "Agent Plugins 1.0 root `plugin.json` (with `$schema`) wins over `.claude-plugin/plugin.json`; skills fixed at `skills/`; marketplace at `.github/plugin/marketplace.json` (`name`, `owner`, `plugins[].source`); users add the marketplace first, then install `plugin@marketplace`.",
+      "sources": [
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference",
+        "https://docs.github.com/en/copilot/how-tos/github-copilot-app/customize-github-copilot-app",
+        "https://code.visualstudio.com/docs/agent-customization/agent-plugins"
+      ],
+      "refresh_checks": [
+        "Confirm manifest lookup order and Agent Plugins `$schema` versions accepted.",
+        "Confirm marketplace file locations/fields and the app's add-marketplace flow on the Customize page."
+      ],
+      "rationale": "Copilot is a primary target host for the cross-host plugin package at plugins/carrel/.",
+      "skill_references": [
+        "references/contracts/host-compatibility.md"
+      ],
+      "repo_references": [
+        ".github/plugin/marketplace.json",
+        "plugins/carrel/plugin.json"
+      ]
     },
     {
       "id": "opencode-skills",

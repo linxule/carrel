@@ -20,7 +20,7 @@ Most researchers should use this route. You need [Claude Desktop](https://claude
 
 ## Install Carrel with a terminal
 
-Use this route on a new computer, or if the first route did not work. The script installs Git, Node.js, uv, the GitHub command-line tool and Claude Code, then the Carrel plugin and its command-line tools. It takes about 10 minutes and is safe to run again.
+Use this route on a new computer, or if the first route did not work. The script installs Git, Node.js, Bun, uv, the GitHub command-line tool and Claude Code, then the Carrel plugin and its command-line tools. It takes about 10 minutes and is safe to run again.
 
 On macOS or Linux, open Terminal and run:
 
@@ -59,8 +59,8 @@ Other apps get Carrel's portable workflows: vault setup, paper conversion, trans
 | GitHub Copilot app | Follow [the Copilot app steps](#install-carrel-in-the-github-copilot-app) | Not needed |
 | GitHub Copilot in VS Code | In the Chat panel, open **Customize**, add `linxule/carrel` as a plugin marketplace, then install Carrel | Not needed |
 | GitHub Copilot CLI | Not available | `copilot plugin marketplace add linxule/carrel`, then `copilot plugin install carrel@carrel` |
-| Codex | Not available | `codex plugin marketplace add linxule/carrel`, then install Carrel from `/plugins` |
-| Kimi Code | Not available | In Kimi Code, run `/plugins install https://github.com/linxule/carrel` |
+| Codex (ChatGPT desktop app or CLI) | Ask a workspace admin to import `https://github.com/linxule/carrel` as a plugin marketplace, then install Carrel from the **Plugins** tab | `codex plugin marketplace add linxule/carrel`, then install Carrel from the **Plugins** tab in the app or `/plugins` in the CLI |
+| Kimi Code (desktop app or CLI) | In the desktop app, open **Settings** > **Plugins** and install from the URL `https://github.com/linxule/carrel` | In the Kimi Code CLI, run `/plugins install https://github.com/linxule/carrel`, then `/reload` |
 | Claude (web or desktop app) | Download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip). In Claude, go to **Customize** > **Skills**, select **+** > **Create skill** > **Upload a skill**, and choose the file | Not needed |
 | Cursor, OpenCode, Gemini CLI and other skill apps | Not available | `npx skills add linxule/carrel-skill` |
 
@@ -171,9 +171,9 @@ The install scripts and setup flow work on macOS, Linux and Windows.
 | Tool | What it does | Notes |
 |------|--------------|-------|
 | Obsidian | Notebook app for your vault | Install command differs by system |
-| liteparse | Converts PDFs on your computer | `npm install -g @llamaindex/liteparse` |
-| coli | Transcribes audio on your computer | `npm install -g @marswave/coli`; some formats need `ffmpeg` |
-| defuddle | Captures web pages | `npm install -g defuddle` |
+| liteparse | Converts PDFs on your computer | `bun add -g @llamaindex/liteparse` |
+| coli | Transcribes audio on your computer | `bun add -g @marswave/coli`; some formats need `ffmpeg` |
+| defuddle | Captures web pages | `bun add -g defuddle` |
 | markitdown | Converts Word, slides and spreadsheets | Included with Carrel |
 | gws | Exports Google Docs | `npm install -g @googleworkspace/cli`; Windows sign-in needs a workaround |
 | mineru | Converts complex PDFs in the cloud | Needs `MINERU_API_KEY` |

@@ -295,10 +295,10 @@ function checkAutomation(projectRoot, env) {
         if (briefs.length > 0) {
           const latestDate = new Date(briefs[0].replace('.md', '') + 'T00:00:00Z');
           if (daysBetween(now, latestDate) > 7) {
-            console.log('  Automation configured but no recent briefs — is the Desktop scheduled task running?');
+            console.log('  Automation configured but no recent briefs — is the task on the Scheduled page in Claude running?');
           }
         } else {
-          console.log('  Automation configured but no recent briefs — is the Desktop scheduled task running?');
+          console.log('  Automation configured but no recent briefs — is the task on the Scheduled page in Claude running?');
         }
 
         // Check if review is stale
