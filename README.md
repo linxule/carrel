@@ -1,263 +1,198 @@
 # Carrel
 
-*Your private desk in the library. Set up by AI, built for thinking.*
+Your private desk in the library, set up by AI and built for thinking.
 
-Carrel is a Claude Code plugin that onboards researchers into an AI-augmented research environment. It works by **interviewing the researcher**, **assessing their machine**, **configuring the right tools**, and **teaching itself how to work with this specific person**.
+Carrel sets up an AI-assisted research environment for academics. It interviews you about your work, checks your computer, installs the tools you need and learns how you like to work. It then helps you convert papers, transcribe interviews, capture web pages and keep an Obsidian vault in order.
 
-## Maintenance release 0.9.1
+Carrel works fully in Claude Code. A smaller, portable version also works in GitHub Copilot, Codex, Kimi Code and other AI apps.
 
-The September 14, 2026 maintenance release updates Python dependencies, fixes
-known vulnerabilities in the locked environment, and adds grouped dependency
-updates with Python 3.11/3.13 tests and security audits. Commands, vault formats,
-and the portable skill runtime are unchanged; no vault migration is needed.
+## Install Carrel in Claude Desktop without a terminal
 
-## Quick Start
+Most researchers should use this route. You need [Claude Desktop](https://claude.ai/download) on macOS, Windows or Linux.
 
-1. Install the plugin (see Installation below)
-2. Create a folder for your research (e.g., `~/Documents/Research`)
-3. Open that folder as a project in Claude Desktop
-4. Say: *"I'd like to set up my research environment"*
-5. Carrel interviews you and configures everything
+1. Open Claude Desktop and select the **Code** tab. If you do not see it, turn on Claude Code in **Settings** > **Features**.
+2. Select **+** next to the plugin tabs, then **Add marketplace**.
+3. Enter `linxule/carrel` and select **Sync**.
+4. Find Carrel in the plugin list and turn it on.
+5. Create a folder for your research, such as `Documents/Research`, and open it as your project.
+6. Type `Install the Carrel CLI for me`. Claude installs the command-line tools that Carrel runs on and asks your permission before each step.
+7. Type `/carrel-setup` to start the setup interview.
 
-## Platform Support
+## Install Carrel with a terminal
 
-Carrel's bootstrap install and setup flow are cross-platform across macOS, Linux, and Windows. The environment audit records `audit.platform`, install commands are platform-keyed, and the setup docs render OS-aware guidance.
+Use this route on a new computer, or if the first route did not work. The script installs Git, Node.js, uv, the GitHub command-line tool and Claude Code, then the Carrel plugin and its command-line tools. It takes about 10 minutes and is safe to run again.
 
-| Tool | macOS | Linux | Windows | Notes |
-|------|:-----:|:-----:|:-------:|-------|
-| Install script | ✅ Full | ✅ Full | ✅ Full | `install.sh` on macOS/Linux, `install.ps1` on Windows |
-| Obsidian | ✅ Full | ✅ Full | ✅ Full | Native app on all three platforms; install commands differ by OS |
-| liteparse | ✅ Full | ✅ Full | ✅ Full | `npm install -g @llamaindex/liteparse` on all three platforms |
-| coli | ✅ Full | ✅ Full | ✅ Full | `npm install -g @marswave/coli`; some media formats may still need `ffmpeg` |
-| defuddle | ✅ Full | ✅ Full | ✅ Full | `npm install -g defuddle` |
-| gws | ✅ Full | ✅ Full | ✅ Full | `npm install -g @googleworkspace/cli`; Windows OAuth has a documented workaround |
-| mineru | ✅ Full | ✅ Full | ✅ Full | Cloud service; requires `MINERU_API_KEY` |
-| mistral_ocr | ✅ Full | ✅ Full | ✅ Full | Cloud OCR service; requires `MISTRAL_API_KEY` |
-| paddleocr | ⚠️ Optional | ⚠️ Optional | ⚠️ Optional | Local OCR candidate for scanned PDFs; heavy Python/model install, not a default |
-| markitdown | ✅ Full | ✅ Full | ✅ Full | Bundled with Carrel's Python environment |
+On macOS or Linux, open Terminal and run:
 
-## What's Included
-
-- **15 commands** (`/carrel-*` for setup, conversion, automation, collaboration, reflection, migration, recovery, model teammates — 7 of these are now thin wrappers over typed CLI subcommands; see [`commands/CONVENTIONS.md`](commands/CONVENTIONS.md))
-- **2 agents** (@setup-interviewer for onboarding, @research-partner for thinking)
-- **Workflow-specific plugin skills plus a portable Carrel umbrella skill** (setup, ingestion, vault operations, research partnership, automation, collaboration, field maps, maintenance, and host-neutral routing)
-- **4 hooks** (session start environment check, session end reflection prompt, per-turn vault context injection, pre-tool-use sensitivity gate for cloud subprocesses)
-- **1 Python core library** (`carrel` CLI — `paper`, `transcript`, `capture`, `google`, `vault`, `env`, `setup-state`, `trust`, `automate`, `batch`, `migrate` subcommand groups)
-
-## Commands
-
-| Command | What it does |
-|---------|-------------|
-| `/carrel-automate` | Set up or update overnight vault maintenance and analytical tasks |
-| `/carrel-batch` | Batch convert or transcribe a folder of files and file them to your vault |
-| `/carrel-capture` | Save web content to your vault |
-| `/carrel-cheatsheet` | Regenerate your reference card |
-| `/carrel-fix` | Diagnose environment drift and guide recovery |
-| `/carrel-setup` | Full onboarding: interview, audit, scaffold vault |
-| `/carrel-status` | Check what's installed and working |
-| `/carrel-convert` | Convert PDF/Word/slides to markdown in your vault |
-| `/carrel-feedback` | Generate anonymized feedback digest for sharing |
-| `/carrel-migrate` | Check for updates, show what's new, apply migrations |
-| `/carrel-mirror` | Synthesize your research patterns from reflections and logs |
-| `/carrel-reflect` | End-of-session reflection |
-| `/carrel-share` | Generate a collaborator handbook for this vault |
-| `/carrel-teammates` | Add, remove, or review model teammates (Codex, Gemini, Kimi) |
-| `/carrel-transcribe` | Transcribe audio to text in your vault |
-
-## Trust Levels
-
-Carrel's automation trust model is now code-enforced, not just narrated in skill markdown. Advisory, Consultative, Delegated, and Partnership still define the relationship contract, but writes that cross those boundaries now go through `carrel trust check <action>` before the skill proceeds. Use `uv run carrel trust list --vault .` to see the current action matrix for a vault.
-
-## Architecture (v0.9.0)
-
-Carrel follows a three-layer rule: **skills = judgment, CLI = deterministic ops, transports = thin**. v0.9.0 extracted seven slash-command bodies into the Python CLI to enforce this — the wrappers in `commands/` are now single-line `!carrel <subcmd> ${ARGS}` shells; the orchestration prose lives in the matching skill; the file I/O lives in `carrel <subcmd>`. The pattern lets you drive the same operations from the CLI (audit, automation, scripts) or via natural language through Claude. See [`planning/specs/014-cc-plugin-v090.md`](planning/specs/014-cc-plugin-v090.md) and [`commands/CONVENTIONS.md`](commands/CONVENTIONS.md).
-
-Two new Claude Code hooks ship alongside: `UserPromptSubmit` injects per-turn vault context (sensitivity, trust, active brief) so Claude stays oriented mid-session; `PreToolUse` adds a sensitivity ask-gate before any `carrel ... --tool <cloud-tool>` subprocess runs (skip per-invocation with a `# bypass-gate` comment). Set `CARREL_HOOK_DEBUG=1` to see hook-decision stderr.
-
-## Design Philosophy
-
-1. **The researcher never touches a terminal.** Everything is conversational.
-2. **Interview first, install second.** Understand their work, then configure what they need.
-3. **Obsidian is the shared workspace.** Researcher sees a GUI notebook. Claude sees markdown.
-4. **Sensitivity-aware by default.** Local-first. Nothing leaves the machine unless explicitly chosen.
-5. **The setup IS the pedagogy.** By choosing what they need, researchers learn what tools do.
-6. **Reflection is built in.** Every session can end with structured feedback that improves the plugin.
-
-## Prerequisites
-
-- **Claude Desktop** (download from [claude.ai](https://claude.ai)) with Claude Code enabled (Settings → Features)
-- **macOS, Linux, or Windows** — Carrel's install scripts and setup guidance support all three.
-
-New machine? Run the install script first (see Installation).
-
-## Installation
-
-There are two paths. **Path A is recommended** — it's more reliable because Claude Code in the terminal can diagnose and fix issues autonomously.
-
-### Path A: One-Line Install (Recommended)
-
-Best for fresh machines or when a facilitator is helping set up.
-
-| Platform | Command |
-|----------|---------|
-| macOS | `curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh \| bash` |
-| Linux | `curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh \| bash` |
-| Windows | `irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 \| iex` |
-
-Open Terminal on macOS/Linux or PowerShell as Administrator on Windows, then run the matching command above.
-
-This installs all prerequisites (git, Node.js, uv, GitHub CLI, Claude Code), signs you in to GitHub, installs the Carrel plugin, and installs the `carrel` CLI (the typed CLI that the plugin's hooks and slash commands run). Idempotent — safe to run again. Takes ~10 minutes on a fresh machine.
-
-If you have the script locally (e.g., via AirDrop):
-| Platform | Command |
-|----------|---------|
-| macOS | `bash install.sh` |
-| Linux | `bash install.sh` |
-| Windows | `.\install.ps1` |
-
-**If the plugin didn't install** (the script will tell you), open a new terminal and run:
 ```bash
-claude --dangerously-skip-permissions
-```
-Then tell Claude: *"Install the Carrel plugin from linxule/carrel"* — it will diagnose and fix whatever went wrong.
-
-**Start using Carrel:**
-
-1. Open **Claude Desktop** → **Code tab**
-2. Select your research folder as the project
-3. Type `/carrel-setup` to begin onboarding
-
-### Path B: Claude Desktop Marketplace UI
-
-For users who already have Claude Code and GitHub CLI set up.
-
-1. Open **Claude Desktop** → **Code tab** → click **+** next to the plugin tabs
-2. Click **Add marketplace**
-3. Enter: `linxule/carrel`
-4. Click **Sync**
-5. Find Carrel in the plugin list → toggle it on
-
-**Requires:** GitHub CLI (`gh`) authenticated with access to this repo. If you haven't set this up:
-```bash
-brew install gh
-gh auth login
+curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
 ```
 
-**Path B doesn't install the `carrel` CLI** — the plugin's hooks and slash commands all run it, so install it separately (requires [uv](https://docs.astral.sh/uv/)):
+On Windows, open PowerShell as an administrator and run:
+
+```powershell
+irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
+```
+
+Then open Claude Desktop, select the **Code** tab, open your research folder and type `/carrel-setup`.
+
+If you already have Claude Code and uv, you can install the 2 parts yourself:
+
+```bash
+claude plugin marketplace add linxule/carrel
+```
+
+```bash
+claude plugin install carrel@carrel --scope user
+```
+
 ```bash
 uv tool install git+https://github.com/linxule/carrel.git
 ```
 
-### For AI Assistants Helping With Setup
+## Use Carrel in other AI apps
 
-If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is the reliable sequence:
+Other apps get Carrel's portable workflows: vault setup, paper conversion, transcription, web capture, environment repair, reflection and collaborator handbooks. They do not get the Claude Code slash commands, hooks or agents. Your computer needs Python 3.10 or newer.
 
-1. **Check prerequisites**: `node --version`, `uv --version`, `gh auth status`, `claude --version`
-2. **If anything is missing**: Run `install.sh` or install individually (brew on macOS, apt/dnf on Linux)
-3. **GitHub auth is required** (private repo): `gh auth login` if not authenticated
-4. **Add marketplace**: `claude plugin marketplace add linxule/carrel`
-5. **Install plugin**: `claude plugin install carrel@carrel --scope user`
-6. **Install the CLI**: `uv tool install git+https://github.com/linxule/carrel.git` — required for the plugin's hooks and commands to work; check with `carrel --version`
-7. **Verify**: `claude plugin list` should show `carrel@carrel`
+| App | Without a terminal | With a terminal |
+|-----|--------------------|-----------------|
+| GitHub Copilot in VS Code | In the Chat panel, open **Customize**, add `linxule/carrel` as a plugin marketplace, then install Carrel | Not needed |
+| GitHub Copilot CLI | Not available | `copilot plugin marketplace add linxule/carrel`, then `copilot plugin install carrel@carrel` |
+| Codex | Not available | `codex plugin marketplace add linxule/carrel`, then install Carrel from `/plugins` |
+| Kimi Code | Not available | In Kimi Code, run `/plugins install https://github.com/linxule/carrel` |
+| Claude.ai, Claude app or Cowork | Download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip). In Claude, go to **Customize** > **Skills**, select **+** > **Create skill** > **Upload a skill**, and choose the file | Not needed |
+| Cursor, OpenCode, Gemini CLI and other skill apps | Not available | `npx skills add linxule/carrel-skill` |
 
-Common issues:
-- `"Failed to add marketplace"` → GitHub auth not set up. Run `gh auth login` first.
-- `"Plugin not found in marketplace"` → Use `carrel@carrel` (not `carrel@linxule`). The marketplace name is `carrel`.
-- Plugin installs but no commands/skills appear → Restart Claude Desktop. Components auto-discover from `commands/`, `agents/`, `skills/` directories.
+Use `linxule/carrel-skill`, not `linxule/carrel`, with `npx skills`. This repository also holds skills that only work inside Claude Code.
 
-### Facilitator-Assisted Setup
+For Claude.ai, turn on code execution first in **Settings** > **Capabilities**. Do not upload GitHub's "Download ZIP" of a repository: Claude rejects it because the folder name does not match the skill name.
 
-When setting up a researcher's machine in person:
+Skills are not signed. Read the short, standard-library-only scripts in `skills/carrel/scripts/` before you install.
 
-1. Run the bootstrap script on their machine
-2. Help them sign in to GitHub during the `gh auth login` step
-3. Install the plugin via terminal Claude Code (Path A, Step 2)
-4. Open Claude Desktop and run `/carrel-setup`
-5. Sit with them through the onboarding interview
-6. Help with human steps: install Obsidian (`brew install --cask obsidian`), Web Clipper
-7. Test with a real PDF conversion
-8. Walk through the cheat sheet together
+## Check that Carrel works
 
-### Verifying Installation
+In Claude Code, type `/carrel-status`. Carrel reports what is installed and working. If Claude does not recognize the command, the plugin is not installed.
 
-In any Claude Code session:
-```
-/carrel-status
-```
-If Carrel is active, it reports the environment state. If not installed, the command won't be recognized.
+## Fix installation problems
 
-## Use Carrel with Other AI Clients
+- "Failed to add marketplace": check your internet connection, then try again.
+- "Plugin not found in marketplace": use `carrel@carrel`. The marketplace is called `carrel`, not `linxule`.
+- "Carrel CLI not found" when a session starts: ask Claude to install the Carrel CLI, or run the `uv tool install` command above.
+- The plugin installed but no commands appear: restart Claude Desktop.
 
-The portable Carrel skill is packaged as an Agent Plugins 1.0 plugin at
-`plugins/carrel/`. It is generated from `skills/carrel/`, the canonical
-stdlib-only runtime and skill source. This shared package works on hosts that
-support Agent Plugins 1.0; it provides the portable Carrel workflows, while
-Claude Code's native plugin keeps its additional commands, hooks, and agents.
+If none of these help, open a terminal, run `claude`, and ask: "Install the Carrel plugin from linxule/carrel and fix whatever is wrong."
 
-| Client | Install |
-|--------|---------|
-| Copilot app | In **Customize**, add `linxule/carrel` as a marketplace, then install Carrel |
-| Copilot CLI | Add the `linxule/carrel` marketplace and install `carrel` |
-| Codex | `codex plugin marketplace add linxule/carrel`, then install Carrel from that marketplace |
-| Other Agent Plugins 1.0 clients | Add `plugins/carrel/` from this repository as a plugin |
-| Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` |
-| Codex, Cursor, OpenCode, Gemini CLI | Copy the folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel` for a global install) |
-| Kimi Code CLI | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
-| Claude.ai / Claude app / Cowork | Zip the folder and upload via **Settings → Capabilities → Skills**: `cd skills && zip -r carrel-skill.zip carrel -x "*__pycache__*" "*.pyc" "*.DS_Store"` |
+## Set up Carrel for someone else
 
-Claude Code continues to use the native plugin from `linxule/carrel`, which
-includes the portable Carrel skill plus Claude-specific capabilities. For older
-skill-only hosts, use `linxule/carrel-skill` or copy `skills/carrel/` directly.
-Don't run `npx skills add linxule/carrel` — it may discover all the Claude-only
-skills in this repository, which assume hooks, commands, or agents that do not
-exist in standalone skill hosts.
+If you are helping a researcher in person:
 
-The plugin's bundled runtime requires Python 3.10+. Skills aren't signed, so
-review `plugins/carrel/skills/carrel/scripts/` before installing. To refresh
-the packaged copy after editing the canonical skill, run
-`python scripts/sync-agent-plugin.py`.
+1. Run the install script on their computer.
+2. Open Claude Desktop with them and run `/carrel-setup`.
+3. Stay with them through the setup interview.
+4. Help them install Obsidian and the Obsidian Web Clipper.
+5. Convert one of their real PDFs together.
+6. Go through the cheat sheet that Carrel creates.
 
-The [cross-host parity assessment](planning/reports/015-cross-host-feature-parity-assessment.md)
-defines which workflows are shared, which remain host adapters, and what must
-be verified before claiming parity on a host.
+## Instructions for AI assistants
 
-## Optional MCPs
+If you are an AI assistant installing Carrel for a user:
 
-During setup, Carrel may add project-level MCPs based on the interview:
+1. Check what is installed: `node --version`, `uv --version` and `claude --version`.
+2. If anything is missing, run `install.sh` or `install.ps1`, or install it with the system package manager.
+3. Run `claude plugin marketplace add linxule/carrel`.
+4. Run `claude plugin install carrel@carrel --scope user`.
+5. Run `uv tool install git+https://github.com/linxule/carrel.git`. The plugin's hooks and commands need it.
+6. Check that `claude plugin list` shows `carrel@carrel` and `carrel --version` works.
 
-| MCP | When | Requires |
-|-----|------|----------|
-| [vox-mcp](https://github.com/linxule/vox-mcp) | Researcher wants access to other AI models (Gemini, GPT, Grok, etc.) | At least one provider key (e.g., `OPENROUTER_API_KEY` or `GEMINI_API_KEY`) |
-| mineru-mcp | Complex PDFs with tables/figures | `MINERU_API_KEY` |
-| Mistral OCR adapter | Scanned or layout-heavy PDFs when cloud OCR is acceptable | `MISTRAL_API_KEY` |
-| [zotero-mcp](https://github.com/54yyyu/zotero-mcp) | Researcher uses Zotero | `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID` |
+The repository is public. GitHub sign-in is optional, but it avoids API rate limits.
 
-See `docs/api-keys-guide.md` for setup instructions.
+## What Carrel includes
 
-## Works With
+The Claude Code plugin includes:
 
-Carrel handles the research environment. For qualitative methodology (Gioia coding, grounded theory), pair it with the [Interpretive Orchestration](https://github.com/linxule/interpretive-orchestration) plugin:
+- 15 slash commands, listed below
+- 2 agents: `@setup-interviewer` for onboarding and `@research-partner` for thinking through your work
+- workflow skills for setup, ingestion, vault work, research partnership, automation, collaboration, field maps and maintenance
+- 4 hooks that check your environment, prompt a reflection at the end of a session, add vault context to each message and ask before sending data to a cloud tool
+- the `carrel` command-line tool, which does all file work in a predictable, testable way
 
-```
+| Command | What it does |
+|---------|--------------|
+| `/carrel-setup` | Interview you, check your computer and create your vault |
+| `/carrel-status` | Show what is installed and working |
+| `/carrel-fix` | Find environment problems and guide the repair |
+| `/carrel-convert` | Convert a PDF, Word file or slides to Markdown in your vault |
+| `/carrel-transcribe` | Transcribe audio into your vault |
+| `/carrel-capture` | Save a web page to your vault |
+| `/carrel-batch` | Convert or transcribe a whole folder |
+| `/carrel-cheatsheet` | Rebuild your reference card |
+| `/carrel-reflect` | Write an end-of-session reflection |
+| `/carrel-mirror` | Summarize your research patterns from reflections and logs |
+| `/carrel-feedback` | Create an anonymized feedback digest you can share |
+| `/carrel-share` | Write a handbook for a collaborator joining your vault |
+| `/carrel-automate` | Set up overnight vault maintenance |
+| `/carrel-teammates` | Add or review other AI models as teammates (Codex, Gemini, Kimi) |
+| `/carrel-migrate` | Check for updates and apply them |
+
+## How Carrel works
+
+Carrel follows 6 principles:
+
+1. You never need to use a terminal. Everything happens in conversation.
+2. Carrel interviews you first, then installs only what you need.
+3. Obsidian is the shared workspace. You see a notebook. Claude sees Markdown files.
+4. Your data stays on your computer unless you choose a cloud tool.
+5. Choosing your tools teaches you what each tool does.
+6. Each session can end with a reflection that improves Carrel.
+
+Carrel uses 4 trust levels for automation: advisory, consultative, delegated and partnership. The `carrel` tool checks the trust level before any action that needs it. To see what your vault allows, run `carrel trust list --vault .`.
+
+Carrel keeps judgment and file work apart. Skills hold the judgment, such as interviews and synthesis. The `carrel` tool does the file work. Slash commands are thin wrappers. Read [the v0.9.0 architecture spec](planning/specs/014-cc-plugin-v090.md) and [the command conventions](commands/CONVENTIONS.md) for details. To see why a hook did or did not act, set `CARREL_HOOK_DEBUG=1`.
+
+## Platform support
+
+The install scripts and setup flow work on macOS, Linux and Windows.
+
+| Tool | What it does | Notes |
+|------|--------------|-------|
+| Obsidian | Notebook app for your vault | Install command differs by system |
+| liteparse | Converts PDFs on your computer | `npm install -g @llamaindex/liteparse` |
+| coli | Transcribes audio on your computer | `npm install -g @marswave/coli`; some formats need `ffmpeg` |
+| defuddle | Captures web pages | `npm install -g defuddle` |
+| markitdown | Converts Word, slides and spreadsheets | Included with Carrel |
+| gws | Exports Google Docs | `npm install -g @googleworkspace/cli`; Windows sign-in needs a workaround |
+| mineru | Converts complex PDFs in the cloud | Needs `MINERU_API_KEY` |
+| mistral_ocr | Reads scanned PDFs in the cloud | Needs `MISTRAL_API_KEY` |
+| paddleocr | Reads scanned PDFs on your computer | Optional, large install |
+
+## Optional MCP servers
+
+Depending on your interview answers, setup may add these servers to your project:
+
+| Server | When Carrel adds it | What you need |
+|--------|---------------------|---------------|
+| [vox-mcp](https://github.com/linxule/vox-mcp) | You want to use other AI models, such as Gemini or GPT | At least one provider key, such as `OPENROUTER_API_KEY` |
+| mineru-mcp | You work with complex PDFs that have tables and figures | `MINERU_API_KEY` |
+| Mistral OCR | You have scanned PDFs and accept cloud processing | `MISTRAL_API_KEY` |
+| [zotero-mcp](https://github.com/54yyyu/zotero-mcp) | You use Zotero | `ZOTERO_API_KEY` and `ZOTERO_LIBRARY_ID` |
+
+Read [the API keys guide](docs/api-keys-guide.md) to set these up.
+
+## Use Carrel with qualitative methods
+
+For Gioia coding, grounded theory and other qualitative methods, add [the Interpretive Orchestration plugin](https://github.com/linxule/interpretive-orchestration):
+
+```bash
 claude plugin marketplace add linxule/interpretive-orchestration
+```
+
+```bash
 claude plugin install interpretive-orchestration@interpretive-orchestration --scope user
 ```
 
-## Supported Surfaces
+## For contributors
 
-Carrel targets the **Code tab** in Claude Desktop, which runs the full Claude Code engine.
-
-| Feature | Desktop Code tab | CLI |
-|---------|-----------------|-----|
-| Skills (all 13) | Yes | Yes |
-| Commands (/carrel-*) | Yes | Yes |
-| Hooks | Yes | Yes |
-| Agents (@setup-interviewer, @research-partner) | Yes | Yes |
-| MCP servers | Yes | Yes |
-| File read/write | Yes | Yes |
-| Bash commands (brew install, etc.) | Yes | Yes |
-
-**Recommended for researchers:** Use the **Code tab** in Claude Desktop. Full capabilities with a friendly GUI.
+`skills/carrel/` is the source of the portable skill. `plugins/carrel/` is generated from it. After you edit the skill, run `python scripts/sync-agent-plugin.py`. Read [the cross-host parity assessment](planning/reports/015-cross-host-feature-parity-assessment.md) to see which features each app supports.
 
 ## License
 

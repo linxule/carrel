@@ -21,6 +21,10 @@ def test_all_packaged_versions_match() -> None:
     copilot_marketplace = json.loads(
         (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
     )
+    kimi_manifests = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (ROOT / "kimi.plugin.json", ROOT / "plugins" / "carrel" / "kimi.plugin.json")
+    ]
 
     versions = {
         pyproject["project"]["version"],
@@ -29,6 +33,7 @@ def test_all_packaged_versions_match() -> None:
         agent_plugin["version"],
         marketplace["plugins"][0]["version"],
         copilot_marketplace["plugins"][0]["version"],
+        *(manifest["version"] for manifest in kimi_manifests),
     }
 
     assert len(versions) == 1

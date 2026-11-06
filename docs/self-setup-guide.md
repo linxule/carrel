@@ -1,129 +1,91 @@
-# Setting Up Carrel Without a Facilitator
+# Set up Carrel on your own
 
-If you're setting up Carrel on your own (no one guiding you in person), here's what to do.
+Use this guide if no one is helping you set up Carrel. It takes about 30 minutes, including a 10-minute conversation with Claude about your research.
 
-## Before You Start
+You need [Claude Desktop](https://claude.ai/download) on macOS, Windows or Linux. If you do not see the **Code** tab in Claude Desktop, turn on Claude Code in **Settings** > **Features**.
 
-You need:
-- **Claude Desktop** installed on your computer ([download here](https://claude.ai/download))
-- **Claude Code** enabled in Claude Desktop (check Settings → Features)
-- **GitHub access** to the Carrel repo (you should have received an invitation email)
+## Step 1: install Carrel
 
-## Step 1: Run the Install Script
+You can install Carrel with or without a terminal.
 
-Open Terminal (find it in Applications → Utilities, or press Cmd+Space and type "Terminal") and paste:
+### Without a terminal
 
-**macOS / Linux:**
+1. Open Claude Desktop and select the **Code** tab.
+2. Select **+** next to the plugin tabs, then **Add marketplace**.
+3. Enter `linxule/carrel` and select **Sync**.
+4. Find Carrel in the plugin list and turn it on.
+
+You will install the Carrel command-line tools in step 3.
+
+### With a terminal
+
+Use this route on a new computer. The script installs Git, Node.js, uv, the GitHub command-line tool, Claude Code, the Carrel plugin and the Carrel command-line tools. It takes about 10 minutes and is safe to run again.
+
+On macOS or Linux, open Terminal and run:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/linxule/carrel/main/install.sh | bash
 ```
 
-**Windows (PowerShell as Administrator):**
+On Windows, open PowerShell as an administrator and run:
+
 ```powershell
 irm https://raw.githubusercontent.com/linxule/carrel/main/install.ps1 | iex
 ```
 
-This takes about 10 minutes. It installs developer tools, GitHub CLI, and Claude Code. It will ask you to sign in to GitHub — use the account that received the repo invitation.
+You do not need a GitHub account. Carrel is public.
 
-If someone gave you the script file directly:
-```bash
-bash install.sh            # macOS/Linux
-.\install.ps1              # Windows PowerShell
-```
+If someone gave you the script file, run `bash install.sh` on macOS or Linux, or `.\install.ps1` in PowerShell on Windows.
 
-## Step 2: Install the Carrel Plugin
+## Step 2: create your research folder
 
-Still in Terminal, run:
+Create a folder for your research vault, such as `Documents/Research`. Put it wherever feels natural to you.
 
-```bash
-claude --dangerously-skip-permissions
-```
+## Step 3: open the folder in Claude Desktop
 
-Then type this message to Claude:
+1. Open Claude Desktop and select the **Code** tab.
+2. Select your research folder as the project.
+3. If Claude shows "Carrel CLI not found", type `Install the Carrel CLI for me`. Claude asks your permission before each step.
 
-> Install the Carrel plugin from linxule/carrel and verify it works.
+## Step 4: run the setup
 
-Claude will handle the marketplace registration and installation. If anything goes wrong, it will diagnose and fix the issue.
+Type `/carrel-setup`, or say "I'd like to set up my research environment".
 
-Alternatively, if you prefer to run the commands yourself:
-```bash
-claude plugin marketplace add linxule/carrel
-claude plugin install carrel@carrel --scope user
-```
+Claude then:
 
-## Step 3: Create Your Research Folder
+1. Talks with you about your research and what you need, for about 10 minutes.
+2. Checks which tools are on your computer.
+3. Proposes a setup plan for you to approve.
+4. Creates your vault and installs your tools.
+5. Writes a personal reference card.
 
-Using Finder, create a new folder where you want your research vault to live. Good locations:
+## Step 5: install Obsidian
 
-- `Documents/Research`
-- `Desktop/My Research`
-- Wherever feels natural to you
+Obsidian is the app you use to browse your research vault. Claude will remind you to install it.
 
-## Step 4: Open the Folder in Claude Desktop
+- on Mac, Claude may offer to install it, or you can download it from [the Obsidian website](https://obsidian.md)
+- on Windows, run `winget install Obsidian.Obsidian`, or download it from [the Obsidian website](https://obsidian.md)
+- on Linux, download the AppImage from [the Obsidian download page](https://obsidian.md/download)
 
-1. Open Claude Desktop
-2. Start a new **Claude Code** session (the **Code** tab)
-3. Select your research folder as the project
-4. You should see a welcome message from Carrel
+Then open Obsidian, select **Open folder as vault**, choose your research folder and select **Open**.
 
-## Step 5: Run the Setup
+## Step 6: install the Web Clipper (optional)
 
-Type: **"I'd like to set up my research environment"**
+The Obsidian Web Clipper saves web articles from your browser straight into your vault. Search for "Obsidian Web Clipper" in the Chrome Web Store, Firefox Add-ons or Safari Extensions.
 
-Claude will:
-1. Have a conversation about your research and needs (~10 min)
-2. Check what tools are on your computer (~30 sec, silent)
-3. Propose a configuration plan
-4. Set up your vault structure and tools
-5. Generate a personalized reference card
+## Start using Carrel
 
-## Step 6: Install Obsidian
+Your reference card is at `_meta/cheat_sheet.md` in your vault. Open it in Obsidian to see everything you can do.
 
-Claude will tell you to install Obsidian — it's the app you'll use to browse your research vault.
+To start a new session, open Claude Desktop, select your research folder and start chatting.
 
-- **Mac**: Claude may offer to install it for you, or download from [obsidian.md](https://obsidian.md)
-- **Windows**: Install with `winget install Obsidian.Obsidian`, or download from [obsidian.md](https://obsidian.md)
-- **Linux**: Download the AppImage from [obsidian.md](https://obsidian.md/download)
+## Fix problems
 
-After installing:
-1. Open Obsidian
-2. Choose "Open folder as vault"
-3. Navigate to your research folder
-4. Click Open
+- Carrel does not seem active: in Claude Desktop, check that Carrel is turned on in the plugin list.
+- "Failed to add marketplace": check your internet connection, then try again.
+- "Carrel CLI not found": type `Install the Carrel CLI for me`, or run `uv tool install git+https://github.com/linxule/carrel.git` in a terminal.
+- The plugin installed but no commands appear: quit Claude Desktop completely, then open it again.
+- Claude cannot find files in your vault: check that you opened your research folder as the project.
+- Obsidian shows an empty vault: check that Obsidian points at the same folder. Look for folders such as `papers/`, `notes/` and `inbox/`.
 
-## Step 7: Install Web Clipper (Optional)
-
-The Obsidian Web Clipper lets you save web articles directly to your vault from your browser:
-- Chrome: Search "Obsidian Web Clipper" in Chrome Web Store
-- Firefox: Search in Firefox Add-ons
-- Safari: Available in Safari Extensions
-
-## You're Done!
-
-Your cheat sheet is at `_meta/cheat_sheet.md` in your vault — open it in Obsidian for a quick reference of everything you can do.
-
-**To start future sessions:** Open Claude Desktop → select your research folder → start chatting.
-
-## Troubleshooting
-
-**Carrel doesn't seem to be active:**
-Check that the plugin is installed and enabled: Claude Desktop → Plugins → look for "Carrel".
-
-**"Failed to add marketplace":**
-This usually means GitHub authentication isn't set up. Open Terminal and run:
-```bash
-gh auth login
-```
-Then retry the plugin install.
-
-**Plugin installed but commands don't appear:**
-Restart Claude Desktop completely (Cmd+Q, then reopen). Commands, agents, and skills are auto-discovered on startup.
-
-**Claude can't find files in my vault:**
-Make sure you opened the research folder as your project in Claude Desktop.
-
-**Obsidian shows an empty vault:**
-Make sure you pointed Obsidian at the same folder Claude set up. Look for folders like `papers/`, `notes/`, `inbox/`.
-
-**Something else isn't working:**
-Tell Claude: "Something isn't working with [describe the problem]. Can you help?"
+For anything else, tell Claude what is not working and ask for help.

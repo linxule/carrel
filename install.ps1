@@ -8,7 +8,7 @@
 #
 # What it does:
 #   1. Installs prerequisites (git, Node.js, bun, uv, GitHub CLI, Claude Code)
-#   2. Signs you in to GitHub
+#   2. Checks GitHub sign-in (optional; Carrel is public)
 #   3. Installs the Carrel plugin for Claude Code
 
 $ErrorActionPreference = "Stop"
@@ -126,16 +126,10 @@ $authStatus = gh auth status 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Ok "Already signed in to GitHub"
 } else {
-    Write-Host ""
-    Write-Info "Sign in to GitHub (needed for the Carrel plugin)"
-    Write-Info "Choose 'Login with a web browser' for the easiest option"
-    Write-Host ""
-    gh auth login
-    if ($LASTEXITCODE -ne 0) {
-        Write-Fail "GitHub sign-in failed."
-        exit 1
-    }
-    Write-Ok "Signed in"
+    # Optional: Carrel is a public repository, so installing the plugin does
+    # not need a GitHub account. Never block a researcher's install on it.
+    Write-Info "Not signed in to GitHub (optional - Carrel installs without it)"
+    Write-Info "To sign in later, run: gh auth login"
 }
 
 # ─── 6. Claude Code CLI ───

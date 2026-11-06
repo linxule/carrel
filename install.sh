@@ -17,7 +17,7 @@ set -o pipefail
 # What it does:
 #   1. Detects your OS
 #   2. Installs prerequisites (git, Node.js, bun, uv, GitHub CLI, Claude Code)
-#   3. Signs you in to GitHub
+#   3. Checks GitHub sign-in (optional; Carrel is public)
 #   4. Installs the Carrel plugin for Claude Code
 
 GREEN='\033[0;32m'
@@ -255,12 +255,10 @@ fi
 if gh auth status &>/dev/null 2>&1; then
   ok "Already signed in to GitHub"
 else
-  echo ""
-  info "Sign in to GitHub (needed for the Carrel plugin)"
-  info "Choose 'Login with a web browser' for the easiest option"
-  echo ""
-  gh auth login < /dev/tty
-  ok "Signed in"
+  # Optional: Carrel is a public repository, so installing the plugin does
+  # not need a GitHub account. Never block a researcher's install on it.
+  info "Not signed in to GitHub (optional — Carrel installs without it)"
+  info "To sign in later, run: gh auth login"
 fi
 
 # ─── 6. Claude Code CLI ───

@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-06
 **Status:** Assessment; Phase 1 implemented, Phases 2–4 planned
-**Scope:** Claude Code, Codex, GitHub Copilot, and other Agent Skills / Agent Plugins hosts
+**Scope:** Claude Code, Codex, GitHub Copilot, Kimi Code, and other Agent Skills / Agent Plugins hosts
 
 ## Executive Assessment
 
@@ -79,7 +79,8 @@ references, and the root `commands/`, `agents/`, and `hooks/` surfaces.
 | Codex | Agent Plugins package / marketplace and skill installation | **Shared workflow core**; verify runtime access, permissions, and optional tool setup on each Codex surface. |
 | GitHub Copilot app / CLI | Agent Plugins package / marketplace | **Shared workflow core**; Copilot-specific agents, commands, and hooks can be added as adapters, but are not yet part of this package. |
 | Claude app / Cowork | Claude plugin or skill, depending on surface | **Partial**; local vault access, scripts, and scheduling depend on connected-folder and execution support. |
-| OpenCode, Gemini CLI, Kimi Code, Cursor, and other skill hosts | Agent Skill folder or host-specific plugin mechanism | **Skill-level only where verified**; do not imply Agent Plugins manifest, local scripts, or lifecycle support without host testing. |
+| Kimi Code CLI | `kimi.plugin.json` (repo root → packaged skill; also inside `plugins/carrel/`) | **Shared workflow core**; Kimi does not read Agent Plugins `plugin.json` and does not auto-discover `skills/`, so it has its own manifest with an explicit `skills` path. |
+| OpenCode, Gemini CLI, Cursor, and other skill hosts | Agent Skill folder or host-specific plugin mechanism | **Skill-level only where verified**; do not imply Agent Plugins manifest, local scripts, or lifecycle support without host testing. |
 
 The shared package and marketplace files are distribution plumbing. A package
 appearing in a catalog is not proof that its workflow runs correctly on that
@@ -109,7 +110,8 @@ must remain explicit and test-pinned rather than being described as exact parity
 ### Phase 1 — Publishable shared core (implemented)
 
 - Package `skills/carrel/` under `plugins/carrel/` with an Agent Plugins 1.0
-  manifest and Copilot/Codex marketplace entries.
+  manifest and Copilot/Codex marketplace entries, plus Kimi Code manifests
+  (`kimi.plugin.json` at the repo root and in the package).
 - Keep `skills/carrel/` as the sole source of truth; check the packaged copy
   byte-for-byte in tests.
 - Keep Claude's root plugin and its existing marketplace untouched.
@@ -177,3 +179,15 @@ smoke tests, and no "feature parity" claim exceeds that evidence.
   multi-source feedback output comparisons.
 - Host-specific parity, especially Copilot adapter components and actual
   cross-host smoke testing, remains future work under Phases 2–4.
+
+## Host Manifest Matrix (checked against host docs, 2026-11-06)
+
+| Host | Manifest read | Skills discovery | Catalog |
+|---|---|---|---|
+| Copilot CLI / VS Code | root `plugin.json` with Agent Plugins `$schema` (wins over `.claude-plugin/plugin.json`) | fixed `skills/` | `.github/plugin/marketplace.json` (`name`, `owner`, `plugins[].source` string) |
+| Codex | root `plugin.json` (Agent Plugins); `.codex-plugin/plugin.json` is a legacy fallback | fixed `skills/` | `.agents/plugins/marketplace.json` (`source: {source: local, path}`, `policy`, `category`) |
+| Kimi Code | `kimi.plugin.json` or `.kimi-plugin/plugin.json` only | explicit `skills` path required | `/plugins install <github-url>` (no subdirectory form) |
+| Claude Code | `.claude-plugin/plugin.json` (repo root = native plugin) | `skills/`, plus commands/hooks/agents | `.claude-plugin/marketplace.json` |
+
+`tests/test_packaging_contract.py` pins these rules so a manifest edit cannot
+silently drop a host.

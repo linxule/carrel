@@ -1,6 +1,6 @@
 ---
 name: carrel
-description: Portable AI-assisted research vault operations for setup, document ingestion, transcription, web capture, environment repair, trust and sensitivity routing, reflection, collaborator handoff, and feedback export. This is the shared workflow core for compatible hosts such as Codex, GitHub Copilot, Kimi Code, Gemini CLI, OpenCode, and Claude skill surfaces; host-specific commands, hooks, and agents remain adapters. Do not use when the Carrel Claude Code plugin or the installed carrel CLI is available; that plugin drives the typed CLI as its runtime, not this pack.
+description: Portable AI-assisted research vault operations for setup, document ingestion, transcription, web capture, environment repair, trust and sensitivity routing, reflection, collaborator handoff, and feedback export. This is the shared workflow core for compatible hosts such as Codex, GitHub Copilot, Kimi Code, Gemini CLI, OpenCode, and Claude skill surfaces; host-specific commands, hooks, and agents remain adapters. In a Claude Code session where the Carrel plugin is active, use the plugin's commands instead; that plugin drives the typed carrel CLI as its runtime. In every other host, use this skill even if the carrel CLI is installed on the machine.
 license: MIT
 compatibility: Requires Python 3.10 or newer on the host
 ---
@@ -114,8 +114,10 @@ lifecycle hooks, marketplace metadata, or host-specific memory files. If a host
 supports those features, treat them as adapters over this skill:
 
 - The Carrel Claude Code plugin is separate. Its commands and hooks call the
-  installed typed `carrel` CLI, not this pack. Use this skill only when that
-  plugin is not installed.
+  installed typed `carrel` CLI, not this pack. Defer to it only inside a Claude
+  Code session where that plugin is active. A `carrel` CLI installed on the
+  machine (for example by `install.sh`) does not replace this skill in Codex,
+  GitHub Copilot, Kimi Code, or other hosts.
 - A Codex, GitHub Copilot, Kimi Code, Gemini CLI, or OpenCode adapter may install
   this skill folder and call `scripts/carrel.py`.
 - Other agents may read this `SKILL.md` and call `scripts/carrel.py` directly.
