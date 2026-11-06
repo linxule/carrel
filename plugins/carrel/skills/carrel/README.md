@@ -4,6 +4,14 @@ An [Agent Skill](https://agentskills.io) for AI-assisted academic research vault
 
 ## Install
 
+In GitHub Copilot, Codex and Kimi Code, install Carrel as a plugin from [linxule/carrel](https://github.com/linxule/carrel#use-carrel-in-other-ai-apps) instead: it packages this same skill.
+
+- Copilot (app, VS Code or CLI): add the `linxule/carrel` marketplace, then install `carrel@carrel`
+- Codex: `codex plugin marketplace add linxule/carrel`, then install Carrel from **Plugins** or `/plugins`
+- Kimi Code: `/plugins install https://github.com/linxule/carrel`, or **Settings** > **Plugins** in the desktop app
+
+To install the skill on its own:
+
 | Client | Command |
 |--------|---------|
 | Any `npx skills`-compatible client | `npx skills add linxule/carrel-skill` |

@@ -19,7 +19,7 @@ You will install the Carrel command-line tools in step 3.
 
 ### With a terminal
 
-Use this route on a new computer. The script installs Git, Node.js, uv, the GitHub command-line tool, Claude Code, the Carrel plugin and the Carrel command-line tools. It takes about 10 minutes and is safe to run again.
+Use this route on a new computer. The script installs Git, Node.js, Bun, uv, the GitHub command-line tool, Claude Code, the Carrel plugin and the Carrel command-line tools. It takes about 10 minutes and is safe to run again.
 
 On macOS or Linux, open Terminal and run:
 

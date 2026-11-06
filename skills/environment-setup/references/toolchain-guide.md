@@ -47,19 +47,19 @@ The carrel CLI handles conversion directly — no MCP servers needed. Tool selec
 
 | File type | Tool | How it's installed |
 |-----------|------|--------------------|
-| PDF | `liteparse` | `npm install -g @llamaindex/liteparse` |
+| PDF | `liteparse` | `bun add -g @llamaindex/liteparse` |
 | DOCX, PPTX, XLSX, images, web | `markitdown` | Auto-installed with carrel (Python package) |
 | Web pages (standalone extraction) | `defuddle` | `bun add -g defuddle` |
 
 **liteparse notes:** handles PDFs well without extra deps. LibreOffice (~800MB) extends it to DOCX/PPTX/XLSX but carrel routes those to markitdown instead — don't install LibreOffice unless specifically requested.
 
-**Google Workspace (gws):** high-friction setup requiring a Google Cloud project + OAuth configuration. Only install if researcher explicitly needs to pull from Google Drive/Docs. Command: `brew install googleworkspace-cli`. Warn the researcher this requires Google Cloud setup before it works.
+**Google Workspace (gws):** high-friction setup requiring a Google Cloud project + OAuth configuration. Only install if researcher explicitly needs to pull from Google Drive/Docs. Command: `npm install -g @googleworkspace/cli`. Warn the researcher this requires Google Cloud setup before it works.
 
 ## Version Control
 
-Handled by the bootstrap script:
-- **git** — included with Xcode Command Line Tools
-- **gh** — GitHub CLI, installed via brew
+Handled by `install.sh` / `install.ps1`:
+- **git** — included with Xcode Command Line Tools on macOS; the installers add it elsewhere
+- **gh** — GitHub CLI. Optional: Carrel's repository is public, so installing does not need a GitHub account
 
 The researcher does NOT need to learn git commands. Claude handles commits, pushes, and syncs. Explain git to interested researchers in terms of "save points" and "syncing to the cloud."
 

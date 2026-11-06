@@ -1,6 +1,6 @@
 # Carrel
 
-Research environment toolkit for academics. Two layers: a Python core library (`carrel` CLI) and a Claude Code plugin (skills, agents, hooks, commands).
+Research environment toolkit for academics. A Python core library (`carrel` CLI), a Claude Code plugin (skills, agents, hooks, commands), and a portable skill pack (`skills/carrel/`) packaged as a cross-host plugin (`plugins/carrel/`) for GitHub Copilot, Codex and Kimi Code.
 
 ## Quick Commands
 
@@ -36,6 +36,8 @@ uv run carrel automate configure --enabled --trust-level consultative --schedule
 uv run carrel migrate apply [--plugin-root <path>] --vault . # Walk migrations registry, update plugin-state.json (v0.9.0)
 uv run pytest --cov                              # Coverage run (pytest-cov in dev group; config in pyproject [tool.coverage.*])
 scripts/sync-skill-repo.sh [--push]              # Publish skills/carrel → linxule/carrel-skill via git subtree (dry-run default)
+python scripts/sync-agent-plugin.py [--check]    # Regenerate plugins/carrel/ from skills/carrel (--check fails on drift)
+python scripts/build-skill-zip.py                # Build dist/carrel.zip for Claude app skill upload
 ```
 
 ## Architecture
@@ -78,11 +80,12 @@ carrel/
 ├── commands/             # 15 plugin slash commands (/carrel-*); 7 are thin wrappers per CONVENTIONS.md
 │   └── CONVENTIONS.md    # ${ARGS} (skill-constructed) vs $ARGUMENTS (raw) convention (v0.9.0)
 ├── planning/             # Specs, reviews, prompts, reports (multi-model review workflow)
-├── scripts/              # sync-skill-repo.sh — subtree publish of skills/carrel → linxule/carrel-skill
-├── bootstrap.sh          # Mac-focused machine prep (legacy; install.sh preferred)
+├── plugins/carrel/       # Generated cross-host plugin (Copilot, Codex, Kimi) — never edit; run scripts/sync-agent-plugin.py
+├── scripts/              # sync-skill-repo.sh (publish carrel-skill), sync-agent-plugin.py (regenerate plugins/carrel), build-skill-zip.py (Claude app ZIP)
+├── bootstrap.sh          # Deprecated shim — hands off to install.sh
 ├── install.sh            # macOS/Linux one-line installer (curl | bash)
 ├── install.ps1           # Windows installer (first-class as of v0.7.0)
-└── pyproject.toml        # pydantic + typer + rich + httpx + markitdown + defuddle + youtube-transcript-api
+└── pyproject.toml        # pydantic + typer + rich + httpx + markitdown + youtube-transcript-api (defuddle, liteparse, coli are bun tools)
 ```
 
 ## Tool Routing

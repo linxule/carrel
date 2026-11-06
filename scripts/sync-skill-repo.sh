@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Syncs skills/carrel (the standalone Carrel skill pack) to its dedicated
 # distribution repo, so it can be installed by hosts that only support Agent
-# Skills (npx skills, .agents/skills/, Kimi Code, Claude.ai zip upload, etc.)
+# Skills (npx skills, .agents/skills/, Kimi Code, etc.; the Claude app ZIP is
+# built separately by scripts/build-skill-zip.py)
 # without pulling in the 13 skills meant only for the Claude Code plugin.
 #
 # Same pattern already used for skills/inquiry -> linxule/inquiry-skill:
