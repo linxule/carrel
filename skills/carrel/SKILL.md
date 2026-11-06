@@ -1,6 +1,6 @@
 ---
 name: carrel
-description: Portable AI-assisted research vault operations for setup, document ingestion, transcription, web capture, environment repair, trust and sensitivity routing, reflection, collaborator handoff, and feedback export. This is the standalone engine for hosts without the Carrel Claude Code plugin, such as Cowork, Codex, Kimi Code, Gemini CLI, OpenCode, and Claude.ai skill uploads. Do not use when the Carrel Claude Code plugin or the installed carrel CLI is available; that plugin drives the typed CLI as its runtime, not this pack.
+description: Portable AI-assisted research vault operations for setup, document ingestion, transcription, web capture, environment repair, trust and sensitivity routing, reflection, collaborator handoff, and feedback export. This is the shared workflow core for compatible hosts such as Codex, GitHub Copilot, Kimi Code, Gemini CLI, OpenCode, and Claude skill surfaces; host-specific commands, hooks, and agents remain adapters. Do not use when the Carrel Claude Code plugin or the installed carrel CLI is available; that plugin drives the typed CLI as its runtime, not this pack.
 license: MIT
 compatibility: Requires Python 3.10 or newer on the host
 ---
@@ -107,16 +107,16 @@ when persistence needs to be deterministic, dated, idempotent, or vault-safe.
 
 ## Host Adapters
 
-This portable skill is the runtime engine for hosts without the Carrel Claude
-Code plugin: Cowork, Codex, Kimi Code, Gemini CLI, OpenCode, and Claude.ai skill
-uploads. It does not require slash commands, lifecycle hooks, marketplace
-metadata, or host-specific memory files. If a host supports those features,
-treat them as adapters over this skill:
+This portable skill is the shared workflow core for hosts without the Carrel
+Claude Code plugin, including Codex, GitHub Copilot, Kimi Code, Gemini CLI,
+OpenCode, and Claude skill surfaces. It does not require slash commands,
+lifecycle hooks, marketplace metadata, or host-specific memory files. If a host
+supports those features, treat them as adapters over this skill:
 
 - The Carrel Claude Code plugin is separate. Its commands and hooks call the
   installed typed `carrel` CLI, not this pack. Use this skill only when that
   plugin is not installed.
-- A Codex, Kimi Code, Gemini CLI, or OpenCode adapter may symlink or install
+- A Codex, GitHub Copilot, Kimi Code, Gemini CLI, or OpenCode adapter may install
   this skill folder and call `scripts/carrel.py`.
 - Other agents may read this `SKILL.md` and call `scripts/carrel.py` directly.
 

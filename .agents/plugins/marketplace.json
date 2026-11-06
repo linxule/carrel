@@ -1,0 +1,20 @@
+{
+  "name": "carrel",
+  "plugins": [
+    {
+      "name": "carrel",
+      "source": {
+        "source": "local",
+        "path": "./plugins/carrel"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "interface": {
+        "displayName": "Carrel"
+      }
+    }
+  ]
+}

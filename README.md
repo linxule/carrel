@@ -188,18 +188,38 @@ If Carrel is active, it reports the environment state. If not installed, the com
 
 ## Use Carrel with Other AI Clients
 
-`skills/carrel/` is a standalone, stdlib-only pack — a strict subset of this plugin's capability that runs without the Claude Code plugin runtime, for hosts that only support Agent Skills.
+The portable Carrel skill is packaged as an Agent Plugins 1.0 plugin at
+`plugins/carrel/`. It is generated from `skills/carrel/`, the canonical
+stdlib-only runtime and skill source. This shared package works on hosts that
+support Agent Plugins 1.0; it provides the portable Carrel workflows, while
+Claude Code's native plugin keeps its additional commands, hooks, and agents.
 
 | Client | Install |
 |--------|---------|
+| Copilot app | In **Customize**, add `linxule/carrel` as a marketplace, then install Carrel |
+| Copilot CLI | Add the `linxule/carrel` marketplace and install `carrel` |
+| Codex | `codex plugin marketplace add linxule/carrel`, then install Carrel from that marketplace |
+| Other Agent Plugins 1.0 clients | Add `plugins/carrel/` from this repository as a plugin |
 | Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` |
 | Codex, Cursor, OpenCode, Gemini CLI | Copy the folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel` for a global install) |
 | Kimi Code CLI | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
 | Claude.ai / Claude app / Cowork | Zip the folder and upload via **Settings → Capabilities → Skills**: `cd skills && zip -r carrel-skill.zip carrel -x "*__pycache__*" "*.pyc" "*.DS_Store"` |
 
-Don't run `npx skills add linxule/carrel` (this plugin repo) — it will discover every `skills/<name>/SKILL.md` in the repo, including the other skills meant only for the Claude Code plugin runtime (`knowledge-wiki`, `model-teammates`, etc.), which assume hooks/commands/agents that don't exist standalone. Use `linxule/carrel-skill` (the dedicated single-skill repo) instead, or scope the install with `--skill carrel`.
+Claude Code continues to use the native plugin from `linxule/carrel`, which
+includes the portable Carrel skill plus Claude-specific capabilities. For older
+skill-only hosts, use `linxule/carrel-skill` or copy `skills/carrel/` directly.
+Don't run `npx skills add linxule/carrel` — it may discover all the Claude-only
+skills in this repository, which assume hooks, commands, or agents that do not
+exist in standalone skill hosts.
 
-Skills aren't signed — before installing from any source, read the code. `skills/carrel/scripts/` is short and stdlib-only by design, so this is a quick read.
+The plugin's bundled runtime requires Python 3.10+. Skills aren't signed, so
+review `plugins/carrel/skills/carrel/scripts/` before installing. To refresh
+the packaged copy after editing the canonical skill, run
+`python scripts/sync-agent-plugin.py`.
+
+The [cross-host parity assessment](planning/reports/015-cross-host-feature-parity-assessment.md)
+defines which workflows are shared, which remain host adapters, and what must
+be verified before claiming parity on a host.
 
 ## Optional MCPs
 

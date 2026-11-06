@@ -1,0 +1,72 @@
+# carrel-template: reading-progress v0.4.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+filters:
+  and:
+    - 'file.inFolder("papers")'
+
+formulas:
+  days_in_vault: '(now() - file.ctime).days'
+  is_stale: 'if((now() - file.mtime).days > 30, "stale", "active")'
+
+properties:
+  title:
+    displayName: "Title"
+  status:
+    displayName: "Status"
+  tags:
+    displayName: "Tags"
+  formula.days_in_vault:
+    displayName: "Days in vault"
+  formula.is_stale:
+    displayName: "Freshness"
+
+summaries:
+  Count: 'values.length'
+
+views:
+  - type: table
+    name: "Recent Additions"
+    order:
+      - file.name
+      - title
+      - status
+      - tags
+      - file.ctime
+      - formula.days_in_vault
+      - formula.is_stale
+    sort:
+      - property: file.ctime
+        direction: DESC
+    summaries:
+      title: Count
+      formula.days_in_vault: Average
+
+  - type: table
+    name: "Stale Papers"
+    filters:
+      and:
+        - '(now() - file.mtime).days > 30'
+    order:
+      - file.name
+      - title
+      - status
+      - tags
+      - file.mtime
+      - formula.days_in_vault
+      - formula.is_stale
+    sort:
+      - property: file.mtime
+        direction: ASC
+
+  - type: list
+    name: "By Status"
+    order:
+      - file.name
+      - title
+      - status
+      - tags
+    groupBy:
+      property: status
+      direction: ASC

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import os
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
 from carrel.vault.templates import template_root
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,3 +59,33 @@ def test_sync_skill_repo_script_exists_and_is_executable() -> None:
     assert "--prefix=$PREFIX" in content or "--prefix=skills/carrel" in content
     assert 'PREFIX="skills/carrel"' in content
     assert "git subtree push" in content
+
+
+def test_agent_plugin_manifest_and_marketplaces_point_to_package() -> None:
+    plugin_root = ROOT / "plugins" / "carrel"
+    manifest = json.loads((plugin_root / "plugin.json").read_text(encoding="utf-8"))
+    assert manifest["$schema"] == (
+        "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+    )
+    assert manifest["name"] == "carrel"
+    assert (plugin_root / "skills" / "carrel" / "SKILL.md").is_file()
+
+    copilot_catalog = json.loads(
+        (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
+    )
+    assert copilot_catalog["plugins"][0]["source"] == "./plugins/carrel"
+
+    codex_catalog = json.loads(
+        (ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8")
+    )
+    assert codex_catalog["plugins"][0]["source"]["path"] == "./plugins/carrel"
+
+
+def test_agent_plugin_skill_copy_matches_canonical_source() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "sync-agent-plugin.py"), "--check"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout

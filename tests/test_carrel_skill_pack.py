@@ -163,6 +163,7 @@ def test_carrel_skill_host_compatibility_contract_documents_adapter_boundary() -
     assert "Python 3.10" in body
     assert "python3 <skill-dir>/scripts/carrel.py" in body
     assert "Codex CLI" in body
+    assert "GitHub Copilot" in body
     assert "Claude Code" in body
     assert "Kimi Code" in body
     assert "Cloud provider calls" in body

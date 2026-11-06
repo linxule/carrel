@@ -1,0 +1,98 @@
+# carrel-template: interview-tracker v0.4.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+filters:
+  and:
+    - 'file.inFolder("transcripts")'
+
+formulas:
+  days_since: '(now() - file.ctime).days'
+  coding_status: 'if(coded, "done", if(transcribed, "ready to code", "needs transcription"))'
+
+properties:
+  participant:
+    displayName: "Participant"
+  date:
+    displayName: "Interview date"
+  kind:
+    displayName: "Kind"
+  transcribed:
+    displayName: "Transcribed on"
+  coded:
+    displayName: "Coded"
+  themes:
+    displayName: "Themes"
+  follow-up:
+    displayName: "Follow-up"
+  formula.days_since:
+    displayName: "Days since added"
+  formula.coding_status:
+    displayName: "Coding status"
+
+summaries:
+  Count: 'values.length'
+
+views:
+  - type: table
+    name: "All Interviews"
+    order:
+      - file.name
+      - participant
+      - date
+      - kind
+      - transcribed
+      - coded
+      - themes
+      - follow-up
+      - formula.coding_status
+    sort:
+      - property: date
+        direction: DESC
+    summaries:
+      participant: Count
+      transcribed: Filled
+      coded: Checked
+
+  - type: table
+    name: "Needs Coding"
+    filters:
+      and:
+        - transcribed
+        - 'coded != true'
+    order:
+      - file.name
+      - participant
+      - date
+      - transcribed
+      - coded
+      - formula.coding_status
+    sort:
+      - property: date
+        direction: ASC
+
+  - type: table
+    name: "Follow-ups Due"
+    filters:
+      and:
+        - 'note["follow-up"] == true'
+    order:
+      - file.name
+      - participant
+      - date
+      - follow-up
+      - themes
+    sort:
+      - property: date
+        direction: ASC
+
+  - type: list
+    name: "By Theme"
+    order:
+      - file.name
+      - participant
+      - date
+      - themes
+    groupBy:
+      property: themes
+      direction: ASC

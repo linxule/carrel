@@ -1,0 +1,96 @@
+# carrel-template: paper-tracker v0.4.0
+# Do not remove this marker — it helps Carrel detect updates.
+# Safe to customize everything below.
+
+filters:
+  and:
+    - 'file.inFolder("papers")'
+
+formulas:
+  days_in_vault: '(now() - file.ctime).days'
+
+properties:
+  title:
+    displayName: "Title"
+  authors:
+    displayName: "Authors"
+  year:
+    displayName: "Year"
+  tags:
+    displayName: "Tags"
+  status:
+    displayName: "Status"
+  method:
+    displayName: "Method"
+  key-finding:
+    displayName: "Key finding"
+  formula.days_in_vault:
+    displayName: "Days in vault"
+
+summaries:
+  Count: 'values.length'
+
+views:
+  - type: table
+    name: "All Papers"
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - status
+      - method
+      - key-finding
+      - tags
+      - formula.days_in_vault
+    sort:
+      - property: year
+        direction: DESC
+    summaries:
+      title: Count
+      formula.days_in_vault: Average
+
+  - type: table
+    name: "Needs Notes"
+    filters:
+      or:
+        - 'status == "unread"'
+        - 'status == "reading"'
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - status
+      - tags
+    sort:
+      - property: file.ctime
+        direction: ASC
+
+  - type: table
+    name: "By Method"
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - method
+      - key-finding
+    groupBy:
+      property: method
+      direction: ASC
+    sort:
+      - property: year
+        direction: DESC
+
+  - type: list
+    name: "By Theme"
+    order:
+      - file.name
+      - title
+      - authors
+      - year
+      - tags
+    groupBy:
+      property: tags
+      direction: ASC
