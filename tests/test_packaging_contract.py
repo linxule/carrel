@@ -61,24 +61,82 @@ def test_sync_skill_repo_script_exists_and_is_executable() -> None:
     assert "git subtree push" in content
 
 
+AGENT_PLUGINS_1_0_FIELDS = {
+    "$schema",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "extensions",
+}
+
+
+def _json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def test_agent_plugin_manifest_and_marketplaces_point_to_package() -> None:
+    """One package, every host's manifest rules (checked against host docs 2026-11).
+
+    * Agent Plugins 1.0 (Copilot CLI/app, Codex): root ``plugin.json``, closed
+      top-level schema, skills auto-discovered from ``skills/`` (no ``skills``
+      field allowed).
+    * Copilot marketplace: ``.github/plugin/marketplace.json`` needs ``name``,
+      ``owner``, and ``plugins[].{name,source}``.
+    * Codex marketplace: ``.agents/plugins/marketplace.json`` entries need
+      ``policy.installation``, ``policy.authentication``, and ``category``;
+      ``source.path`` must start with ``./``.
+    """
     plugin_root = ROOT / "plugins" / "carrel"
-    manifest = json.loads((plugin_root / "plugin.json").read_text(encoding="utf-8"))
+    manifest = _json(plugin_root / "plugin.json")
     assert manifest["$schema"] == (
         "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
     )
     assert manifest["name"] == "carrel"
+    assert set(manifest) <= AGENT_PLUGINS_1_0_FIELDS
     assert (plugin_root / "skills" / "carrel" / "SKILL.md").is_file()
 
-    copilot_catalog = json.loads(
-        (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
-    )
-    assert copilot_catalog["plugins"][0]["source"] == "./plugins/carrel"
+    copilot_catalog = _json(ROOT / ".github" / "plugin" / "marketplace.json")
+    assert copilot_catalog["name"] == "carrel"
+    assert copilot_catalog["owner"]["name"]
+    copilot_entry = copilot_catalog["plugins"][0]
+    assert copilot_entry["name"] == manifest["name"]
+    assert copilot_entry["source"] == "./plugins/carrel"
 
-    codex_catalog = json.loads(
-        (ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8")
-    )
-    assert codex_catalog["plugins"][0]["source"]["path"] == "./plugins/carrel"
+    codex_catalog = _json(ROOT / ".agents" / "plugins" / "marketplace.json")
+    codex_entry = codex_catalog["plugins"][0]
+    assert codex_entry["name"] == manifest["name"]
+    assert codex_entry["source"] == {"source": "local", "path": "./plugins/carrel"}
+    assert codex_entry["policy"]["installation"] in {
+        "AVAILABLE",
+        "INSTALLED_BY_DEFAULT",
+        "NOT_AVAILABLE",
+    }
+    assert codex_entry["policy"]["authentication"]
+    assert codex_entry["category"]
+
+
+def test_kimi_manifests_expose_only_the_portable_skill() -> None:
+    """Kimi Code reads ``kimi.plugin.json`` (not ``plugin.json``) and does NOT
+    auto-discover ``skills/`` -- the ``skills`` path must be explicit.
+
+    The repo-root manifest makes ``/plugins install https://github.com/linxule/carrel``
+    work; it must point at the packaged portable skill only, never the root
+    ``skills/`` tree, whose other skills assume Claude-only hooks/commands.
+    """
+    for manifest_path, skills_path in [
+        (ROOT / "kimi.plugin.json", "./plugins/carrel/skills/"),
+        (ROOT / "plugins" / "carrel" / "kimi.plugin.json", "./skills/"),
+    ]:
+        manifest = _json(manifest_path)
+        assert manifest["name"] == "carrel"
+        assert manifest["skills"] == skills_path
+        skills_root = manifest_path.parent / skills_path
+        assert [p.parent.name for p in skills_root.glob("*/SKILL.md")] == ["carrel"]
 
 
 def test_agent_plugin_skill_copy_matches_canonical_source() -> None:

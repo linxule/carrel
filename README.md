@@ -154,7 +154,7 @@ If you are an AI assistant (Claude, etc.) helping a user install Carrel, here is
 
 1. **Check prerequisites**: `node --version`, `uv --version`, `gh auth status`, `claude --version`
 2. **If anything is missing**: Run `install.sh` or install individually (brew on macOS, apt/dnf on Linux)
-3. **GitHub auth is required** (private repo): `gh auth login` if not authenticated
+3. **GitHub auth** (optional; the repo is public): `gh auth login` avoids API rate limits
 4. **Add marketplace**: `claude plugin marketplace add linxule/carrel`
 5. **Install plugin**: `claude plugin install carrel@carrel --scope user`
 6. **Install the CLI**: `uv tool install git+https://github.com/linxule/carrel.git` — required for the plugin's hooks and commands to work; check with `carrel --version`
@@ -188,21 +188,24 @@ If Carrel is active, it reports the environment state. If not installed, the com
 
 ## Use Carrel with Other AI Clients
 
-The portable Carrel skill is packaged as an Agent Plugins 1.0 plugin at
+The portable Carrel skill is packaged as a cross-host plugin at
 `plugins/carrel/`. It is generated from `skills/carrel/`, the canonical
-stdlib-only runtime and skill source. This shared package works on hosts that
-support Agent Plugins 1.0; it provides the portable Carrel workflows, while
-Claude Code's native plugin keeps its additional commands, hooks, and agents.
+stdlib-only runtime and skill source. The package carries an Agent Plugins 1.0
+`plugin.json` (read by GitHub Copilot and Codex) and a `kimi.plugin.json` (read
+by Kimi Code); it provides the portable Carrel workflows, while Claude Code's
+native plugin keeps its additional commands, hooks, and agents.
 
 | Client | Install |
 |--------|---------|
-| Copilot app | In **Customize**, add `linxule/carrel` as a marketplace, then install Carrel |
-| Copilot CLI | Add the `linxule/carrel` marketplace and install `carrel` |
-| Codex | `codex plugin marketplace add linxule/carrel`, then install Carrel from that marketplace |
+| Claude Code | Native plugin + typed `carrel` CLI — follow [Installation](#installation) (`install.sh` sets up both) |
+| Copilot CLI | `copilot plugin marketplace add linxule/carrel`, then `copilot plugin install carrel@carrel` (or directly: `copilot plugin install linxule/carrel:plugins/carrel`) |
+| Copilot in VS Code | In Chat → **Customize**, add `linxule/carrel` as a plugin marketplace, then install Carrel |
+| Codex | `codex plugin marketplace add linxule/carrel`, then install Carrel from that marketplace in `/plugins` |
+| Kimi Code CLI | `/plugins install https://github.com/linxule/carrel` (the repo-root `kimi.plugin.json` exposes only the portable skill) |
 | Other Agent Plugins 1.0 clients | Add `plugins/carrel/` from this repository as a plugin |
 | Any `npx skills`-compatible client (OpenCode, Cursor, Cline, etc.) | `npx skills add linxule/carrel-skill` |
 | Codex, Cursor, OpenCode, Gemini CLI | Copy the folder to `.agents/skills/carrel` (or `~/.agents/skills/carrel` for a global install) |
-| Kimi Code CLI | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
+| Kimi Code CLI (skill only) | Copy the folder to `.kimi-code/skills/carrel` (or `~/.kimi-code/skills/carrel`) |
 | Claude.ai / Claude app / Cowork | Zip the folder and upload via **Settings → Capabilities → Skills**: `cd skills && zip -r carrel-skill.zip carrel -x "*__pycache__*" "*.pyc" "*.DS_Store"` |
 
 Claude Code continues to use the native plugin from `linxule/carrel`, which

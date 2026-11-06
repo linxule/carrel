@@ -10,13 +10,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "skills" / "carrel"
 DESTINATION = ROOT / "plugins" / "carrel" / "skills" / "carrel"
+# Local byproducts (bytecode from running the runtime, Finder metadata) are
+# never part of the published package and must not make --check flap.
+IGNORED_NAMES = {"__pycache__", ".DS_Store"}
+IGNORED_SUFFIXES = {".pyc", ".pyo"}
+
+
+def _ignored(relative: Path) -> bool:
+    return any(part in IGNORED_NAMES for part in relative.parts) or (
+        relative.suffix in IGNORED_SUFFIXES
+    )
 
 
 def files_at(path: Path) -> dict[str, bytes]:
     return {
         item.relative_to(path).as_posix(): item.read_bytes()
         for item in path.rglob("*")
-        if item.is_file()
+        if item.is_file() and not _ignored(item.relative_to(path))
     }
 
 
@@ -46,7 +56,11 @@ def main() -> int:
 
     if DESTINATION.exists():
         shutil.rmtree(DESTINATION)
-    shutil.copytree(SOURCE, DESTINATION)
+    shutil.copytree(
+        SOURCE,
+        DESTINATION,
+        ignore=shutil.ignore_patterns(*IGNORED_NAMES, *(f"*{s}" for s in IGNORED_SUFFIXES)),
+    )
     print(f"Copied {SOURCE.relative_to(ROOT)} to {DESTINATION.relative_to(ROOT)}.")
     return 0
 
