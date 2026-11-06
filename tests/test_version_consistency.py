@@ -37,3 +37,14 @@ def test_all_packaged_versions_match() -> None:
     }
 
     assert len(versions) == 1
+
+
+def test_current_version_has_a_registered_migration_note() -> None:
+    """The release workflow publishes this note as the release body and refuses
+    to release without it; catch a missing note at PR time instead."""
+    registry = json.loads((ROOT / "migrations" / "registry.json").read_text(encoding="utf-8"))
+    entries = [e for e in registry["migrations"] if e["to"] == __version__]
+    assert len(entries) == 1, f"add one migrations/registry.json entry with to={__version__}"
+    note = ROOT / "migrations" / entries[0]["file"]
+    assert note.is_file(), note
+    assert note.read_text(encoding="utf-8").strip()

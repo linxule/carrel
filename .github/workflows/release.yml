@@ -1,7 +1,9 @@
 name: Release
 # Pushing a version tag (v0.10.0), or running this workflow by hand with a
 # version, creates the GitHub Release (and the tag, if missing) and marks it
-# latest. Kimi Code's `/plugins install https://github.com/linxule/carrel`
+# latest. The release body is the version's migration note, which must exist
+# and be in migrations/registry.json, or the run fails before publishing.
+# Kimi Code's `/plugins install https://github.com/linxule/carrel`
 # installs the latest release, so a tag without a release is not enough.
 on:
   push:
@@ -20,7 +22,7 @@ jobs:
       TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
-      - name: Check the tag matches every manifest version
+      - name: Check manifest versions and the migration note
         run: |
           VERSION="${TAG#v}"
           python3 - "$VERSION" <<'PY'
@@ -35,15 +37,29 @@ jobs:
           wrong = {k: v for k, v in found.items() if v != version}
           if wrong:
               sys.exit(f"Tag v{version} does not match: {wrong}")
+          # The migration note is the release body, so it must exist before
+          # anything is published. It must also be in the registry, or
+          # /carrel-migrate will never show it to researchers.
+          registry = json.load(open("migrations/registry.json"))["migrations"]
+          entries = [e for e in registry if e["to"] == version]
+          if len(entries) != 1:
+              sys.exit(
+                  f"migrations/registry.json needs exactly one entry with \"to\": \"{version}\" "
+                  f"(found {len(entries)}). Add a migration note from migrations/template.md first."
+              )
+          note = "migrations/" + entries[0]["file"]
+          try:
+              body = open(note, encoding="utf-8").read().strip()
+          except FileNotFoundError:
+              sys.exit(f"Registry points at {note}, which does not exist.")
+          if not body:
+              sys.exit(f"{note} is empty.")
+          print(note, file=open("/tmp/release-notes-path", "w"))
           PY
       - name: Create the release from the migration notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${TAG#v}"
-          NOTES=$(ls migrations/*-to-"$VERSION".md 2>/dev/null | head -1)
-          if [ -n "$NOTES" ]; then
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "Carrel $VERSION" --notes-file "$NOTES" --latest
-          else
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "Carrel $VERSION" --generate-notes --latest
-          fi
+          NOTES=$(cat /tmp/release-notes-path)
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "Carrel $VERSION" --notes-file "$NOTES" --latest
