@@ -56,6 +56,7 @@ Other apps get Carrel's portable workflows: vault setup, paper conversion, trans
 
 | App | Without a terminal | With a terminal |
 |-----|--------------------|-----------------|
+| GitHub Copilot app | Select **Customize**, add `linxule/carrel` with the marketplace settings control next to the marketplace dropdown, choose the `carrel` marketplace, then search for Carrel on **Browse** and select **Install** | Not needed |
 | GitHub Copilot in VS Code | In the Chat panel, open **Customize**, add `linxule/carrel` as a plugin marketplace, then install Carrel | Not needed |
 | GitHub Copilot CLI | Not available | `copilot plugin marketplace add linxule/carrel`, then `copilot plugin install carrel@carrel` |
 | Codex | Not available | `codex plugin marketplace add linxule/carrel`, then install Carrel from `/plugins` |
