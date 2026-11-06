@@ -1,20 +1,28 @@
 name: Release
-# Pushing a version tag (v0.10.0) creates the GitHub Release and marks it
+# Pushing a version tag (v0.10.0), or running this workflow by hand with a
+# version, creates the GitHub Release (and the tag, if missing) and marks it
 # latest. Kimi Code's `/plugins install https://github.com/linxule/carrel`
 # installs the latest release, so a tag without a release is not enough.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (for example 0.10.0). Tags the current main."
+        required: true
 permissions:
   contents: write
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
       - name: Check the tag matches every manifest version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           python3 - "$VERSION" <<'PY'
           import json, sys, tomllib
           version = sys.argv[1]
@@ -32,10 +40,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           NOTES=$(ls migrations/*-to-"$VERSION".md 2>/dev/null | head -1)
           if [ -n "$NOTES" ]; then
-            gh release create "$GITHUB_REF_NAME" --title "Carrel $VERSION" --notes-file "$NOTES" --latest
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Carrel $VERSION" --notes-file "$NOTES" --latest
           else
-            gh release create "$GITHUB_REF_NAME" --title "Carrel $VERSION" --generate-notes --latest
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Carrel $VERSION" --generate-notes --latest
           fi
