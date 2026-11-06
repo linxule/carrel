@@ -147,3 +147,41 @@ def test_agent_plugin_skill_copy_matches_canonical_source() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_skill_zip_matches_claude_upload_layout(tmp_path) -> None:
+    """Claude.ai rejects an upload whose root folder name differs from the
+    skill name, so the archive must hold exactly ``carrel/`` with SKILL.md in it.
+    """
+    import zipfile
+
+    output = tmp_path / "carrel.zip"
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build-skill-zip.py"), "--output", str(output)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    names = zipfile.ZipFile(output).namelist()
+    assert {name.split("/", 1)[0] for name in names} == {"carrel"}
+    assert "carrel/SKILL.md" in names
+    assert "carrel/scripts/carrel.py" in names
+    assert not [n for n in names if "__pycache__" in n or n.endswith((".pyc", ".DS_Store"))]
+    canonical = {
+        p.relative_to(ROOT / "skills" / "carrel").as_posix()
+        for p in (ROOT / "skills" / "carrel").rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc" and p.name != ".DS_Store"
+    }
+    assert {name.removeprefix("carrel/") for name in names} == canonical
+
+
+def test_portable_skill_does_not_defer_to_a_machine_wide_cli() -> None:
+    """install.sh installs the typed CLI machine-wide. If the portable skill
+    told agents to stand down whenever that CLI exists, Codex, Copilot, and Kimi
+    users who ran the installer would get a skill that refuses to run.
+    """
+    text = (ROOT / "skills" / "carrel" / "SKILL.md").read_text(encoding="utf-8")
+    description = text.split("description:", 1)[1].split("\n", 1)[0]
+    assert "installed carrel CLI is available" not in description
+    assert "even if the carrel CLI is installed" in description

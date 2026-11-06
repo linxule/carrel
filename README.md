@@ -60,10 +60,12 @@ Other apps get Carrel's portable workflows: vault setup, paper conversion, trans
 | GitHub Copilot CLI | Not available | `copilot plugin marketplace add linxule/carrel`, then `copilot plugin install carrel@carrel` |
 | Codex | Not available | `codex plugin marketplace add linxule/carrel`, then install Carrel from `/plugins` |
 | Kimi Code | Not available | In Kimi Code, run `/plugins install https://github.com/linxule/carrel` |
-| Claude.ai, Claude app or Cowork | Download the ZIP of [the Carrel skill repository](https://github.com/linxule/carrel-skill) (select **Code**, then **Download ZIP**), then upload it in **Settings** > **Capabilities** > **Skills** | Not needed |
+| Claude.ai, Claude app or Cowork | Download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip). In Claude, go to **Customize** > **Skills**, select **+** > **Create skill** > **Upload a skill**, and choose the file | Not needed |
 | Cursor, OpenCode, Gemini CLI and other skill apps | Not available | `npx skills add linxule/carrel-skill` |
 
 Use `linxule/carrel-skill`, not `linxule/carrel`, with `npx skills`. This repository also holds skills that only work inside Claude Code.
+
+For Claude.ai, turn on code execution first in **Settings** > **Capabilities**. Do not upload GitHub's "Download ZIP" of a repository: Claude rejects it because the folder name does not match the skill name.
 
 Skills are not signed. Read the short, standard-library-only scripts in `skills/carrel/scripts/` before you install.
 

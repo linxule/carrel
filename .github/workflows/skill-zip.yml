@@ -1,0 +1,36 @@
+name: Publish skill ZIP
+# Keeps https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip
+# current, so researchers can install the portable skill in Claude.ai, the
+# Claude app or Cowork without a terminal.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/carrel/**"
+      - "scripts/build-skill-zip.py"
+      - ".github/workflows/skill-zip.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: skill-zip
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build carrel.zip
+        run: python3 scripts/build-skill-zip.py --output dist/carrel.zip
+      - name: Publish to the skill-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view skill-latest >/dev/null 2>&1; then
+            gh release create skill-latest \
+              --target "$GITHUB_SHA" \
+              --title "Carrel skill (latest)" \
+              --notes "The portable Carrel skill, rebuilt on every change to skills/carrel. Download carrel.zip and upload it in Claude: Customize > Skills > + > Create skill > Upload a skill." \
+              --latest=false
+          fi
+          gh release upload skill-latest dist/carrel.zip --clobber
