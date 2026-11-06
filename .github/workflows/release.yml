@@ -1,0 +1,41 @@
+name: Release
+# Pushing a version tag (v0.10.0) creates the GitHub Release and marks it
+# latest. Kimi Code's `/plugins install https://github.com/linxule/carrel`
+# installs the latest release, so a tag without a release is not enough.
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the tag matches every manifest version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python3 - "$VERSION" <<'PY'
+          import json, sys, tomllib
+          version = sys.argv[1]
+          found = {
+              "pyproject.toml": tomllib.load(open("pyproject.toml", "rb"))["project"]["version"],
+              ".claude-plugin/plugin.json": json.load(open(".claude-plugin/plugin.json"))["version"],
+              "plugins/carrel/plugin.json": json.load(open("plugins/carrel/plugin.json"))["version"],
+              "kimi.plugin.json": json.load(open("kimi.plugin.json"))["version"],
+          }
+          wrong = {k: v for k, v in found.items() if v != version}
+          if wrong:
+              sys.exit(f"Tag v{version} does not match: {wrong}")
+          PY
+      - name: Create the release from the migration notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES=$(ls migrations/*-to-"$VERSION".md 2>/dev/null | head -1)
+          if [ -n "$NOTES" ]; then
+            gh release create "$GITHUB_REF_NAME" --title "Carrel $VERSION" --notes-file "$NOTES" --latest
+          else
+            gh release create "$GITHUB_REF_NAME" --title "Carrel $VERSION" --generate-notes --latest
+          fi
