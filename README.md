@@ -56,19 +56,33 @@ Other apps get Carrel's portable workflows: vault setup, paper conversion, trans
 
 | App | Without a terminal | With a terminal |
 |-----|--------------------|-----------------|
-| GitHub Copilot app | Select **Customize**, add `linxule/carrel` with the marketplace settings control next to the marketplace dropdown, choose the `carrel` marketplace, then search for Carrel on **Browse** and select **Install** | Not needed |
+| GitHub Copilot app | Follow [the Copilot app steps](#install-carrel-in-the-github-copilot-app) | Not needed |
 | GitHub Copilot in VS Code | In the Chat panel, open **Customize**, add `linxule/carrel` as a plugin marketplace, then install Carrel | Not needed |
 | GitHub Copilot CLI | Not available | `copilot plugin marketplace add linxule/carrel`, then `copilot plugin install carrel@carrel` |
 | Codex | Not available | `codex plugin marketplace add linxule/carrel`, then install Carrel from `/plugins` |
 | Kimi Code | Not available | In Kimi Code, run `/plugins install https://github.com/linxule/carrel` |
-| Claude.ai, Claude app or Cowork | Download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip). In Claude, go to **Customize** > **Skills**, select **+** > **Create skill** > **Upload a skill**, and choose the file | Not needed |
+| Claude (web or desktop app) | Download [carrel.zip](https://github.com/linxule/carrel/releases/download/skill-latest/carrel.zip). In Claude, go to **Customize** > **Skills**, select **+** > **Create skill** > **Upload a skill**, and choose the file | Not needed |
 | Cursor, OpenCode, Gemini CLI and other skill apps | Not available | `npx skills add linxule/carrel-skill` |
 
 Use `linxule/carrel-skill`, not `linxule/carrel`, with `npx skills`. This repository also holds skills that only work inside Claude Code.
 
-For Claude.ai, turn on code execution first in **Settings** > **Capabilities**. Do not upload GitHub's "Download ZIP" of a repository: Claude rejects it because the folder name does not match the skill name.
+For Claude, turn on code execution first in **Settings** > **Capabilities**. Do not upload GitHub's "Download ZIP" of a repository: Claude rejects it because the folder name does not match the skill name.
 
 Skills are not signed. Read the short, standard-library-only scripts in `skills/carrel/scripts/` before you install.
+
+### Install Carrel in the GitHub Copilot app
+
+You need to add the Carrel marketplace before you can install Carrel. The **Install plugin** box cannot find Carrel until you do.
+
+1. Select **Customize** in the sidebar.
+2. Select the marketplace settings control next to the marketplace dropdown.
+3. Add `linxule/carrel` as a GitHub repository.
+4. Choose the `carrel` marketplace in the dropdown.
+5. Search for Carrel on **Browse** and select **Install**.
+
+If you use the **Install plugin** box instead, enter `carrel@carrel` after step 3. The part after `@` is the marketplace name, which is `carrel`, not `linxule`.
+
+The same rule applies in VS Code and the Copilot CLI: add the marketplace first, then install `carrel@carrel`.
 
 ## Check that Carrel works
 
