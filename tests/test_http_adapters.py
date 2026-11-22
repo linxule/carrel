@@ -322,7 +322,7 @@ async def test_transcribe_with_gemini_uses_interactions_video_request(monkeypatc
     assert calls[0][0] == "https://generativelanguage.googleapis.com/v1beta/interactions"
     assert calls[0][1]["headers"] == {"x-goog-api-key": "configured"}
     body = calls[0][1]["json"]
-    assert body["model"] == "gemini-3.5-flash"
+    assert body["model"] == "gemini-3.8-flash"
     content = body["input"][0]["content"]
     assert {"type": "video", "uri": "https://www.youtube.com/watch?v=abc123"} in content
 

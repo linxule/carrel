@@ -6,9 +6,9 @@ import httpx
 
 from carrel.errors import TranscriptionError
 
-# gemini-3.5-flash is GA (Google I/O 2026) and accepts video/audio input. Override
-# with CARREL_GEMINI_MODEL to pin a different Interactions-API model id.
-DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
+# gemini-3.8-flash is GA and accepts video/audio input. Override with
+# CARREL_GEMINI_MODEL to pin a different Interactions-API model id.
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
 # Interactions output items that carry model reasoning rather than the answer.
 # They can lead the `output` array, so transcript text must skip past them.

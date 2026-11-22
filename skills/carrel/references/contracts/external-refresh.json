@@ -290,13 +290,13 @@
     },
     {
       "id": "gemini",
-      "last_reviewed": "2026-06-30",
+      "last_reviewed": "2026-11-22",
       "kind": "cloud-api",
       "display_name": "Gemini video understanding",
       "package": null,
       "observed_version": null,
       "version_probe": null,
-      "contract_marker": "Interactions API `/v1beta/interactions` with `model: gemini-3.5-flash` and video input `{ \"type\": \"video\", \"uri\": <youtube-url> }`.",
+      "contract_marker": "Interactions API `/v1beta/interactions` with `model: gemini-3.8-flash` and video input `{ \"type\": \"video\", \"uri\": <youtube-url> }`.",
       "sources": [
         "https://ai.google.dev/gemini-api/docs/video-understanding"
       ],

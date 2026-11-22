@@ -131,11 +131,13 @@ def test_external_refresh_manifest_v2_dates_only_refreshed_contracts() -> None:
     refreshed_2026_11 = {"claude-app-desktop", "github-copilot-plugins", "kimi-code-skills"}
     for key in refreshed_2026_11:
         assert entries[key]["last_reviewed"] == "2026-11-06", key
-    assert all(date.fromisoformat(entry["last_reviewed"]) <= date(2026, 11, 6) for entry in entries.values())
+    assert entries["gemini"]["last_reviewed"] == "2026-11-22"
+    assert "gemini-3.8-flash" in entries["gemini"]["contract_marker"]
+    assert all(date.fromisoformat(entry["last_reviewed"]) <= date(2026, 11, 22) for entry in entries.values())
     assert all(
         entry["last_reviewed"] == "2026-06-30"
         for key, entry in entries.items()
-        if key not in {"liteparse", "obsidian", *refreshed_2026_11}
+        if key not in {"liteparse", "obsidian", "gemini", *refreshed_2026_11}
     )
     assert "npm install -g @llamaindex/liteparse" in entries["liteparse"]["refresh_checks"][0]
     assert any("schedule-recurring-tasks" in source for source in entries["claude-app-desktop"]["sources"])
